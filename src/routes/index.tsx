@@ -5,6 +5,7 @@ import { LogoFull } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Sparkles, FileText, ShieldCheck, Workflow, BookOpen, Brain } from "lucide-react";
+import heroBg from "@/assets/hero-background.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,30 +26,50 @@ function Landing() {
       <AppHeader />
       <main className="flex-1">
         {/* Hero */}
-        <section className="container mx-auto px-4 py-20 md:py-32 text-center">
-          <div className="flex justify-center mb-6">
-            <LogoFull className="h-28 md:h-36" />
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" /> AI-Native · by Advocacy.AI
-          </div>
-          <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight">
-            Redija peças jurídicas <br />
-            <span className="text-gradient-brand">com inteligência</span>, não com mágica.
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Wizard guiado, persona jurídica sênior, regras anti-alucinação e exportação ABNT —
-            tudo dentro de uma plataforma feita para advogados brasileiros.
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button size="lg" className="bg-gradient-brand text-primary-foreground" asChild>
-              <Link to="/signup">
-                Começar agora <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/login">Entrar</Link>
-            </Button>
+        <section
+          className="relative overflow-hidden"
+          style={{
+            backgroundImage: `url(${heroBg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          {/* Overlay para contraste e fade nas bordas */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, hsl(var(--background) / 0.35) 0%, hsl(var(--background) / 0.65) 55%, hsl(var(--background)) 100%)",
+            }}
+          />
+          {/* Fade suave para a próxima seção */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-background pointer-events-none" />
+
+          <div className="relative container mx-auto px-4 py-20 md:py-32 text-center min-h-[80vh] flex flex-col items-center justify-center">
+            <div className="flex justify-center mb-6">
+              <LogoFull className="h-28 md:h-40 drop-shadow-[0_0_30px_rgba(56,189,248,0.25)]" />
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> AI-Native · by Advocacy.AI
+            </div>
+            <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight">
+              Redija peças jurídicas <br />
+              <span className="text-gradient-brand">com inteligência</span>, não com mágica.
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+              Wizard guiado, persona jurídica sênior, regras anti-alucinação e exportação ABNT —
+              tudo dentro de uma plataforma feita para advogados brasileiros.
+            </p>
+            <div className="mt-10 flex flex-wrap justify-center gap-3">
+              <Button size="lg" className="bg-gradient-brand text-primary-foreground" asChild>
+                <Link to="/signup">
+                  Começar agora <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/login">Entrar</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
