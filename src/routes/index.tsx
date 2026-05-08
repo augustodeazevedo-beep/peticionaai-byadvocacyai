@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
+import { LogoFull } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Sparkles, FileText, ShieldCheck, Workflow, BookOpen, Brain } from "lucide-react";
@@ -25,6 +26,9 @@ function Landing() {
       <main className="flex-1">
         {/* Hero */}
         <section className="container mx-auto px-4 py-20 md:py-32 text-center">
+          <div className="flex justify-center mb-6">
+            <LogoFull className="h-28 md:h-36" />
+          </div>
           <div className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-xs uppercase tracking-wider text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary" /> AI-Native · by Advocacy.AI
           </div>
