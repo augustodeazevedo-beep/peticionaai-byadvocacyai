@@ -12,7 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
+import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
+import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
+import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -29,41 +35,118 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPecasNovaRoute = AuthenticatedPecasNovaRouteImport.update({
+  id: '/pecas/nova',
+  path: '/pecas/nova',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPecasIdRoute = AuthenticatedPecasIdRouteImport.update({
+  id: '/pecas/$id',
+  path: '/pecas/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFerramentasLinksRoute =
+  AuthenticatedFerramentasLinksRouteImport.update({
+    id: '/ferramentas/links',
+    path: '/ferramentas/links',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminIntegracoesRoute =
+  AuthenticatedAdminIntegracoesRouteImport.update({
+    id: '/admin/integracoes',
+    path: '/admin/integracoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
+  '/pecas/$id': typeof AuthenticatedPecasIdRoute
+  '/pecas/nova': typeof AuthenticatedPecasNovaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
+  '/pecas/$id': typeof AuthenticatedPecasIdRoute
+  '/pecas/nova': typeof AuthenticatedPecasNovaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
+  '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
+  '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/reset-password' | '/signup'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/dashboard'
+    | '/admin/integracoes'
+    | '/ferramentas/links'
+    | '/pecas/$id'
+    | '/pecas/nova'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/reset-password' | '/signup'
-  id: '__root__' | '/' | '/login' | '/reset-password' | '/signup'
+  to:
+    | '/'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/dashboard'
+    | '/admin/integracoes'
+    | '/ferramentas/links'
+    | '/pecas/$id'
+    | '/pecas/nova'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/admin/integracoes'
+    | '/_authenticated/ferramentas/links'
+    | '/_authenticated/pecas/$id'
+    | '/_authenticated/pecas/nova'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
@@ -92,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -99,11 +189,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pecas/nova': {
+      id: '/_authenticated/pecas/nova'
+      path: '/pecas/nova'
+      fullPath: '/pecas/nova'
+      preLoaderRoute: typeof AuthenticatedPecasNovaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pecas/$id': {
+      id: '/_authenticated/pecas/$id'
+      path: '/pecas/$id'
+      fullPath: '/pecas/$id'
+      preLoaderRoute: typeof AuthenticatedPecasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ferramentas/links': {
+      id: '/_authenticated/ferramentas/links'
+      path: '/ferramentas/links'
+      fullPath: '/ferramentas/links'
+      preLoaderRoute: typeof AuthenticatedFerramentasLinksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/integracoes': {
+      id: '/_authenticated/admin/integracoes'
+      path: '/admin/integracoes'
+      fullPath: '/admin/integracoes'
+      preLoaderRoute: typeof AuthenticatedAdminIntegracoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
+  AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
+  AuthenticatedPecasIdRoute: typeof AuthenticatedPecasIdRoute
+  AuthenticatedPecasNovaRoute: typeof AuthenticatedPecasNovaRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
+  AuthenticatedFerramentasLinksRoute: AuthenticatedFerramentasLinksRoute,
+  AuthenticatedPecasIdRoute: AuthenticatedPecasIdRoute,
+  AuthenticatedPecasNovaRoute: AuthenticatedPecasNovaRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
@@ -111,13 +257,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
