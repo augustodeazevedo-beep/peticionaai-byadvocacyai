@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { LogoMark } from "@/components/Logo";
+import { BrandLockup } from "@/components/Logo";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 
@@ -45,9 +45,8 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <Card className="glass w-full max-w-md p-8 border-border/50">
         <div className="flex flex-col items-center mb-6">
-          <LogoMark size={48} />
-          <h1 className="mt-4 text-2xl font-bold">Entrar no Peticione.AI</h1>
-          <p className="text-sm text-muted-foreground">Bem-vindo(a) de volta</p>
+          <BrandLockup size="lg" variant="stacked" glow />
+          <p className="mt-4 text-sm text-muted-foreground">Bem-vindo(a) de volta</p>
         </div>
         <Button variant="outline" className="w-full" onClick={googleSignIn}>
           Continuar com Google

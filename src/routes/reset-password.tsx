@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { LogoMark } from "@/components/Logo";
+import { BrandLockup } from "@/components/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
@@ -49,8 +49,8 @@ function ResetPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <Card className="glass w-full max-w-md p-8 border-border/50">
         <div className="flex flex-col items-center mb-6">
-          <LogoMark size={48} />
-          <h1 className="mt-4 text-2xl font-bold">{mode === "request" ? "Recuperar senha" : "Definir nova senha"}</h1>
+          <BrandLockup size="lg" variant="stacked" glow />
+          <h1 className="mt-4 text-xl font-semibold">{mode === "request" ? "Recuperar senha" : "Definir nova senha"}</h1>
         </div>
         {mode === "request" ? (
           <form onSubmit={requestReset} className="space-y-4">

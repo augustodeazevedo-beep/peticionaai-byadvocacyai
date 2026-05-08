@@ -1,50 +1,49 @@
 ## Objetivo
-Voltar ao logotipo anterior (o que você adorou, com a pena estilizada e os nós neurais cyan→violeta), garantindo que ele fique sem moldura/fundo, e criar uma imagem de plano de fundo temática para o container do hero da landing page, integrando o logo a essa imagem.
+Adotar a arte enviada como **a marca definitiva do Peticione.AI** e aplicá-la de forma consistente, com cuidado de branding profissional, em toda a plataforma.
 
-## 1. Restaurar o logotipo anterior
-A última regeneração descaracterizou o logo (mudou a forma da pena, a cor do wordmark e adicionou irradiação tipo "sol"). Como já existe uma versão anterior aprovada salva no histórico, o caminho mais seguro e fiel é restaurá-la via histórico — não vou tentar recriar via prompt porque modelos generativos não reproduzem o mesmo resultado duas vezes.
+A arte enviada é **só o símbolo** (a pena estilizada com nós neurais, em gradiente cyan→violeta, fundo transparente). Portanto, o sistema de marca passa a ter dois lockups oficiais:
 
-**Ação sua:** abrir o histórico e reverter ao ponto imediatamente anterior à regeneração de hoje (a versão com a pena cyan→violeta + circuito neural sutil + wordmark "Peticione.AI" em azul-marinho/cyan).
+- **Símbolo (icon-only)** — usado em ícone de header, favicon, PWA, share images quando o espaço é apertado.
+- **Lockup horizontal (símbolo + wordmark "Peticione.AI")** — usado no hero da landing, telas de auth, e-mails, OG image. O wordmark será **tipográfico** (não um PNG embutido), para garantir nitidez em qualquer tamanho e tema.
 
-<lov-actions>
-  <lov-open-history>Abrir histórico</lov-open-history>
-</lov-actions>
+## 1. Substituir arquivos de logo
+- Substituir `src/assets/peticione-icon.png` pela arte enviada (passa a ser o símbolo oficial).
+- Substituir `src/assets/peticione-logo.png` também pela mesma arte (símbolo). Quem precisa do lockup completo passa a usar o componente `<LogoLockup />` (ver passo 2).
+- Atualizar `public/favicon.ico` / favicon PNG para a nova marca.
 
-Após o revert, sigo com os passos abaixo no mesmo arquivo `src/assets/peticione-logo.png` (e mantenho o `peticione-icon.png` para o header).
+## 2. Refatorar o sistema de componentes de marca
+Reescrever `src/components/Logo.tsx` com três componentes oficiais e bem documentados:
 
-## 2. Garantir transparência sem moldura
-Pós-processar o PNG do logo restaurado para:
-- Remover qualquer halo/retângulo residual em torno da arte
-- Aparar o canvas (auto-crop) para que o bounding box seja exatamente a arte
-- Confirmar canal alfa 100% transparente fora dos traços
+- `<BrandMark size>` — apenas o símbolo (substitui o atual `LogoMark`).
+- `<BrandLockup size variant="horizontal" | "stacked" tone="light" | "dark">` — símbolo + wordmark tipográfico. O wordmark usa a fonte Inter (peso 600) para "Peticione" e JetBrains Mono para ".AI" com gradiente cyan→violeta, respeitando o design system. Inclui espaçamento, alinhamento óptico e tamanho mínimo legível. Substitui o atual `LogoFull`.
+- `<BrandWordmark>` — versão só-texto, para contextos onde o símbolo já apareceu.
 
-Feito via script local (sem regerar a arte) usando ferramentas de imagem do sandbox.
+Compatibilidade: manter `LogoMark` e `LogoFull` como aliases para não quebrar imports existentes, mas marcar como deprecated em comentário.
 
-## 3. Criar imagem de plano de fundo do hero
-Gerar `src/assets/hero-background.jpg` (1920×1080) com estética que dialoga com "redação jurídica + IA":
-- Ambiente escuro, profundo, em camadas — combinando com o tema dark da landing
-- Elementos sutis: balança da justiça etérea, livros/códigos abertos com partículas de luz, linhas de circuito/rede neural fluindo entre símbolos jurídicos, leve textura de papel/manuscrito ao fundo
-- Paleta alinhada ao design system: azul-marinho profundo, cyan luminoso, violeta, com pontos de luz dourada discretos para sugerir prestígio/tradição jurídica
-- Composição com vinheta natural nos cantos e área central mais "limpa" para o logo + headline respirarem
-- Sem texto, sem marcas d'água, sem rostos
+## 3. Aplicar com cuidado de branding em toda a plataforma
+- **Header (`AppHeader.tsx`)**: `<BrandMark size={32} />` + wordmark tipográfico (já existe parcialmente — refinar espaçamento, peso, tracking, e estado hover sutil com glow cyan).
+- **Hero da landing (`routes/index.tsx`)**: trocar `<LogoFull />` por `<BrandLockup variant="stacked" />` em tamanho generoso (símbolo ~96px + wordmark grande embaixo), centrado sobre o background temático já criado, com leve drop-shadow para integrar luminosamente.
+- **Login / Signup / Reset password**: `<BrandLockup variant="stacked" size="md" />` no topo do card, removendo o `<LogoMark>` atual.
+- **AppFooter**: `<BrandMark size={24} />` + "Peticione.AI" em wordmark pequeno + "by Advocacy.AI" como tagline.
+- **Tela 404 / loading**: `<BrandMark>` com leve animação pulse.
+- **Favicon e meta tags**: atualizar `index.html`/`__root.tsx` com `<link rel="icon">` apontando para o novo símbolo, e `apple-touch-icon`. Atualizar `og:image` para uma versão do lockup sobre fundo escuro.
 
-## 4. Integrar logo + background no hero da landing
-Em `src/routes/index.tsx`, transformar a `<section>` do hero em um container com:
-- `background-image` apontando para a imagem gerada, com `bg-cover bg-center`
-- Overlay em gradiente (do `--background` opaco nas bordas para semi-transparente no centro) garantindo legibilidade do texto sobre a imagem
-- O `<LogoFull />` continua acima do chip "AI-Native · by Advocacy.AI" e do `<h1>`, agora "flutuando" sobre o background temático
-- Borda inferior com fade suave para o restante da página (sem corte abrupto)
-- Altura mínima `min-h-[80vh]` no desktop para dar presença ao container
-
-Demais seções da landing permanecem intactas.
+## 4. Diretrizes de uso (registradas em memória do projeto)
+Salvar em `mem://design/brand` regras canônicas:
+- Espaçamento mínimo ao redor do símbolo: ½ da sua altura.
+- Tamanho mínimo do símbolo: 24px (digital).
+- Nunca distorcer, recolorir, rotacionar ou aplicar contorno.
+- Sobre fundos claros (futuras telas) usar variante `tone="light"` (a definir em iteração futura — por enquanto a marca é otimizada para dark theme).
+- Wordmark sempre em Inter 600 + JetBrains Mono para ".AI", com gradiente do design system.
 
 ## Detalhes técnicos
-- Imagem gerada via `imagegen--generate_image` (modelo `standard`), salva como `.jpg` para peso menor
-- Overlay implementado com `linear-gradient` em CSS inline ou classe Tailwind sobre um wrapper `relative`/`absolute inset-0`
-- Logo importado via ES6 (já existente)
-- Sem mudanças em backend, schema, auth ou outras rotas
+- Copiar `user-uploads://image-2.png` → `src/assets/peticione-icon.png` e `src/assets/peticione-logo.png` (overwrite).
+- Gerar favicon.ico/png a partir do símbolo via script (`/tmp/favicon.py` com Pillow).
+- Componentes em React + Tailwind, sem novas dependências.
+- Sem mudanças em backend, schema, rotas ou auth.
 
 ## Fora de escopo
-- Mexer em outras páginas (login, dashboard, editor) — o background novo é só do hero
-- Recriar o logo do zero via IA (vamos restaurar o anterior via histórico)
-- Animações no background (fica para iteração futura, se desejar)
+- Versão "tone=light" da marca para fundos claros (criar quando surgir tela light-mode).
+- Animação Lottie/SVG da marca.
+- Brand book/manual em PDF (pode ser entregue futuramente como artefato).
+- Reescrever o background do hero — já está bom.
