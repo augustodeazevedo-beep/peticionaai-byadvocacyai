@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogoMark } from "./Logo";
+import { BrandLockup } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -20,12 +20,8 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border/50 glass">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <LogoMark size={32} />
-            <span className="text-lg font-semibold">
-              <span className="text-foreground">Peticione</span>
-              <span className="text-gradient-brand font-mono">.AI</span>
-            </span>
+          <Link to="/" className="flex items-center transition-opacity hover:opacity-90">
+            <BrandLockup size="md" variant="horizontal" />
           </Link>
           {user && (
             <nav className="hidden items-center gap-1 md:flex">
