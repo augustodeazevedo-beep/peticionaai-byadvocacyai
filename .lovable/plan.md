@@ -1,114 +1,125 @@
 
-# Plano — Fase 3 (Documentos/Modelos/Referências) + Relatório PDF + Integração Mike-first
+# Plano — Funcionalidades inspiradas em MinutaIA / Portal-IA
 
-Três entregas conectadas: (A) Fase 3 com upload real; (B) relatório PDF de benchmarking; (C) reforço da arquitetura Mike-first para que toda geração de peça consuma tokens via Mike (open-source) e o cliente pague apenas isso. Lovable AI fica como fallback opcional, nunca como caminho padrão.
-
----
-
-## Parte C — Mike-first (premissa transversal)
-
-Hoje `supabase/functions/mike-generate/index.ts` já tenta o endpoint Mike e cai para Lovable AI quando falta `MIKE_API_KEY` ou `mike_endpoint`. Vamos endurecer isso:
-
-- **Modo de operação configurável** em `system_settings.peticiona_generation_mode`: `mike_only` (padrão) | `mike_with_fallback` | `lovable_only` (apenas dev).
-- Em `mike_only`, se Mike falhar → erro claro ao usuário ("Configure o endpoint Mike em Admin → Integrações"), sem cair no Lovable.
-- **BYOK por usuário (token-based billing)**: nova tabela `user_integrations` (`user_id`, `provider='mike'`, `endpoint`, `api_key_encrypted`, `model`, `monthly_token_cap`). RLS estrito por `user_id`. A função `mike-generate` lê primeiro o BYOK do usuário; só usa o endpoint global como fallback admin.
-- **Telemetria de tokens**: nova tabela `token_usage` (`user_id`, `piece_id`, `provider`, `model`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `cost_usd_estimate`, `created_at`). Mike retorna `usage` no payload OpenAI-compatible — gravar a cada chamada. Dashboard exibirá consumo por mês.
-- **Documentação Mike**: `docs/integracao-mike.md` com (i) endpoint esperado (`/v1/chat/completions` OpenAI-compatible), (ii) variáveis exigidas, (iii) link para o repositório upstream do Mike, (iv) exemplo de self-host (Docker compose) que o usuário/escritório pode rodar para pagar só os tokens do provedor de modelos.
-- **UI**: nova página `/_authenticated/configuracoes/ia` onde o usuário cola seu endpoint Mike + chave + escolhe modelo + cota mensal. Campo `api_key` é write-only (mostrado mascarado depois).
-- **Composer**: chip "Provider: Mike (BYOK)" / "Mike (compartilhado)" / "Lovable AI (fallback)" para deixar transparente o que será cobrado.
-
-> Toda a Fase 3 abaixo grava contexto que **será consumido pelo Mike** na Fase 5 — nada de geração nesta fase, apenas ingestão.
+Execução em duas ondas. Onda 1 entrega navegação/UX (sidebar + onboarding + busca + páginas stub funcionais). Onda 2 entrega o diferencial Visual Law (UI + PDF). Integrações CNJ/DJEN ficam embutidas como server functions usadas pelas novas páginas.
 
 ---
 
-## Parte A — Fase 3: Documentos, Modelos e Referências com upload real
+## Onda 1 — Navegação, busca e onboarding
 
-### A.1. Migration única
+### 1.1 AppSidebar (novo componente)
+- Substitui o header atual em layout `_authenticated` por **SidebarProvider + AppSidebar + main com Outlet**. O header fica fino (só com `SidebarTrigger` + avatar/menu).
+- Estrutura do sidebar (collapsible="icon"):
+  - **Botão grande "+ Nova minuta"** → `navigate('/workspace')` resetando workspace ativo.
+  - **Atalhos** (ícones + label): Compartilhamentos, Metadados CNJ, Comunicações DJEN, Histórico de Lote.
+  - **Busca no histórico**: `<Input>` com ícone `Search`. Filtra `workspaces` + `pieces` por título via debounce (250ms) usando server fn `searchHistory`.
+  - **Grupo "Projetos"**: lista `projects` do usuário + botão `+` que abre dialog para criar projeto.
+  - **Grupo "Histórico"**: lista os 30 workspaces mais recentes (título + data relativa). Empty state: "Suas conversas aparecerão aqui".
+  - Footer: link Biblioteca, Bibliotecários, Configurações de IA, Sair.
+- Rota raiz `_authenticated.tsx` ganha o `SidebarProvider` envolvendo `<Outlet />`. Header público (`AppHeader`) fica só nas rotas não autenticadas.
 
-Reutiliza buckets existentes (`library-files`, `case-files`). Sem buckets novos.
+### 1.2 Páginas novas (stubs funcionais, não "Em breve")
+- `_authenticated.compartilhamentos.tsx`: lista peças com `is_shared=true` (vamos adicionar coluna). UI com toggle de compartilhamento por peça e link público read-only `/p/:slug` (rota nova `pecas.publicas.$slug.tsx`).
+- `_authenticated.cnj.tsx` (Metadados CNJ): formulário com campo "Número CNJ" → chama server fn `lookupCnjMetadata` (DataJud público). Mostra: tribunal, classe, assuntos, partes, movimentações (últimas 20). Botão "Importar para projeto" cria/atualiza `projects` com metadata salvo em `metadata jsonb`.
+- `_authenticated.djen.tsx` (Comunicações DJEN): formulário com OAB ou nome → server fn `searchDjenCommunications` consultando API pública DJEN (`https://comunicaapi.pje.jus.br/api/v1/comunicacao`). Lista comunicações com filtros por data e tribunal. Cada item tem botão "Criar minuta a partir desta intimação" → abre `/workspace` pré-preenchido.
+- `_authenticated.historico-lote.tsx`: tabela paginada de todas as peças e workspaces com filtros (status, tipo, projeto, data). Ações em massa: arquivar, excluir, exportar.
 
-- enum `template_strictness`: `flexivel | rigoroso | molde`.
-- enum `document_source`: `upload | url | texto | transcricao | biblioteca`.
-- ALTER `library_items`: `template_strictness`, `ocr_status text` (`pending|done|skipped|failed`), `ocr_text text`, `source document_source NOT NULL DEFAULT 'upload'`.
-- ALTER `workspace_context_items`: `library_item_id uuid`, `strictness template_strictness`, `ocr_required boolean DEFAULT false`.
-- Index `(workspace_id, display_order)`.
-- Tabelas novas para a Parte C: `user_integrations`, `token_usage` (RLS `auth.uid() = user_id`).
-- Storage policies extra em `library-files` para subpastas `documentos/{uid}`, `modelos/{uid}`, `transcricoes/{uid}`.
+### 1.3 Onboarding de contexto vazio (workspace)
+- Dentro de `src/components/workspace/TabPanels.tsx` quando `contextItems.length === 0`:
+  - Card centralizado "Contexto vazio" com instruções numeradas:
+    1. "Adicione contexto usando as abas superiores" + grid de chips clicáveis (Documentos, Modelos, Jurisprudência, Legislação, Web) — cada chip troca a aba ativa.
+    2. "Digite suas instruções no campo abaixo".
+  - Aviso destacado: "Ao gerar peças, a IA pesquisa jurisprudência automaticamente no banco interno…".
+  - Botão "Não mostrar novamente" salva flag em `localStorage` (`peticiona.workspace.onboardingDismissed`).
 
-### A.2. Server functions (TanStack `createServerFn` + middleware `requireSupabaseAuth`)
-
-Arquivo `src/lib/workspace-ingest.functions.ts`:
-
-1. `createSignedUploadUrl({ kind, filename, mime })` → upload direto via `uploadToSignedUrl`.
-2. `registerUploadedDocument({ workspaceId, path, mime, size, title, runOcr })`.
-3. `registerUploadedTemplate({ workspaceId, path, mime, size, title, strictness })`.
-4. `ingestUrl({ workspaceId, url, title })` — fetch server-side, HTML→texto.
-5. `ingestText({ workspaceId, title, content })`.
-6. `addLibraryItemToWorkspace({ workspaceId, libraryItemId })`.
-7. `reorderContext`, `removeContextItem`.
-8. `runOcr` e `transcribeAudio` — chamam o **Mike** primeiro (mesmo fluxo BYOK). Se o endpoint Mike do usuário não suportar visão/áudio, cair só nesta etapa para Lovable AI (pois OCR/transcrição não é "geração de peça") — registrado em `token_usage` com `provider='lovable_ai_utility'`.
-
-Validação Zod: 20 MB máx, mimes whitelisted (pdf/docx/png/jpg/mp3/m4a/wav/txt).
-
-### A.3. Frontend
-
-`src/components/workspace/ingest/`:
-- `<DropZoneCard>` (drag-drop + click).
-- `<UrlIngestDialog>`, `<TextIngestDialog>`, `<TranscribeDialog>` (MediaRecorder).
-- `<LibraryPickerDialog>` filtrável por tipo.
-- `<TemplateStrictnessSelect>` (Flexível/Rigoroso/Molde).
-
-Refatorar `TabPanels.tsx`:
-- `DocumentosPanel`: lista de contextos tipo `documento` + dropzone + 5 botões (Arquivos/Transcrever/URL/Inserir texto/Biblioteca).
-- `ModelosPanel`: idem para `modelo` + strictness.
-- `ReferenciasPanel`: lista consolidada com drag-to-reorder via `@dnd-kit/sortable` e badge OCR.
-
-### A.4. Critérios de aceitação
-
-- PDF arrastado → aparece com chip "OCR pendente" → "OCR ✓" + texto disponível em Referências.
-- Modelo .docx (strictness=Molde) renderiza em Modelos e Referências.
-- URL processada gera preview ≤ 200 chars.
-- Reordenar persiste em `display_order`.
-- Outro usuário não vê os arquivos (RLS validado).
-- **Nenhuma rota de Fase 3 chama Lovable AI para geração de peça**; apenas OCR/transcrição podem usar fallback de utilidade.
+### 1.4 Migration (Onda 1)
+- `pieces`: adicionar `is_shared boolean default false`, `public_slug text unique`.
+- `projects`: adicionar `cnj_number text`, `metadata jsonb default '{}'`.
+- `workspace_context_items`: nada (já temos).
+- Server fns: `searchHistory`, `lookupCnjMetadata`, `searchDjenCommunications`, `togglePieceShare` em `src/lib/discovery.functions.ts` e `src/lib/sharing.functions.ts`.
 
 ---
 
-## Parte B — Relatório PDF (`/mnt/documents/benchmarking-plataformas-juridicas-ai.pdf`)
+## Onda 2 — Visual Law (UI completa + PDF estilizado real)
 
-### B.1. Coleta (websearch + fetch_website)
+### 2.1 Modelo de dados
+- Migration nova:
+  - Enum `visual_law_direction`: `organizar | explicar | mais_visual`.
+  - Enum `visual_law_density`: `enxuto | padrao | confortavel`.
+  - Tabela `piece_visual_styles`:
+    - `piece_id uuid` (PK + FK lógica), `user_id`, `template text` (default 'sem-template'), `font text` (default 'Helvetica'), `color_palette text` (default 'neutra'), `custom_primary text`, `custom_accent text`, `direction visual_law_direction default 'explicar'`, `density visual_law_density default 'padrao'`, `extra_instructions text`, `elements jsonb default '{}'` (toggles: capa, sumário, quadros, infográficos), `updated_at`.
+  - Tabela `piece_visual_versions`: snapshots — `id`, `piece_id`, `user_id`, `style_snapshot jsonb`, `pdf_storage_path text`, `created_at`. Permite a aba "Versões".
+  - RLS: own all em ambas.
 
-Para cada plataforma — **MinutaIA**, **Portal-IA DPE-RS**, **jAI** — capturar: visão geral, APIs/SDKs, auth, rate limits, integrações (PJe/Projudi/eproc/SSO/webhook), fluxo de geração observável, suporte a modelos customizados, preços/tier dev, casos reais. **Adicionar coluna Mike** em todas as comparações para evidenciar a estratégia open-source + BYOK do Peticiona.AI.
+### 2.2 Painel `VisualLawPanel`
+Inserido em `_authenticated.pecas.$id.tsx` como aba ao lado do conteúdo. Estrutura igual à referência:
 
-### B.2. Estrutura
+- Cabeçalho: "Antes de gerar — Configurações carregadas" + título "Revise o formato antes de transformar a peça".
+- 4 cards quick-pick (Template, Fonte, Direção, Texto) que abrem o painel direito correspondente.
+- Sidebar direito com tabs **Aparência | Direção | Elementos | Versões**:
+  - **Aparência**: seleção de Fonte (Helvetica, Segoe UI, Charter, Inter, Playfair, Lora) + paleta (Neutra, Personalizada com 2 color pickers) + densidade (Enxuto/Padrão/Confortável).
+  - **Direção**: 3 cards — Só organizar / Explicar melhor / Mais visual. Botão "Regerar com IA" chama `regenerateWithStyle`.
+  - **Elementos**: switches — Capa, Sumário, Quadros destaque, Linha do tempo, Infográficos, Citações em quote-cards, Numeração de páginas.
+  - **Versões**: lista `piece_visual_versions` com botão "Restaurar" e "Baixar PDF".
+- Campo "Instruções visuais" (textarea opcional).
+- Botão CTA gradient "Gerar Visual Law" → server fn `generateVisualLawPdf`.
 
-1. Capa (branding Peticiona.AI).
-2. Sumário executivo.
-3. Metodologia.
-4. Fichas técnicas (4–6 págs por plataforma + 1 ficha Mike).
-5. Comparativo lado-a-lado (tabela).
-6. **3 diagramas Mermaid → PNG**:
-   - Arquitetura genérica de plataforma jurídica AI.
-   - Fluxo agêntico (planejamento → pesquisa → redação → citação) **rodando sobre Mike**.
-   - Topologia BYOK Mike + integrações tribunais.
-7. Checklist de integração (auth, LGPD, retenção, OCR, RAG legislação/jurisprudência, audit log, SLA, billing por token).
-8. Recomendações para Peticiona.AI (gap analysis + plano BYOK Mike).
-9. Anexos com URLs.
+### 2.3 Geração real de PDF
+Server fn `generateVisualLawPdf` em `src/lib/visual-law.functions.ts`:
+- Input: `{ pieceId }`. Lê peça + style + content_html.
+- Gera HTML completo com CSS gerado dinamicamente a partir do estilo (variáveis CSS para fonte, paletas, densidade; classes para capa, quote-cards, timeline, etc.).
+- Renderiza para PDF usando **`@react-pdf/renderer`** server-side (compatível com Worker runtime — pure JS, sem puppeteer/sharp). Templates React em `src/lib/visual-law/templates/`:
+  - `MinimalTemplate`, `EditorialTemplate`, `CorporateTemplate` — todos consomem o objeto de estilo.
+- Faz upload do PDF em `piece-exports/visual-law/{userId}/{pieceId}/{versionId}.pdf` e insere registro em `piece_visual_versions`.
+- Retorna signed URL (download) e ID da versão.
 
-Geração via `reportlab` (Platypus). QA visual obrigatório (`pdftoppm` → inspeção página a página). Entrega via `<lov-artifact>`.
+> Nota técnica: `@react-pdf/renderer` funciona em Workers (já é usado em projetos TanStack Start). Caso precisemos de fontes além das embutidas, registramos via `Font.register` apontando para arquivos em `public/fonts/`.
 
-### B.3. Aceitação
+### 2.4 Geração textual via Mike (sem custo extra para nós)
+- A "Direção" envia o `content_text` da peça + instruções para `mike-generate` com prompt do tipo "reorganize o texto adicionando títulos, quadros [QUADRO]…[/QUADRO], timeline [TIMELINE]…, citações [QUOTE]…". O parser do template converte essas marcações em componentes visuais no PDF.
+- Mantém política `mike_only` (BYOK do usuário).
 
-≥ 30 págs, todas as fontes citadas, diagramas ≥ 150 DPI, tabela sem clipping, lista de issues do QA visual reportada.
+---
+
+## Integrações externas (detalhe técnico)
+
+### CNJ DataJud
+- Endpoint público: `POST https://api-publica.datajud.cnj.jus.br/api_publica_{tribunal}/_search`
+- Server fn detecta o tribunal pelo segmento do número CNJ e faz fallback varrendo principais (tjsp, tjrj, trf3, tst, etc.).
+- Sem autenticação. Cache de 30 min em `system_settings` por número.
+
+### DJEN
+- Endpoint público: `GET https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroOab=...&ufOab=...&dataDisponibilizacaoInicio=...`
+- Server fn aceita filtros e devolve resultados paginados (até 100/página).
+- Sem chave. Logamos em `integration_logs`.
+
+---
+
+## Critérios de aceite
+
+**Onda 1**
+- Sidebar com Nova minuta, atalhos, busca funcional (filtra ao digitar), Projetos e Histórico povoados.
+- `/cnj` resolve um número CNJ válido em ≤3s e mostra metadados.
+- `/djen` lista comunicações reais por OAB.
+- Workspace vazio mostra o card de onboarding com chips clicáveis e dismiss persistente.
+- `/historico-lote` lista todas as peças com filtros e ações em massa.
+
+**Onda 2**
+- Painel Visual Law renderiza idêntico em layout à referência (4 cards + sidebar de tabs).
+- Mudar fonte/cor/densidade atualiza preview instantaneamente.
+- "Gerar Visual Law" produz PDF baixável estilizado conforme escolhas, salvo em storage e listado em "Versões".
+- Snapshots permitem restaurar uma versão anterior.
+- Tudo passa por Mike para reorganização textual; Lovable AI não é usado para geração.
 
 ---
 
 ## Ordem de execução
 
-1. Migration (Fase 3 + tabelas Mike BYOK) — aprovação do usuário antes de prosseguir.
-2. Endurecimento da `mike-generate` (mode `mike_only`, leitura de `user_integrations`, gravação de `token_usage`).
-3. Página `/configuracoes/ia` (BYOK).
-4. Server functions de ingestão + dialogs + refactor dos panels.
-5. Em paralelo: pesquisa web e geração do PDF.
+1. **Migration onda 1** (is_shared, public_slug, cnj_number) → aprovação.
+2. AppSidebar + reorganização do `_authenticated.tsx` + onboarding workspace.
+3. Server fns + páginas (CNJ, DJEN, Compartilhamentos, Histórico de Lote).
+4. **Migration onda 2** (visual_law tabelas/enums) → aprovação.
+5. Templates `@react-pdf/renderer` + server fn `generateVisualLawPdf`.
+6. `VisualLawPanel` integrado à página da peça + tab Versões.
 
-Se preferir entregar em pedaços menores (ex.: só Mike-first primeiro, depois Fase 3, depois PDF), é só dizer.
+Posso começar pela migration da Onda 1 assim que aprovado.
