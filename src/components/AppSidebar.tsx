@@ -123,6 +123,25 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel>Principal</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {MAIN.map((it) => (
+                <SidebarMenuItem key={it.url}>
+                  <SidebarMenuButton asChild isActive={isActive(it.url)} tooltip={it.title}>
+                    <Link to={it.url}>
+                      <it.icon className="h-4 w-4" />
+                      <span>{it.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel>Atalhos</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {SHORTCUTS.map((it) => (
@@ -208,16 +227,6 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border/40">
         <SidebarMenu>
-          {FOOTER.map((it) => (
-            <SidebarMenuItem key={it.url}>
-              <SidebarMenuButton asChild isActive={isActive(it.url)} tooltip={it.title} size="sm">
-                <Link to={it.url}>
-                  <it.icon className="h-4 w-4" />
-                  <span>{it.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" tooltip="Sair" onClick={async () => { await signOut(); navigate({ to: "/" }); }}>
               <LogOut className="h-4 w-4" />
