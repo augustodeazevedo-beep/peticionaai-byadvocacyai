@@ -377,6 +377,116 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_context_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          payload: Json
+          preview: string | null
+          source_url: string | null
+          storage_path: string | null
+          title: string
+          type: Database["public"]["Enums"]["context_item_type"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          payload?: Json
+          preview?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          title: string
+          type: Database["public"]["Enums"]["context_item_type"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          payload?: Json
+          preview?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["context_item_type"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_context_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          agent_config: Json
+          created_at: string
+          id: string
+          instructions: string
+          mode: Database["public"]["Enums"]["workspace_mode"]
+          piece_id: string | null
+          project_id: string | null
+          template_mode: string | null
+          thinking: Database["public"]["Enums"]["thinking_level"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_config?: Json
+          created_at?: string
+          id?: string
+          instructions?: string
+          mode?: Database["public"]["Enums"]["workspace_mode"]
+          piece_id?: string | null
+          project_id?: string | null
+          template_mode?: string | null
+          thinking?: Database["public"]["Enums"]["thinking_level"]
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_config?: Json
+          created_at?: string
+          id?: string
+          instructions?: string
+          mode?: Database["public"]["Enums"]["workspace_mode"]
+          piece_id?: string | null
+          project_id?: string | null
+          template_mode?: string | null
+          thinking?: Database["public"]["Enums"]["thinking_level"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -392,7 +502,21 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      context_item_type:
+        | "documento"
+        | "modelo"
+        | "legislacao"
+        | "jurisprudencia"
+        | "web"
+        | "biblioteca_item"
+        | "bibliotecario"
+        | "prompt"
+        | "transcricao"
+        | "url"
+        | "texto"
       piece_status: "draft" | "generating" | "ready" | "exported" | "archived"
+      thinking_level: "baixo" | "medio" | "alto"
+      workspace_mode: "padrao" | "agentico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -521,7 +645,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      context_item_type: [
+        "documento",
+        "modelo",
+        "legislacao",
+        "jurisprudencia",
+        "web",
+        "biblioteca_item",
+        "bibliotecario",
+        "prompt",
+        "transcricao",
+        "url",
+        "texto",
+      ],
       piece_status: ["draft", "generating", "ready", "exported", "archived"],
+      thinking_level: ["baixo", "medio", "alto"],
+      workspace_mode: ["padrao", "agentico"],
     },
   },
 } as const
