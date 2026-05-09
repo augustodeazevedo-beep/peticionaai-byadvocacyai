@@ -17,12 +17,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
-import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
 import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedBibliotecaRouteImport } from './routes/_authenticated.biblioteca'
+import { Route as AuthenticatedAssistentesRouteImport } from './routes/_authenticated.assistentes'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
@@ -69,11 +69,6 @@ const AuthenticatedHistoricoLoteRoute =
     path: '/historico-lote',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedDjenRoute = AuthenticatedDjenRouteImport.update({
-  id: '/djen',
-  path: '/djen',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -101,6 +96,12 @@ const AuthenticatedBibliotecaRoute = AuthenticatedBibliotecaRouteImport.update({
   path: '/biblioteca',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAssistentesRoute =
+  AuthenticatedAssistentesRouteImport.update({
+    id: '/assistentes',
+    path: '/assistentes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedPecasNovaRoute = AuthenticatedPecasNovaRouteImport.update({
   id: '/pecas/nova',
   path: '/pecas/nova',
@@ -135,12 +136,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/assistentes': typeof AuthenticatedAssistentesRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/djen': typeof AuthenticatedDjenRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
@@ -155,12 +156,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/assistentes': typeof AuthenticatedAssistentesRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/djen': typeof AuthenticatedDjenRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
@@ -177,12 +178,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/assistentes': typeof AuthenticatedAssistentesRoute
   '/_authenticated/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/_authenticated/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/_authenticated/cnj': typeof AuthenticatedCnjRoute
   '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/djen': typeof AuthenticatedDjenRoute
   '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
@@ -199,12 +200,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/assistentes'
     | '/biblioteca'
     | '/bibliotecarios'
     | '/cnj'
     | '/compartilhamentos'
     | '/dashboard'
-    | '/djen'
     | '/historico-lote'
     | '/workspace'
     | '/p/$slug'
@@ -219,12 +220,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/assistentes'
     | '/biblioteca'
     | '/bibliotecarios'
     | '/cnj'
     | '/compartilhamentos'
     | '/dashboard'
-    | '/djen'
     | '/historico-lote'
     | '/workspace'
     | '/p/$slug'
@@ -240,12 +241,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/_authenticated/assistentes'
     | '/_authenticated/biblioteca'
     | '/_authenticated/bibliotecarios'
     | '/_authenticated/cnj'
     | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
-    | '/_authenticated/djen'
     | '/_authenticated/historico-lote'
     | '/_authenticated/workspace'
     | '/p/$slug'
@@ -323,13 +324,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoricoLoteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/djen': {
-      id: '/_authenticated/djen'
-      path: '/djen'
-      fullPath: '/djen'
-      preLoaderRoute: typeof AuthenticatedDjenRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -363,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/biblioteca'
       fullPath: '/biblioteca'
       preLoaderRoute: typeof AuthenticatedBibliotecaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/assistentes': {
+      id: '/_authenticated/assistentes'
+      path: '/assistentes'
+      fullPath: '/assistentes'
+      preLoaderRoute: typeof AuthenticatedAssistentesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/pecas/nova': {
@@ -404,12 +405,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAssistentesRoute: typeof AuthenticatedAssistentesRoute
   AuthenticatedBibliotecaRoute: typeof AuthenticatedBibliotecaRoute
   AuthenticatedBibliotecariosRoute: typeof AuthenticatedBibliotecariosRoute
   AuthenticatedCnjRoute: typeof AuthenticatedCnjRoute
   AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedDjenRoute: typeof AuthenticatedDjenRoute
   AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
@@ -420,12 +421,12 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAssistentesRoute: AuthenticatedAssistentesRoute,
   AuthenticatedBibliotecaRoute: AuthenticatedBibliotecaRoute,
   AuthenticatedBibliotecariosRoute: AuthenticatedBibliotecariosRoute,
   AuthenticatedCnjRoute: AuthenticatedCnjRoute,
   AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedDjenRoute: AuthenticatedDjenRoute,
   AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
@@ -450,3 +451,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
