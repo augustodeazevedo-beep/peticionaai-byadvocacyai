@@ -110,7 +110,7 @@ function DashboardHero({ name }: { name: string }) {
     <div
       className="relative overflow-hidden rounded-xl border border-border/50 bg-card"
       style={{
-        backgroundImage: `linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--card)/0.75) 35%, transparent 75%), url(${heroBg})`,
+        backgroundImage: `linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--card)/0.92) 25%, hsl(var(--card)/0.4) 50%, transparent 70%), url(${heroBg})`,
         backgroundSize: "cover",
         backgroundPosition: "right center",
       }}

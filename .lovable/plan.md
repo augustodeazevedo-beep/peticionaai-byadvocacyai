@@ -1,21 +1,27 @@
-## Objetivo
-Substituir a imagem de fundo do hero do dashboard (`src/assets/dashboard-hero-bg.jpg`) por uma nova arte gerada por IA com identidade visual mais forte ligada ao objeto da plataforma — **Petições jurídicas com IA**.
+## Diagnóstico
+Comparando as duas referências:
+- **Imagem atual (image-20)**: o container aparece quase totalmente preto — a arte gerada existe no fundo, mas o gradiente do card está muito opaco e cobre praticamente toda a imagem.
+- **Referência desejada (image-21, Study.AI)**: a arte ocupa visivelmente ~60% direita do box, com transição suave para o lado escuro onde fica o texto de boas-vindas. A imagem é parte do conteúdo do box, não um plano de fundo apagado.
 
-## Conceito visual
-Composição cinematográfica e minimalista, alinhada à identidade Peticiona.AI (cyan → violeta, dark, futurista):
+A imagem JÁ está aplicada ao box correto (`DashboardHero` em `_authenticated.dashboard.tsx`) — o problema é apenas o gradiente de máscara, que está abafando demais a arte.
 
-- **Elementos jurídicos sutis**: páginas de petição flutuando, linhas de texto estilizadas (parágrafos de documento), assinatura/rubrica, possível martelo ou balança como acento muito discreto.
-- **Camada de IA**: nós neurais, partículas de dados, traços luminosos cyan→violeta percorrendo as páginas como se a IA "escrevesse" o documento.
-- **Composição**: elementos concentrados à direita (onde o gradiente do card revela a imagem); lado esquerdo naturalmente escuro/limpo para preservar legibilidade do "Boa tarde, NOME".
-- **Paleta**: fundo `#0F172A` (mesmo do tema dark), glow cyan `#22D3EE` e violeta `#8B5CF6`, sem outras cores.
-- **Estilo**: editorial/futurista, profundidade sutil, sem texto legível, sem logos, sem rostos.
-- **Formato**: 1920×512 (mesma proporção atual do banner).
+## Alteração
+Arquivo único: `src/routes/_authenticated.dashboard.tsx` (componente `DashboardHero`).
 
-## Alterações
-1. Gerar nova imagem com `imagegen--generate_image` (modelo `standard` para melhor fidelidade) salvando em `src/assets/dashboard-hero-bg.jpg` (sobrescrevendo a atual).
-2. Manter `_authenticated.dashboard.tsx` inalterado — o gradiente atual (`hsl(var(--card)) 0% → 0.75 35% → transparent 75%`) já garante legibilidade e será reaproveitado.
+Ajustar o gradiente para revelar mais da arte no lado direito, mantendo legibilidade do texto à esquerda:
+
+- **Antes**: `linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--card)/0.75) 35%, transparent 75%)`
+- **Depois**: `linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--card)/0.92) 25%, hsl(var(--card)/0.4) 50%, transparent 70%)`
+
+Efeito:
+- 0–25%: fundo opaco (texto 100% legível).
+- 25–50%: transição suave (texto ainda legível, arte começa a aparecer).
+- 50–70%: arte cada vez mais nítida.
+- 70–100%: arte totalmente visível (páginas de petição + nós neurais).
+
+Também trocar `backgroundPosition: "right center"` para `"right center"` (mantido) e adicionar `min-height` sutil (`md:min-h-[110px]`) caso necessário para a arte respirar — opcional, validar visualmente após o ajuste do gradiente.
 
 ## Fora do escopo
-- Mudanças no layout, tipografia ou tamanho do hero.
-- Alterações no gradiente/máscara (manter o ajuste fino já validado).
-- Geração de variantes responsivas (mobile/desktop) — uma única imagem cobre ambos.
+- Regenerar a imagem (a arte atual já está alinhada à identidade).
+- Mudar tipografia, badge, layout do texto ou tamanho do hero.
+- Alterar outros containers da plataforma.
