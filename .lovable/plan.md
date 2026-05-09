@@ -1,79 +1,140 @@
+## Escopo
 
-# Plano consolidado — Fases restantes (execução fase-a-fase)
+Quatro mudanças focadas em IA/UX da plataforma:
 
-A Onda 1 (sidebar, CNJ, DJEN, compartilhamentos, histórico de lote, onboarding) já está implementada. Restam: **Onda 2 — Visual Law** e **Fase 4 — Bibliotecários/IA + polimento** (CNJ/DJEN como atalhos no workspace, integração das peças geradas, bibliotecários ativos no contexto, observabilidade Mike). Tudo será executado em uma única passagem ordenada para não criar regressões.
+1. **Remover DJEN** — funcionalidade migrará para o Advoga.AI.
+2. **Renomear "Biblioteca" → "Assistentes"** (prompts jurídicos para criação de peças).
+3. **Redefinir "Bibliotecários"** — assistentes evoluídos, baseados em modelos do próprio usuário, com lógica de formatação, Visual Law e raciocínio jurídico especializado por área/peça.
+4. **Reordenar a sidebar** — bloco principal (Dashboard, Nova Peça, Assistentes, Bibliotecários, Configurações de IA) sobe para o topo; atalhos (Compartilhamentos, Metadados CNJ, Histórico de Lote, busca, Projetos, Histórico) ficam abaixo.
 
 ---
 
-## Fase A — Migration Visual Law (aprovação obrigatória antes de código)
+## Fase 1 — Remover DJEN
 
-Criar em uma única migration:
+**Frontend**
+- Excluir `src/routes/_authenticated.djen.tsx`.
+- Excluir `src/lib/djen.functions.ts`.
+- Remover entrada "Comunicações DJEN" de `SHORTCUTS` em `src/components/AppSidebar.tsx`.
+- Remover ícone `Megaphone` não usado.
+- `src/routeTree.gen.ts` é regenerado automaticamente.
 
-- Enums:
-  - `visual_law_direction` = `organizar | explicar | mais_visual`
-  - `visual_law_density` = `enxuto | padrao | confortavel`
-- Tabela `piece_visual_styles` (1-1 com `pieces`):
-  - `piece_id uuid PK`, `user_id uuid not null`, `template text default 'sem-template'`, `font text default 'Helvetica'`, `color_palette text default 'neutra'`, `custom_primary text`, `custom_accent text`, `direction visual_law_direction default 'explicar'`, `density visual_law_density default 'padrao'`, `extra_instructions text`, `elements jsonb default '{}'`, `updated_at timestamptz default now()`.
-- Tabela `piece_visual_versions`:
-  - `id`, `piece_id`, `user_id`, `style_snapshot jsonb`, `pdf_storage_path text`, `created_at`.
-- RLS `own all` em ambas; trigger `set_updated_at` em `piece_visual_styles`.
+**Backend (banco)**
+- Migration: remover possível valor `djen` do enum `workspace_context_item_type` (se existir) — só se não houver dados; caso haja, deixar enum e apenas parar de usar.
+- Não há tabela específica DJEN para dropar.
 
-## Fase B — Geração de PDF (Visual Law)
+---
 
-1. Adicionar dependência `@react-pdf/renderer` (Worker-safe, pure JS).
-2. Criar templates em `src/lib/visual-law/templates/`: `MinimalTemplate`, `EditorialTemplate`, `CorporateTemplate` — todos consomem o objeto de estilo (fonte, paleta, densidade, elementos).
-3. Parser de marcações (`[QUADRO]…[/QUADRO]`, `[TIMELINE]…`, `[QUOTE]…`) que converte texto em componentes visuais.
-4. Server fn `generateVisualLawPdf({ pieceId })` em `src/lib/visual-law.functions.ts`:
-   - Lê peça + style.
-   - Renderiza PDF via `@react-pdf/renderer`.
-   - Upload em `piece-exports/visual-law/{userId}/{pieceId}/{versionId}.pdf`.
-   - Insere em `piece_visual_versions` e devolve signed URL.
-5. Server fn `regenerateWithStyle({ pieceId })` que envia `content_text` + instruções da Direção para `mike-generate` (mantém policy `mike_only`) e atualiza `pieces.content_text/html`.
+## Fase 2 — Renomear Biblioteca → Assistentes
 
-## Fase C — Painel `VisualLawPanel`
+Mudança puramente de nomenclatura (rota + labels). Estrutura de dados permanece.
 
-Integra na rota `_authenticated.pecas.$id.tsx`:
+**Rotas**
+- Renomear arquivo `src/routes/_authenticated.biblioteca.tsx` → `_authenticated.assistentes.tsx`.
+- Atualizar título do route component para "Assistentes".
 
-- Cabeçalho "Antes de gerar — Configurações carregadas" + 4 cards quick-pick (Template, Fonte, Direção, Texto).
-- Sidebar direito com tabs **Aparência | Direção | Elementos | Versões**:
-  - Aparência: Fonte (Helvetica, Segoe UI, Charter, Inter, Playfair, Lora) + Paleta (Neutra / Personalizada com 2 color pickers) + Densidade.
-  - Direção: 3 cards (Só organizar / Explicar / Mais visual) + botão "Regerar com IA".
-  - Elementos: switches (Capa, Sumário, Quadros, Timeline, Infográficos, Quote-cards, Numeração).
-  - Versões: lista `piece_visual_versions` com Restaurar / Baixar PDF.
-- Textarea "Instruções visuais".
-- CTA gradient "Gerar Visual Law" → `generateVisualLawPdf`.
-- Persistência de estilo em `piece_visual_styles` (debounced upsert).
+**Sidebar / navegação**
+- `AppSidebar.tsx`: item `Biblioteca` → `Assistentes`, url `/biblioteca` → `/assistentes`, ícone mantém `BookOpen` (ou trocar para `Sparkles`/`Wand2`).
+- Buscar globalmente por `/biblioteca` e `Biblioteca` em `src/` e atualizar todos os call-sites (TabPanels, ContextComposer, Workspace, etc.).
 
-## Fase D — Integração cruzada e polimento (Fase 4)
+**Copy**
+- Subtítulo: "Prompts jurídicos prontos para acelerar a criação de peças."
 
-1. **Bibliotecários no workspace**: ao gerar via `mike-generate`, se workspace tem bibliotecário(s) ativo(s), incluir os `library_items` associados como contexto adicional (já existe `librarian_items`). Adicionar selector na sidebar do workspace.
-2. **CNJ/DJEN como atalho dentro do workspace**: na aba "Documentos", botão "Importar do CNJ" e "Importar do DJEN" abre dialogs reutilizando as server fns existentes; resultado entra como `workspace_context_items` tipo `cnj`/`djen`.
-3. **Histórico de Lote — ações reais**: ligar bulk-archive/bulk-delete às mutations (atualmente UI-only).
-4. **Observabilidade Mike**: tela `/configuracoes/ia` ganha card com últimas 20 chamadas (`token_usage`) — gráfico simples de consumo diário.
-5. **Compartilhamento público `/p/:slug`**: aplicar tema Visual Law se a peça tiver `piece_visual_styles` (renderiza HTML estilizado, não só texto cru).
+Sem mudança de schema. Tabela `library_items` (ou equivalente) permanece com mesmo nome internamente; apenas labels mudam.
 
-## Critérios de aceite
+---
 
-- Migration aplicada sem warnings de linter.
-- `generateVisualLawPdf` retorna URL baixável; PDF abre com fonte/paleta escolhidas.
-- Restaurar versão recoloca `style_snapshot` no painel.
-- Toda geração de texto continua passando por Mike (policy mantida).
-- Workspace permite anexar bibliotecário, e contexto entra no prompt do Mike.
-- Importar CNJ/DJEN cria `workspace_context_items` corretamente.
-- Bulk actions em `/historico-lote` persistem no banco.
-- `/configuracoes/ia` mostra consumo de tokens.
-- Página pública de peça compartilhada respeita o estilo Visual Law.
+## Fase 3 — Redefinir Bibliotecários
 
-## Ordem de execução (estrita)
+Bibliotecários passam a ser **assistentes especializados** baseados em **modelos do usuário** + regras de formatação + Visual Law + raciocínio jurídico por área/peça.
 
-1. Fase A (migration) → aprovação do usuário.
-2. Instalar `@react-pdf/renderer` e implementar Fase B.
-3. Implementar Fase C (painel) e validar fluxo end-to-end.
-4. Implementar Fase D (integrações cruzadas + polimento).
-5. Verificação final: build, navegação por todas as rotas novas, geração de PDF de teste.
+**Schema novo (migration)**
 
-## Notas técnicas
+Estender tabela `librarians` (existente) com:
+- `practice_area text` (ex.: "Consumidor", "Trabalhista")
+- `piece_type text` (ex.: "Petição inicial", "Contestação", "Recurso")
+- `reasoning_prompt text` — instruções de raciocínio jurídico
+- `formatting_rules jsonb` — estrutura de seções/numeração
+- `visual_law_defaults jsonb` — template, paleta, densidade, elementos padrão
+- `model_piece_ids uuid[]` — IDs de peças do usuário usadas como referência/modelo
 
-- `@react-pdf/renderer` é compatível com Workers (pure JS). Fontes extras via `Font.register` apontando para `public/fonts/`.
-- Nenhuma chamada a Lovable AI Gateway para geração (apenas Mike). Lovable AI continua disponível só como fallback explícito futuro, não nesta fase.
-- Tabelas Visual Law usam `piece_id` sem FK física (mesmo padrão das demais), mas com índice único.
+Criar tabela auxiliar `librarian_models` (1-N) caso prefira normalizado:
+- `librarian_id`, `piece_id`, `weight`, `notes`.
+RLS `own all` baseada em `user_id` do librarian.
+
+**UI**
+- `_authenticated.bibliotecarios.tsx`: dialog "Novo bibliotecário" agora com tabs:
+  - **Identidade**: nome, descrição, área de atuação, tipo de peça.
+  - **Raciocínio**: prompt de raciocínio jurídico especializado.
+  - **Formatação**: regras estruturais (seções obrigatórias, ordem, citações).
+  - **Visual Law**: defaults (template, paleta, densidade, elementos).
+  - **Modelos**: seletor de peças do usuário para servir de referência.
+- Card do bibliotecário exibe área + tipo de peça + nº de modelos.
+
+**Integração com geração**
+- Quando o usuário ativa um Bibliotecário no workspace, `mike-generate` recebe:
+  - `reasoning_prompt` injetado no system prompt
+  - `formatting_rules` como contrato de saída
+  - `visual_law_defaults` aplicados ao gerar a versão Visual Law
+  - texto resumido das `model_pieces` como few-shot
+- Ajustar `src/lib/workspace-ingest.ts` para anexar esse contexto.
+
+---
+
+## Fase 4 — Reordenar Sidebar
+
+Em `src/components/AppSidebar.tsx`:
+
+```text
+[Logo]
+─────────────
+[Nova minuta] (CTA)
+─────────────
+PRINCIPAL (novo, no topo)
+  Dashboard
+  Nova Peça
+  Assistentes
+  Bibliotecários
+  Configurações de IA
+─────────────
+ATALHOS
+  Compartilhamentos
+  Metadados CNJ
+  Histórico de Lote
+─────────────
+[Buscar no histórico…]
+─────────────
+PROJETOS
+  …
+─────────────
+HISTÓRICO
+  …
+─────────────
+[Footer pequeno]
+  Sair
+```
+
+- Mover constante `FOOTER` (sem "Sair") para `MAIN` renderizado logo após o CTA "Nova minuta".
+- `SHORTCUTS` permanece, mas sem DJEN.
+- Footer fica apenas com "Sair".
+- Garantir `tooltip` em modo `collapsed=icon` para todos os itens.
+
+---
+
+## Critérios de aceitação
+
+- Rota `/djen` retorna 404; nenhum link aparece.
+- Rota `/biblioteca` redireciona ou foi substituída por `/assistentes`; toda copy diz "Assistentes".
+- `/bibliotecarios` permite criar bibliotecário com área, tipo de peça, raciocínio, formatação, Visual Law e modelos; geração via Mike usa esses campos.
+- Sidebar mostra Dashboard/Nova Peça/Assistentes/Bibliotecários/Configurações de IA **acima** de Compartilhamentos/Metadados CNJ/Histórico de Lote.
+- Build limpo, sem imports órfãos.
+
+---
+
+## Ordem de execução
+
+1. Migration (Fase 1 enum cleanup + Fase 3 colunas/tabela).
+2. Frontend: remover DJEN (Fase 1).
+3. Frontend: renomear Biblioteca → Assistentes (Fase 2).
+4. Frontend: refatorar Bibliotecários UI + integração Mike (Fase 3).
+5. Frontend: reordenar sidebar (Fase 4).
+6. Verificação final (build, navegação, geração com bibliotecário).

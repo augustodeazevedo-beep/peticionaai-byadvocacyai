@@ -43,6 +43,12 @@ export type Librarian = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  practice_area: string | null;
+  piece_type: string | null;
+  reasoning_prompt: string | null;
+  formatting_rules: Record<string, unknown>;
+  visual_law_defaults: Record<string, unknown>;
+  model_piece_ids: string[];
 };
 
 export async function listLibraryItems(filters?: { type?: LibraryItemType; folder_id?: string | null; search?: string }) {
@@ -114,7 +120,18 @@ export async function listLibrarians() {
   return (data ?? []) as Librarian[];
 }
 
-export async function createLibrarian(input: { name: string; description?: string; icon?: string; color?: string }) {
+export async function createLibrarian(input: {
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  practice_area?: string;
+  piece_type?: string;
+  reasoning_prompt?: string;
+  formatting_rules?: Record<string, unknown>;
+  visual_law_defaults?: Record<string, unknown>;
+  model_piece_ids?: string[];
+}) {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) throw new Error("Sem sessão");
   const { data, error } = await supabase.from("librarians").insert({
@@ -123,9 +140,29 @@ export async function createLibrarian(input: { name: string; description?: strin
     description: input.description ?? null,
     icon: input.icon ?? "BookOpen",
     color: input.color ?? "cyan",
+    practice_area: input.practice_area ?? null,
+    piece_type: input.piece_type ?? null,
+    reasoning_prompt: input.reasoning_prompt ?? null,
+    formatting_rules: (input.formatting_rules ?? {}) as never,
+    visual_law_defaults: (input.visual_law_defaults ?? {}) as never,
+    model_piece_ids: input.model_piece_ids ?? [],
   }).select().single();
   if (error) throw error;
   return data as Librarian;
+}
+
+export async function updateLibrarian(id: string, patch: Partial<{
+  name: string;
+  description: string | null;
+  practice_area: string | null;
+  piece_type: string | null;
+  reasoning_prompt: string | null;
+  formatting_rules: Record<string, unknown>;
+  visual_law_defaults: Record<string, unknown>;
+  model_piece_ids: string[];
+}>) {
+  const { error } = await supabase.from("librarians").update(patch as never).eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteLibrarian(id: string) {
