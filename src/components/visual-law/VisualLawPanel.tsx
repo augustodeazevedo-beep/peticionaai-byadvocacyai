@@ -18,8 +18,11 @@ import {
   Download,
   RefreshCw,
   RotateCcw,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { sendPieceToAdvoga } from "@/lib/advoga.functions";
 import { useAuth } from "@/lib/auth";
 import { generatePiece } from "@/lib/mikeClient";
 import {
@@ -71,7 +74,9 @@ export function VisualLawPanel(props: Props) {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [sending, setSending] = useState(false);
   const [versions, setVersions] = useState<any[]>([]);
+  const sendToAdvoga = useServerFn(sendPieceToAdvoga);
 
   useEffect(() => {
     let alive = true;
@@ -164,6 +169,19 @@ export function VisualLawPanel(props: Props) {
     }
   }
 
+  async function sendNow() {
+    setSending(true);
+    try {
+      const res = await sendToAdvoga({ data: { pieceId: props.pieceId } });
+      if (res.ok) toast.success(`Enviado ao Advoga.AI (HTTP ${res.status})`);
+      else toast.error(`Advoga.AI retornou ${res.status}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function restoreVersion(v: any) {
     setStyle({ ...DEFAULT_STYLE, ...(v.style_snapshot ?? {}) });
     toast.success("Estilo restaurado");
@@ -209,6 +227,10 @@ export function VisualLawPanel(props: Props) {
           <Button variant="outline" onClick={regenerateText} disabled={regenerating}>
             <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? "animate-spin" : ""}`} />
             Regerar texto (Mike)
+          </Button>
+          <Button variant="outline" onClick={sendNow} disabled={sending}>
+            <Send className={`h-4 w-4 mr-2 ${sending ? "animate-pulse" : ""}`} />
+            Enviar ao Advoga.AI
           </Button>
           <Button onClick={generatePdf} disabled={generating} className="bg-gradient-brand text-primary-foreground">
             <Download className="h-4 w-4 mr-2" /> {generating ? "Gerando..." : "Gerar Visual Law"}
