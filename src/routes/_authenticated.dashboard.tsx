@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FilePlus, FileText } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import heroBg from "@/assets/dashboard-hero-bg.jpg";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Peticiona.AI" }] }),
@@ -27,6 +28,7 @@ function Dashboard() {
   const { user } = useAuth();
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fullName, setFullName] = useState<string>("");
 
   useEffect(() => {
     if (!user) return;
@@ -38,10 +40,19 @@ function Dashboard() {
         setPieces((data ?? []) as Piece[]);
         setLoading(false);
       });
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setFullName((data?.full_name as string) ?? user.email?.split("@")[0] ?? "");
+      });
   }, [user]);
 
   return (
     <div className="space-y-6">
+      <DashboardHero name={fullName} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Minhas peças</h1>
@@ -82,6 +93,38 @@ function Dashboard() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DashboardHero({ name }: { name: string }) {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const rawDate = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const dateLabel = rawDate
+    .split(" ")
+    .map((w) => (w.length > 2 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border border-border/50 bg-card"
+      style={{
+        backgroundImage: `linear-gradient(90deg, hsl(var(--card)) 0%, hsl(var(--card)/0.85) 40%, transparent 100%), url(${heroBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "right center",
+      }}
+    >
+      <div className="relative z-10 px-6 py-7 md:px-8 md:py-8">
+        <span className="inline-flex items-center rounded-full border border-accent/40 bg-background/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+          AI-Native · Advoga.AI
+        </span>
+        <h2 className="mt-3 text-2xl font-bold leading-tight md:text-4xl">
+          <span className="text-foreground">{greeting}, </span>
+          <span className="text-gradient-brand uppercase">{name || "..."}</span>
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">{dateLabel}</p>
+      </div>
     </div>
   );
 }
