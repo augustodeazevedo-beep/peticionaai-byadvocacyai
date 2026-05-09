@@ -71,7 +71,7 @@ function ConfiguracoesIA() {
     if (!user) return;
     if (!form.endpoint.trim()) return toast.error("Informe o endpoint do Mike.");
     setSaving(true);
-    const payload: Record<string, unknown> = {
+    const base = {
       user_id: user.id,
       provider: "mike",
       endpoint: form.endpoint.trim(),
@@ -79,7 +79,9 @@ function ConfiguracoesIA() {
       monthly_token_cap: form.monthly_token_cap,
       is_active: form.is_active,
     };
-    if (form.api_key_encrypted.trim()) payload.api_key_encrypted = form.api_key_encrypted.trim();
+    const payload = form.api_key_encrypted.trim()
+      ? { ...base, api_key_encrypted: form.api_key_encrypted.trim() }
+      : base;
     const { error } = await supabase.from("user_integrations").upsert(payload, { onConflict: "user_id,provider" });
     setSaving(false);
     if (error) return toast.error(error.message);
