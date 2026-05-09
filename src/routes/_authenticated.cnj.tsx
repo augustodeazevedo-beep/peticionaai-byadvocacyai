@@ -97,7 +97,7 @@ function CnjPage() {
             <div>
               <p className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Assuntos</p>
               <div className="flex flex-wrap gap-1">
-                {result.assuntos.map((a) => <Badge key={a} variant="secondary">{a}</Badge>)}
+                {result.assuntos.map((a: string) => <Badge key={a} variant="secondary">{a}</Badge>)}
               </div>
             </div>
           )}
@@ -106,7 +106,7 @@ function CnjPage() {
             <div>
               <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Últimas movimentações</p>
               <div className="space-y-1">
-                {result.movimentos.map((mv, i) => (
+                {result.movimentos.map((mv: { nome?: string; data?: string }, i: number) => (
                   <div key={i} className="flex justify-between border-b border-border/30 py-1 text-xs">
                     <span className="truncate pr-3">{mv.nome}</span>
                     <span className="text-muted-foreground">{mv.data?.slice(0, 10)}</span>
