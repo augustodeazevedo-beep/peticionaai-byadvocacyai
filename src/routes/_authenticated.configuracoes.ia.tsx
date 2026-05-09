@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Cpu, KeyRound, ExternalLink } from "lucide-react";
+import { AdvogaIntegrationCard } from "@/components/integrations/AdvogaIntegrationCard";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/ia")({
   head: () => ({ meta: [{ title: "Configurações de IA — Peticiona.AI" }] }),
@@ -24,7 +25,7 @@ type Integration = {
 };
 
 function ConfiguracoesIA() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasKey, setHasKey] = useState(false);
@@ -219,6 +220,8 @@ function ConfiguracoesIA() {
           </div>
         )}
       </Card>
+
+      {isAdmin && <AdvogaIntegrationCard />}
     </div>
   );
 }
