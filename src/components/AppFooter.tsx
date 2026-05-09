@@ -1,4 +1,5 @@
 import { BrandMark } from "./Logo";
+import advocacyIcon from "@/assets/advocacy-ai-icon.png";
 
 export function AppFooter() {
   return (
@@ -8,8 +9,11 @@ export function AppFooter() {
           <BrandMark size={20} />
           <p>© {new Date().getFullYear()} Peticiona.AI — Redação assistida por IA.</p>
         </div>
-        <p>
-          by <span className="text-gradient-brand font-semibold">Advocacy.AI</span> · Prospect.AI · Advoga.AI · Peticiona.AI · Fin.AI
+        <p className="flex items-center gap-2">
+          <img src={advocacyIcon} alt="Advocacy.AI" className="h-5 w-auto" />
+          <span>
+            by <span className="text-gradient-brand font-semibold">Advocacy.AI</span> · Prospect.AI · Advoga.AI · Peticiona.AI · Fin.AI
+          </span>
         </p>
       </div>
     </footer>
