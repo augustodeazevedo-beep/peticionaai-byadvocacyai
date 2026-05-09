@@ -1,10 +1,27 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const ALLOWED_AREAS = ["civel", "consumidor", "trabalhista", "tributario", "penal", "familia", "empresarial", "administrativo", "previdenciario"] as const;
+
+const inputSchema = z.object({
+  piece_type: z.string().trim().min(1).max(120).regex(/^[a-z0-9_\-]+$/i, "piece_type inválido"),
+  area: z.string().trim().max(60).optional().nullable(),
+  fields: z.record(z.unknown()).default({}),
+  context: z.string().trim().max(8000).optional().nullable(),
+});
+
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -15,20 +32,33 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Caller (for log)
-  let userId: string | null = null;
-  try {
-    const auth = req.headers.get("Authorization");
-    if (auth) {
-      const token = auth.replace("Bearer ", "");
-      const { data } = await supabase.auth.getUser(token);
-      userId = data.user?.id ?? null;
-    }
-  } catch { /* ignore */ }
+  // Require authenticated caller
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonError("Unauthorized", 401);
+  const token = authHeader.replace("Bearer ", "");
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData.user) return jsonError("Unauthorized", 401);
+  const userId: string = authData.user.id;
 
   try {
-    const body = await req.json();
-    const { piece_type, area, fields, context } = body as { piece_type: string; area?: string; fields: Record<string, unknown>; context?: string };
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return jsonError("Corpo da requisição inválido.", 400);
+    }
+    const parsed = inputSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return jsonError("Dados de entrada inválidos.", 400);
+    }
+    const { piece_type, area, fields, context } = parsed.data;
+    if (area && !ALLOWED_AREAS.includes(area.toLowerCase() as typeof ALLOWED_AREAS[number])) {
+      return jsonError("Área jurídica não suportada.", 400);
+    }
+    const fieldsJson = JSON.stringify(fields);
+    if (fieldsJson.length > 20000) {
+      return jsonError("Campos excedem o tamanho máximo permitido.", 400);
+    }
 
     // Load settings
     const { data: settings } = await supabase.from("system_settings").select("key,value");
@@ -46,7 +76,7 @@ Deno.serve(async (req) => {
 
     const systemPrompt = [persona, rulesFormat, rulesCit, rulesAnti, structure, shadow, checklist].filter(Boolean).join("\n\n---\n\n");
 
-    const userPrompt = `Tipo de peça: ${piece_type}\nÁrea: ${area ?? "—"}\n\nDados fornecidos pelo operador (JSON):\n${JSON.stringify(fields, null, 2)}\n\nContexto adicional:\n${context ?? "—"}\n\nProduza a peça completa em Markdown, seguindo a estrutura e regras. Ao final inclua as seções "## Checklist Final" e "## Observações ao Operador".`;
+    const userPrompt = `Tipo de peça: ${piece_type}\nÁrea: ${area ?? "—"}\n\nDados fornecidos pelo operador (JSON):\n${fieldsJson}\n\nContexto adicional:\n${context ?? "—"}\n\nProduza a peça completa em Markdown, seguindo a estrutura e regras. Ao final inclua as seções "## Checklist Final" e "## Observações ao Operador".`;
 
     const MIKE_API_KEY = Deno.env.get("MIKE_API_KEY");
     let content = "";
@@ -84,13 +114,14 @@ Deno.serve(async (req) => {
       });
       if (!r.ok) {
         const text = await r.text();
+        console.error("AI gateway error:", r.status, text);
         await supabase.from("integration_logs").insert({
           user_id: userId, integration: "lovable_ai", endpoint: "ai.gateway.lovable.dev",
           status_code: r.status, ok: false, error: text, duration_ms: Date.now() - start,
         });
-        if (r.status === 429) return new Response(JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em alguns instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (r.status === 402) return new Response(JSON.stringify({ error: "Créditos de IA insuficientes. Adicione créditos em Settings → Workspace → Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        return new Response(JSON.stringify({ error: "Falha na geração: " + text }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (r.status === 429) return jsonError("Limite de requisições atingido. Tente novamente em alguns instantes.", 429);
+        if (r.status === 402) return jsonError("Créditos de IA insuficientes. Adicione créditos em Settings → Workspace → Usage.", 402);
+        return jsonError("Falha na geração de conteúdo.", 502);
       }
       const j = await r.json();
       content = j.choices?.[0]?.message?.content ?? "";
@@ -107,7 +138,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("mike-generate fatal error:", e);
+    return jsonError("Erro interno ao processar a requisição.", 500);
   }
 });
