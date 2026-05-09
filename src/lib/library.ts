@@ -143,8 +143,8 @@ export async function createLibrarian(input: {
     practice_area: input.practice_area ?? null,
     piece_type: input.piece_type ?? null,
     reasoning_prompt: input.reasoning_prompt ?? null,
-    formatting_rules: input.formatting_rules ?? {},
-    visual_law_defaults: input.visual_law_defaults ?? {},
+    formatting_rules: (input.formatting_rules ?? {}) as never,
+    visual_law_defaults: (input.visual_law_defaults ?? {}) as never,
     model_piece_ids: input.model_piece_ids ?? [],
   }).select().single();
   if (error) throw error;
@@ -161,7 +161,7 @@ export async function updateLibrarian(id: string, patch: Partial<{
   visual_law_defaults: Record<string, unknown>;
   model_piece_ids: string[];
 }>) {
-  const { error } = await supabase.from("librarians").update(patch).eq("id", id);
+  const { error } = await supabase.from("librarians").update(patch as never).eq("id", id);
   if (error) throw error;
 }
 
