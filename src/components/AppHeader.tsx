@@ -28,8 +28,8 @@ export function AppHeader() {
               <Link to="/workspace" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
                 Workspace
               </Link>
-              <Link to="/biblioteca" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
-                Biblioteca
+              <Link to="/assistentes" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
+                Assistentes
               </Link>
               <Link to="/dashboard" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
                 Dashboard
@@ -63,8 +63,8 @@ export function AppHeader() {
                 <DropdownMenuItem onClick={() => navigate({ to: "/workspace" })}>
                   <Sparkles className="mr-2 h-4 w-4" /> Workspace
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate({ to: "/biblioteca" })}>
-                  <BookOpen className="mr-2 h-4 w-4" /> Biblioteca
+                <DropdownMenuItem onClick={() => navigate({ to: "/assistentes" })}>
+                  <BookOpen className="mr-2 h-4 w-4" /> Assistentes
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/bibliotecarios" })}>
                   <Users className="mr-2 h-4 w-4" /> Bibliotecários
