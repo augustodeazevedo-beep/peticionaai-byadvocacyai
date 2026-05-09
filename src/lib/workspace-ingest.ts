@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type ContextType = Database["public"]["Enums"]["workspace_context_type"];
+export type ContextType = Database["public"]["Enums"]["context_item_type"];
 export type Strictness = Database["public"]["Enums"]["template_strictness"];
 export type DocumentSource = Database["public"]["Enums"]["document_source"];
 
@@ -106,7 +106,7 @@ async function appendContext(input: {
       strictness: input.strictness ?? null,
       ocr_required: input.ocr_required ?? false,
       display_order: count ?? 0,
-      payload: input.payload ?? {},
+      payload: (input.payload ?? {}) as never,
     })
     .select("*")
     .single();
@@ -216,6 +216,7 @@ export async function addLibraryItemToWorkspace(workspaceId: string, item: {
     preview: item.content_text?.slice(0, 200) ?? null,
     library_item_id: item.id,
     storage_path: item.storage_path ?? undefined,
+    payload: {},
   });
 }
 
