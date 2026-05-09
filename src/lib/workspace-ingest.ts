@@ -213,7 +213,7 @@ export async function addLibraryItemToWorkspace(workspaceId: string, item: {
     workspaceId,
     type: ctxType,
     title: item.title,
-    preview: item.content_text?.slice(0, 200) ?? null,
+    preview: item.content_text?.slice(0, 200) ?? undefined,
     library_item_id: item.id,
     storage_path: item.storage_path ?? undefined,
     payload: {},
