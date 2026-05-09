@@ -74,7 +74,7 @@ function DjenPage() {
               Nenhuma comunicação encontrada para os filtros informados.
             </Card>
           )}
-          {data.items.map((it) => (
+          {data.items.map((it: any) => (
             <Card key={it.id} className="glass space-y-2 border-border/50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
