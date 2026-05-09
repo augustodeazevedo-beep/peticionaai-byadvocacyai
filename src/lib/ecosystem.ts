@@ -1,7 +1,7 @@
-import { Briefcase, FileText, Scale, Wallet, type LucideIcon } from "lucide-react";
+import { Briefcase, FileText, GraduationCap, Scale, Target, Wallet, type LucideIcon } from "lucide-react";
 
 export type EcosystemApp = {
-  id: "inventaria" | "peticione" | "advoga" | "fin";
+  id: "prospect" | "inventaria" | "peticione" | "advoga" | "fin" | "study";
   name: string;
   tagline: string;
   url: string;
@@ -9,20 +9,26 @@ export type EcosystemApp = {
   current?: boolean;
 };
 
-// Stable Lovable URLs (project--{id}.lovable.app) never break on rename.
 export const ECOSYSTEM_APPS: EcosystemApp[] = [
+  {
+    id: "prospect",
+    name: "Prospect.AI",
+    tagline: "Captação inteligente de clientes",
+    url: "https://prospectai-byadvocacyai.lovable.app",
+    icon: Target,
+  },
   {
     id: "inventaria",
     name: "Inventaria.AI",
     tagline: "Planejamento patrimonial e sucessório",
-    url: "https://project--3d5018fd-106f-43cc-8551-99851a671c0e.lovable.app",
+    url: "https://inventariaai.lovable.app",
     icon: Scale,
   },
   {
     id: "peticione",
     name: "Peticiona.AI",
     tagline: "Petições, minutas e contratos",
-    url: "https://project--f24689d9-a0bb-45f5-9ec2-db0693486e13.lovable.app",
+    url: "https://peticionaai-byadvocacyai.lovable.app",
     icon: FileText,
     current: true,
   },
@@ -37,7 +43,14 @@ export const ECOSYSTEM_APPS: EcosystemApp[] = [
     id: "fin",
     name: "Fin.AI",
     tagline: "Gestão financeira do escritório",
-    url: "https://project--baeca359-2d19-4855-87bc-8f4f0de7344d.lovable.app",
+    url: "https://finai-byadvocacyia.lovable.app",
     icon: Wallet,
+  },
+  {
+    id: "study",
+    name: "Study.AI",
+    tagline: "Estudo e formação jurídica com IA",
+    url: "https://studyai-plataforma.lovable.app",
+    icon: GraduationCap,
   },
 ];
