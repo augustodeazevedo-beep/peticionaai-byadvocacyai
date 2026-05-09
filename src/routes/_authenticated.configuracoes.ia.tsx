@@ -29,6 +29,7 @@ function ConfiguracoesIA() {
   const [saving, setSaving] = useState(false);
   const [hasKey, setHasKey] = useState(false);
   const [usageMonth, setUsageMonth] = useState(0);
+  const [recent, setRecent] = useState<Array<{ id: string; created_at: string; total_tokens: number; model: string | null; purpose: string | null }>>([]);
   const [form, setForm] = useState<Integration>({
     endpoint: "",
     api_key_encrypted: "",
@@ -63,6 +64,13 @@ function ConfiguracoesIA() {
         .eq("user_id", user.id)
         .gte("created_at", since.toISOString());
       setUsageMonth((usage ?? []).reduce((a, r: { total_tokens: number }) => a + (r.total_tokens || 0), 0));
+      const { data: recentRows } = await supabase
+        .from("token_usage")
+        .select("id, created_at, total_tokens, model, purpose")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setRecent((recentRows as any[]) ?? []);
       setLoading(false);
     })();
   }, [user]);
@@ -192,6 +200,24 @@ function ConfiguracoesIA() {
             <ExternalLink className="h-3.5 w-3.5" /> Documentação Mike
           </a>
         </Button>
+      </Card>
+
+      <Card className="glass border-border/50 p-5">
+        <p className="text-xs uppercase tracking-wide text-accent">Últimas chamadas</p>
+        {recent.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">Nenhuma chamada registrada ainda.</p>
+        ) : (
+          <div className="mt-3 divide-y divide-border/40 text-sm">
+            {recent.map((r) => (
+              <div key={r.id} className="flex items-center justify-between py-1.5">
+                <span className="text-xs text-muted-foreground w-36">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                <span className="flex-1 truncate px-2">{r.purpose ?? "—"}</span>
+                <span className="text-xs text-muted-foreground w-40 truncate text-right">{r.model ?? ""}</span>
+                <span className="font-mono text-xs w-24 text-right">{(r.total_tokens || 0).toLocaleString("pt-BR")}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
