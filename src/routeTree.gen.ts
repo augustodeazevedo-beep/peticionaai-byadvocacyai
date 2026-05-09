@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
@@ -43,6 +44,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/dashboard'
+    | '/workspace'
     | '/admin/integracoes'
     | '/ferramentas/links'
     | '/pecas/$id'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/dashboard'
+    | '/workspace'
     | '/admin/integracoes'
     | '/ferramentas/links'
     | '/pecas/$id'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/dashboard'
+    | '/_authenticated/workspace'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/ferramentas/links'
     | '/_authenticated/pecas/$id'
@@ -189,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/workspace': {
+      id: '/_authenticated/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -229,6 +248,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
   AuthenticatedPecasIdRoute: typeof AuthenticatedPecasIdRoute
@@ -237,6 +257,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedFerramentasLinksRoute: AuthenticatedFerramentasLinksRoute,
   AuthenticatedPecasIdRoute: AuthenticatedPecasIdRoute,
@@ -257,3 +278,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
