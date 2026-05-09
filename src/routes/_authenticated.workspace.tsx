@@ -13,7 +13,7 @@ import {
 } from "@/components/workspace/TabPanels";
 
 export const Route = createFileRoute("/_authenticated/workspace")({
-  head: () => ({ meta: [{ title: "Workspace — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Workspace — Peticiona.AI" }] }),
   component: WorkspacePage,
 });
 

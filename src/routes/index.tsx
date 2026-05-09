@@ -10,9 +10,9 @@ import heroBg from "@/assets/hero-background.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Peticione.AI — Redação assistida de peças jurídicas" },
+      { title: "Peticiona.AI — Redação assistida de peças jurídicas" },
       { name: "description", content: "Plataforma AI-Native para redação técnica de petições, com fundamentação, anti-alucinação e exportação ABNT. Por Advocacy.AI." },
-      { property: "og:title", content: "Peticione.AI — Redação assistida de peças jurídicas" },
+      { property: "og:title", content: "Peticiona.AI — Redação assistida de peças jurídicas" },
       { property: "og:description", content: "Wizard guiado, persona jurídica sênior e exportação .docx em padrão ABNT." },
     ],
     links: [{ rel: "canonical", href: "/" }],
@@ -118,7 +118,7 @@ function Landing() {
             {[
               { name: "Prospect.AI", desc: "Captação inteligente de clientes." },
               { name: "Advoga.AI", desc: "Gestão completa do escritório." },
-              { name: "Peticione.AI", desc: "Redação assistida de peças.", current: true },
+              { name: "Peticiona.AI", desc: "Redação assistida de peças.", current: true },
               { name: "Fin.AI", desc: "Financeiro e cobrança." },
             ].map((p) => (
               <Card key={p.name} className={`p-5 ${p.current ? "border-primary/50 bg-primary/5" : "glass border-border/50"}`}>

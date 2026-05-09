@@ -12,7 +12,7 @@ import ReactMarkdown from "react-markdown";
 import { Download, Save, RefreshCw, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pecas/$id")({
-  head: () => ({ meta: [{ title: "Editor de Peça — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Editor de Peça — Peticiona.AI" }] }),
   component: PieceEditor,
 });
 
