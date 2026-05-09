@@ -1,56 +1,26 @@
-## Apps Launcher (ecossistema Advocacy.AI)
+## Correções: ícone duplicado + realocação do botão Apps
 
-Criar um menu "Apps" no `AppHeader` igual ao da imagem, listando todas as plataformas do ecossistema com link para cada uma. O Peticione.AI aparece marcado como "atual"; as demais abrem em nova aba.
+### 1. Remover o `SidebarTrigger` duplicado do `AppSidebar`
 
-### Apps (1 fonte de verdade)
+Hoje aparecem dois ícones de ocultar a barra lateral lado a lado: um dentro do `SidebarHeader` (em `src/components/AppSidebar.tsx`) e outro no header do layout `_authenticated` (`src/routes/_authenticated.tsx`).
 
-Novo arquivo `src/lib/ecosystem.ts`:
+**Ação:** remover o `SidebarTrigger` e seu wrapper `absolute` do `SidebarHeader` em `src/components/AppSidebar.tsx`. Manter apenas o `BrandLockup` + subtítulo "By Advocacy.AI" no estado expandido e `BrandMark` no estado colapsado. Remover o import não usado de `SidebarTrigger`. O trigger global continua no header do `_authenticated.tsx` (canto superior esquerdo), que é o único ponto de controle.
 
-```ts
-export type EcosystemApp = {
-  id: "peticione" | "advoga" | "inventaria" | "fin";
-  name: string;          // "Peticiona.AI"
-  tagline: string;       // "Petições, minutas e contratos"
-  url: string;           // https://...lovable.app
-  icon: LucideIcon;      // FileText / Briefcase / Scale / Wallet
-  current?: boolean;     // true para Peticione
-};
-```
+### 2. Mover o menu "Apps" para o header do layout autenticado
 
-URLs:
-- **Peticiona.AI** (atual) — `https://peticionaai-byadvocacyai.lovable.app` — `FileText`
-- **Advoga.AI** — `https://advogaai-byadvocacy.lovable.app` — `Briefcase`
-- **Inventaria.AI** — `https://inventariaai.lovable.app` — `Scale`
-- **Fin.AI** — preciso confirmar a URL publicada (ver pergunta abaixo) — `Wallet`
+Hoje o `DropdownMenu` "Apps" vive em `src/components/AppHeader.tsx` (header público, não usado nas rotas autenticadas). Por isso, dentro de uma página autenticada (`/dashboard`, `/workspace`, etc.) o botão não aparece — somente o menu do usuário renderizado por `_authenticated.tsx`.
 
-### UI (`src/components/AppHeader.tsx`)
+A imagem de referência mostra o botão `⊞ Apps` à esquerda do email do usuário, no header fino do layout autenticado, exatamente como no Inventaria.AI.
 
-Antes do menu do usuário, adicionar:
+**Ação:**
 
-```
-[ ⊞ Apps ▾ ]
-```
-
-Botão `variant="outline"` com ícone `LayoutGrid` (lucide). Ao clicar, abre `DropdownMenuContent` com:
-
-- Cabeçalho: `ECOSSISTEMA` (uppercase 10px tracking-wide accent) + `Advocacy.AI` (font-semibold, .AI em `text-gradient-brand`).
-- Lista de apps em cards verticais:
-  - Item ativo (Peticiona): fundo `bg-secondary/60 border border-accent/40`, badge ✓ ao lado do nome, sem ícone de "abrir".
-  - Demais: hover `bg-secondary/40`, ícone `ExternalLink` no canto direito; `<a target="_blank" rel="noopener noreferrer">`.
-  - Cada item: ícone do app em quadradinho (`p-2 rounded bg-muted`), nome com sufixo `.AI` em verde-neon (`text-gradient-brand`), tagline `text-xs text-muted-foreground`.
-
-Visível para todos os usuários logados (não depende de admin). No mobile, mantém como dropdown.
+- Em `src/routes/_authenticated.tsx`, dentro do componente `AccountMenu` (ou ao lado dele no header), adicionar o `DropdownMenu` "Apps" — mesma estrutura visual já implementada em `AppHeader.tsx`:
+  - Trigger: `Button variant="outline" size="sm"` com ícone `LayoutGrid` + label `Apps` (oculto em telas `< sm`).
+  - Conteúdo: cabeçalho "ECOSSISTEMA / Advocacy.AI" + lista de `ECOSYSTEM_APPS` (Inventaria, Peticiona [atual], Advoga, Fin) com cards de ícone, nome (sufixo `.AI` em `text-gradient-brand`), tagline e indicador `Check`/`ExternalLink`.
+- Posicionar o trigger **antes** do menu do usuário (`Apps` à esquerda, email/`Sair` à direita), envolvendo ambos em um `div` com `gap-2`.
+- Imports adicionais em `_authenticated.tsx`: `LayoutGrid`, `Check`, `ExternalLink` de `lucide-react`; `ECOSYSTEM_APPS` de `@/lib/ecosystem`.
+- Remover o bloco "Apps" de `src/components/AppHeader.tsx` para evitar duplicação (e o import `LayoutGrid`/`Check`/`ExternalLink`/`ECOSYSTEM_APPS` ali, se não usados em outro ponto). `AppHeader` continua servindo as rotas públicas (landing, login, signup) sem o launcher — ele só faz sentido para usuários autenticados.
 
 ### Sem mudanças de backend
 
-Apenas frontend e copy. Sem migrations, sem secrets.
-
-### Pergunta antes de implementar
-
-Confirme a **URL publicada do Fin.AI**. Possíveis padrões Lovable:
-- `https://finai.lovable.app`
-- `https://fin-ai.lovable.app`
-- `https://finai-byadvocacy.lovable.app`
-- `https://project--baeca359-2d19-4855-87bc-8f4f0de7344d.lovable.app` (URL estável por ID — recomendado se ainda não publicou com slug fixo)
-
-Qual usar? Se preferir, já posso usar a URL estável `project--baeca359-...lovable.app` para todos os 4 apps (mais robusta, nunca quebra). Recomendo essa opção.
+Apenas frontend. Sem migrations, sem secrets, sem alterações em `ecosystem.ts`.
