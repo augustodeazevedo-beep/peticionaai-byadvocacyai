@@ -107,6 +107,184 @@ export type Database = {
         }
         Relationships: []
       }
+      librarian_items: {
+        Row: {
+          created_at: string
+          librarian_id: string
+          library_item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          librarian_id: string
+          library_item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          librarian_id?: string
+          library_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "librarian_items_librarian_id_fkey"
+            columns: ["librarian_id"]
+            isOneToOne: false
+            referencedRelation: "librarians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "librarian_items_library_item_id_fkey"
+            columns: ["library_item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      librarians: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      library_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_items: {
+        Row: {
+          content_text: string | null
+          created_at: string
+          description: string | null
+          folder_id: string | null
+          id: string
+          is_favorite: boolean
+          is_shared: boolean
+          metadata: Json
+          mime_type: string | null
+          size_bytes: number | null
+          source_url: string | null
+          storage_path: string | null
+          tags: string[]
+          title: string
+          type: Database["public"]["Enums"]["library_item_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_text?: string | null
+          created_at?: string
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_shared?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          size_bytes?: number | null
+          source_url?: string | null
+          storage_path?: string | null
+          tags?: string[]
+          title: string
+          type: Database["public"]["Enums"]["library_item_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_text?: string | null
+          created_at?: string
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          is_favorite?: boolean
+          is_shared?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          size_bytes?: number | null
+          source_url?: string | null
+          storage_path?: string | null
+          tags?: string[]
+          title?: string
+          type?: Database["public"]["Enums"]["library_item_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_items_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       piece_versions: {
         Row: {
           content_html: string | null
@@ -514,6 +692,15 @@ export type Database = {
         | "transcricao"
         | "url"
         | "texto"
+      library_item_type:
+        | "prompt"
+        | "documento"
+        | "legislacao"
+        | "jurisprudencia"
+        | "modelo"
+        | "podcast"
+        | "diagrama"
+        | "referencia_web"
       piece_status: "draft" | "generating" | "ready" | "exported" | "archived"
       thinking_level: "baixo" | "medio" | "alto"
       workspace_mode: "padrao" | "agentico"
@@ -657,6 +844,16 @@ export const Constants = {
         "transcricao",
         "url",
         "texto",
+      ],
+      library_item_type: [
+        "prompt",
+        "documento",
+        "legislacao",
+        "jurisprudencia",
+        "modelo",
+        "podcast",
+        "diagrama",
+        "referencia_web",
       ],
       piece_status: ["draft", "generating", "ready", "exported", "archived"],
       thinking_level: ["baixo", "medio", "alto"],
