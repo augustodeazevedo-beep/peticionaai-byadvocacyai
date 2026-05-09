@@ -179,13 +179,13 @@ export const Route = createFileRoute("/api/public/inventaria-process-context")({
             piece_type: payload.piece_type_hint || "peticao_inventario_consensual",
             area: payload.area ?? "sucessoes",
             status: "draft",
-            input_data: {
+            input_data: ({
               source: "inventaria",
               external_id: payload.external_id,
               client_name: payload.client_name,
               summary: payload.summary,
               structured_payload: payload.structured_payload ?? {},
-            },
+            } as any),
           })
           .select("id")
           .single();
