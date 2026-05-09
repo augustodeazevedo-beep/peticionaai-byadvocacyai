@@ -46,7 +46,7 @@ export function ContextComposer() {
         />
         <p className="mt-1 text-xs text-muted-foreground">
           Digite <kbd className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px]">/</kbd> para prompts e{" "}
-          <kbd className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px]">@</kbd> para biblioteca e bibliotecários
+          <kbd className="rounded bg-secondary px-1 py-0.5 font-mono text-[10px]">@</kbd> para assistentes e bibliotecários
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
