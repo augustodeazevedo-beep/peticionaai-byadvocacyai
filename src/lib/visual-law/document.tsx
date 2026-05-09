@@ -12,10 +12,10 @@ type Props = {
   title: string;
   authorOrCase?: string;
   contentText: string;
-  style: VisualLawStyle;
+  vlStyle: VisualLawStyle;
 };
 
-export function VisualLawDocument({ title, authorOrCase, contentText, style }: Props) {
+export function VisualLawDocument({ title, authorOrCase, contentText, vlStyle: style }: Props) {
   const palette = resolvePalette(style);
   const sizes = densityToSizes(style.density);
   const blocks = parsePieceText(contentText);
