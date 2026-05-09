@@ -15,7 +15,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
+import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
+import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedBibliotecaRouteImport } from './routes/_authenticated.biblioteca'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
@@ -53,9 +56,25 @@ const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDjenRoute = AuthenticatedDjenRouteImport.update({
+  id: '/djen',
+  path: '/djen',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCompartilhamentosRoute =
+  AuthenticatedCompartilhamentosRouteImport.update({
+    id: '/compartilhamentos',
+    path: '/compartilhamentos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCnjRoute = AuthenticatedCnjRouteImport.update({
+  id: '/cnj',
+  path: '/cnj',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedBibliotecariosRoute =
@@ -105,7 +124,10 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/cnj': typeof AuthenticatedCnjRoute
+  '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/djen': typeof AuthenticatedDjenRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -120,7 +142,10 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/cnj': typeof AuthenticatedCnjRoute
+  '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/djen': typeof AuthenticatedDjenRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -137,7 +162,10 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/_authenticated/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/_authenticated/cnj': typeof AuthenticatedCnjRoute
+  '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/djen': typeof AuthenticatedDjenRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -154,7 +182,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/biblioteca'
     | '/bibliotecarios'
+    | '/cnj'
+    | '/compartilhamentos'
     | '/dashboard'
+    | '/djen'
     | '/workspace'
     | '/admin/integracoes'
     | '/configuracoes/ia'
@@ -169,7 +200,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/biblioteca'
     | '/bibliotecarios'
+    | '/cnj'
+    | '/compartilhamentos'
     | '/dashboard'
+    | '/djen'
     | '/workspace'
     | '/admin/integracoes'
     | '/configuracoes/ia'
@@ -185,7 +219,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/biblioteca'
     | '/_authenticated/bibliotecarios'
+    | '/_authenticated/cnj'
+    | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
+    | '/_authenticated/djen'
     | '/_authenticated/workspace'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/configuracoes/ia'
@@ -246,11 +283,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/djen': {
+      id: '/_authenticated/djen'
+      path: '/djen'
+      fullPath: '/djen'
+      preLoaderRoute: typeof AuthenticatedDjenRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/compartilhamentos': {
+      id: '/_authenticated/compartilhamentos'
+      path: '/compartilhamentos'
+      fullPath: '/compartilhamentos'
+      preLoaderRoute: typeof AuthenticatedCompartilhamentosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cnj': {
+      id: '/_authenticated/cnj'
+      path: '/cnj'
+      fullPath: '/cnj'
+      preLoaderRoute: typeof AuthenticatedCnjRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/bibliotecarios': {
@@ -308,7 +366,10 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedBibliotecaRoute: typeof AuthenticatedBibliotecaRoute
   AuthenticatedBibliotecariosRoute: typeof AuthenticatedBibliotecariosRoute
+  AuthenticatedCnjRoute: typeof AuthenticatedCnjRoute
+  AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDjenRoute: typeof AuthenticatedDjenRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
@@ -320,7 +381,10 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBibliotecaRoute: AuthenticatedBibliotecaRoute,
   AuthenticatedBibliotecariosRoute: AuthenticatedBibliotecariosRoute,
+  AuthenticatedCnjRoute: AuthenticatedCnjRoute,
+  AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDjenRoute: AuthenticatedDjenRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
