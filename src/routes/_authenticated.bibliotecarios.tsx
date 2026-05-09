@@ -115,12 +115,18 @@ function LibrarianCard({
         <div>
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-brand text-primary-foreground">
-              <Users className="h-4 w-4" />
+              <Brain className="h-4 w-4" />
             </div>
             <div>
               <p className="font-semibold">{l.name}</p>
-              <p className="text-xs text-muted-foreground">{count} item(ns)</p>
+              <p className="text-xs text-muted-foreground">
+                {count} item(ns) · {l.model_piece_ids?.length ?? 0} modelo(s)
+              </p>
             </div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {l.practice_area && <Badge variant="outline" className="text-[10px]">{l.practice_area}</Badge>}
+            {l.piece_type && <Badge variant="outline" className="text-[10px]">{l.piece_type}</Badge>}
           </div>
           {l.description && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{l.description}</p>}
         </div>
@@ -142,11 +148,39 @@ function NewLibrarianDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [practiceArea, setPracticeArea] = useState("");
+  const [pieceType, setPieceType] = useState("");
+  const [reasoning, setReasoning] = useState("");
+  const [formatting, setFormatting] = useState("");
+  const [vlTemplate, setVlTemplate] = useState("sem-template");
+  const [vlPalette, setVlPalette] = useState("neutra");
+  const [modelIds, setModelIds] = useState<string[]>([]);
+
+  const { data: pieces = [] } = useQuery({
+    enabled: open,
+    queryKey: ["user_pieces_for_librarian"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pieces").select("id,title,piece_type").order("updated_at", { ascending: false }).limit(50);
+      return data ?? [];
+    },
+  });
+
   const mut = useMutation({
-    mutationFn: () => createLibrarian({ name, description: description || undefined }),
+    mutationFn: () => createLibrarian({
+      name,
+      description: description || undefined,
+      practice_area: practiceArea || undefined,
+      piece_type: pieceType || undefined,
+      reasoning_prompt: reasoning || undefined,
+      formatting_rules: formatting ? { instructions: formatting } : undefined,
+      visual_law_defaults: { template: vlTemplate, color_palette: vlPalette },
+      model_piece_ids: modelIds,
+    }),
     onSuccess: () => {
       toast.success("Bibliotecário criado.");
-      setOpen(false); setName(""); setDescription("");
+      setOpen(false);
+      setName(""); setDescription(""); setPracticeArea(""); setPieceType("");
+      setReasoning(""); setFormatting(""); setModelIds([]);
       onCreated();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -156,18 +190,94 @@ function NewLibrarianDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button className="bg-gradient-brand text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Novo bibliotecário</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo bibliotecário</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground">Nome *</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Direito do Consumidor" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Descrição</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          </div>
-        </div>
+        <Tabs defaultValue="identity" className="mt-2">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="identity">Identidade</TabsTrigger>
+            <TabsTrigger value="reasoning">Raciocínio</TabsTrigger>
+            <TabsTrigger value="formatting">Formatação</TabsTrigger>
+            <TabsTrigger value="visual">Visual Law</TabsTrigger>
+            <TabsTrigger value="models">Modelos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="identity" className="space-y-3 pt-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Nome *</label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Especialista em Consumidor" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">Área de atuação</label>
+                <Input value={practiceArea} onChange={(e) => setPracticeArea(e.target.value)} placeholder="Ex.: Direito do Consumidor" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Tipo de peça</label>
+                <Input value={pieceType} onChange={(e) => setPieceType(e.target.value)} placeholder="Ex.: Petição inicial" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Descrição</label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </div>
+          </TabsContent>
+          <TabsContent value="reasoning" className="space-y-2 pt-3">
+            <label className="text-xs text-muted-foreground">Prompt de raciocínio jurídico especializado</label>
+            <Textarea
+              value={reasoning}
+              onChange={(e) => setReasoning(e.target.value)}
+              rows={8}
+              placeholder="Ex.: Sempre estruturar a fundamentação em (i) requisitos legais, (ii) jurisprudência dominante do STJ, (iii) aplicação ao caso concreto..."
+            />
+          </TabsContent>
+          <TabsContent value="formatting" className="space-y-2 pt-3">
+            <label className="text-xs text-muted-foreground">Regras de formatação e estrutura</label>
+            <Textarea
+              value={formatting}
+              onChange={(e) => setFormatting(e.target.value)}
+              rows={8}
+              placeholder="Ex.: Seções obrigatórias na ordem — Síntese fática; Direito; Pedidos. Citações em itálico. Numeração 1.1, 1.2..."
+            />
+          </TabsContent>
+          <TabsContent value="visual" className="space-y-3 pt-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">Template padrão</label>
+                <Input value={vlTemplate} onChange={(e) => setVlTemplate(e.target.value)} placeholder="minimal | editorial | corporate | sem-template" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Paleta padrão</label>
+                <Input value={vlPalette} onChange={(e) => setVlPalette(e.target.value)} placeholder="neutra | brand | monocromatica" />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Defaults aplicados ao gerar a versão Visual Law deste bibliotecário.
+            </p>
+          </TabsContent>
+          <TabsContent value="models" className="space-y-2 pt-3">
+            <p className="text-xs text-muted-foreground">Selecione peças do seu acervo para servirem de modelo (few-shot).</p>
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-border/40 p-2">
+              {pieces.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma peça encontrada.</p>}
+              {pieces.map((p: { id: string; title: string; piece_type: string }) => {
+                const checked = modelIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setModelIds((s) => checked ? s.filter((x) => x !== p.id) : [...s, p.id])}
+                    className={`flex w-full items-center justify-between rounded-md border p-2 text-left text-xs transition ${checked ? "border-primary/60 bg-secondary/60" : "border-border/40 hover:bg-secondary/40"}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{p.title}</p>
+                      <p className="text-[10px] uppercase text-muted-foreground">{p.piece_type}</p>
+                    </div>
+                    {checked && <Check className="h-3 w-3 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{modelIds.length} selecionado(s).</p>
+          </TabsContent>
+        </Tabs>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={() => mut.mutate()} disabled={!name || mut.isPending} className="bg-gradient-brand text-primary-foreground">
