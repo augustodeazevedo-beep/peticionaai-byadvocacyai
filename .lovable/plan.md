@@ -1,17 +1,23 @@
-## Nova imagem de fundo do banner de saudação
+## Objetivo
+Atualizar o menu "Apps" do dashboard para exibir todos os produtos do ecossistema Advocacy.AI, incluindo os que ainda não estão listados (Prospect.AI e Study.AI), e padronizar as URLs com os links oficiais informados.
 
-Gerar uma nova arte de fundo via IA com identidade visual da plataforma (Direito + IA) e aplicá-la ao container de boas-vindas do dashboard.
+## Alterações
+Arquivo único: `src/lib/ecosystem.ts`
 
-### Conceito visual
-- Tema: **Justiça encontra Inteligência Artificial** — balança da justiça estilizada como circuito/rede neural, com livros de lei dissolvendo em partículas de dados luminosas.
-- Paleta: ciano (#22D3EE) → violeta (#8B5CF6) sobre fundo navy/preto profundo, alinhada aos tokens `text-gradient-brand` / `bg-gradient-brand`.
-- Estilo: futurista, minimalista, cinematográfico, com brilho sutil (glow) e linhas finas de circuito; lado direito mais denso para esmaecer suavemente à esquerda (onde fica o texto).
-- Proporção horizontal larga (1536×384, ~16:4) para ocupar a faixa do banner sem distorção.
+1. Atualizar URLs existentes para os links oficiais:
+   - Peticiona.AI → `https://peticionaai-byadvocacyai.lovable.app` (atual: `current: true`)
+   - Advoga.AI → `https://advogaai-byadvocacy.lovable.app` (já correto)
+   - Inventaria.AI → `https://inventariaai.lovable.app` (corrigir “ttps” do usuário)
+   - Fin.AI → `https://finai-byadvocacyia.lovable.app`
 
-### Implementação
-- Gerar a imagem com `imagegen` (modelo `standard`) salvando em `src/assets/dashboard-hero-bg.jpg` (substitui o arquivo atual, mantendo o import existente).
-- Ajustar levemente o gradiente de máscara em `src/routes/_authenticated.dashboard.tsx` se necessário para garantir legibilidade do texto (lado esquerdo mais opaco).
-- Sem mudanças em outros arquivos, schema ou lógica.
+2. Adicionar dois novos apps com ícones do `lucide-react` coerentes com a identidade:
+   - **Prospect.AI** — `tagline: "Captação inteligente de clientes"` — ícone `Target` — `https://prospectai-byadvocacyai.lovable.app`
+   - **Study.AI** — `tagline: "Estudo e formação jurídica com IA"` — ícone `GraduationCap` — `https://studyai-plataforma.lovable.app`
 
-### Fora de escopo
-- Nova animação, parallax ou troca dinâmica de imagem por horário.
+3. Atualizar o tipo `EcosystemApp["id"]` para incluir `"prospect"` e `"study"`.
+
+4. Ordem sugerida no menu (fluxo natural do escritório): Prospect → Inventaria → Peticiona (atual) → Advoga → Fin → Study.
+
+## Fora do escopo
+- Mudanças visuais no `AppsMenu` em `_authenticated.tsx` (já itera sobre `ECOSYSTEM_APPS`, então os novos apps aparecem automaticamente).
+- Criação de páginas internas ou integrações para os novos produtos.
