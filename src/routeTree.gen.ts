@@ -22,6 +22,7 @@ import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_au
 import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedAssistentesRouteImport } from './routes/_authenticated.assistentes'
+import { Route as ApiPublicInventariaProcessContextRouteImport } from './routes/api/public/inventaria-process-context'
 import { Route as ApiPublicAdvogaProcessContextRouteImport } from './routes/api/public/advoga-process-context'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
@@ -97,6 +98,12 @@ const AuthenticatedAssistentesRoute =
     path: '/assistentes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicInventariaProcessContextRoute =
+  ApiPublicInventariaProcessContextRouteImport.update({
+    id: '/api/public/inventaria-process-context',
+    path: '/api/public/inventaria-process-context',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAdvogaProcessContextRoute =
   ApiPublicAdvogaProcessContextRouteImport.update({
     id: '/api/public/advoga-process-context',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
+  '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
+  '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -193,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
+  '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/pecas/$id'
     | '/pecas/nova'
     | '/api/public/advoga-process-context'
+    | '/api/public/inventaria-process-context'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/pecas/$id'
     | '/pecas/nova'
     | '/api/public/advoga-process-context'
+    | '/api/public/inventaria-process-context'
   id:
     | '__root__'
     | '/'
@@ -256,6 +268,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pecas/$id'
     | '/_authenticated/pecas/nova'
     | '/api/public/advoga-process-context'
+    | '/api/public/inventaria-process-context'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -266,6 +279,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   PSlugRoute: typeof PSlugRoute
   ApiPublicAdvogaProcessContextRoute: typeof ApiPublicAdvogaProcessContextRoute
+  ApiPublicInventariaProcessContextRoute: typeof ApiPublicInventariaProcessContextRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -361,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistentesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/inventaria-process-context': {
+      id: '/api/public/inventaria-process-context'
+      path: '/api/public/inventaria-process-context'
+      fullPath: '/api/public/inventaria-process-context'
+      preLoaderRoute: typeof ApiPublicInventariaProcessContextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/advoga-process-context': {
       id: '/api/public/advoga-process-context'
       path: '/api/public/advoga-process-context'
@@ -448,6 +469,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   PSlugRoute: PSlugRoute,
   ApiPublicAdvogaProcessContextRoute: ApiPublicAdvogaProcessContextRoute,
+  ApiPublicInventariaProcessContextRoute:
+    ApiPublicInventariaProcessContextRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
