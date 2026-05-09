@@ -15,7 +15,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
-        <div className="relative flex flex-col items-center px-2 py-2">
+        <div className="flex flex-col items-center px-2 py-2">
           <Link to="/" className="flex flex-col items-center gap-1">
             {collapsed ? (
               <BrandMark size={28} />
@@ -116,7 +115,6 @@ export function AppSidebar() {
               </>
             )}
           </Link>
-          <SidebarTrigger className="absolute right-1 top-1 h-7 w-7" />
         </div>
       </SidebarHeader>
 
