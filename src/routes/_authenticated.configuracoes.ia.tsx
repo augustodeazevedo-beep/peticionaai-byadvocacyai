@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Cpu, KeyRound, ExternalLink } from "lucide-react";
 import { AdvogaIntegrationCard } from "@/components/integrations/AdvogaIntegrationCard";
+import { InventariaIntegrationCard } from "@/components/integrations/InventariaIntegrationCard";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/ia")({
   head: () => ({ meta: [{ title: "Configurações de IA — Peticiona.AI" }] }),
@@ -222,6 +223,7 @@ function ConfiguracoesIA() {
       </Card>
 
       {isAdmin && <AdvogaIntegrationCard />}
+      {isAdmin && <InventariaIntegrationCard />}
     </div>
   );
 }
