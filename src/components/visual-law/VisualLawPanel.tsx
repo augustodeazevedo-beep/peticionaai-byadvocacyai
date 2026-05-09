@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { sendPieceToAdvoga } from "@/lib/advoga.functions";
+import { sendPieceToInventaria } from "@/lib/inventaria.functions";
 import { useAuth } from "@/lib/auth";
 import { generatePiece } from "@/lib/mikeClient";
 import {
@@ -75,8 +76,10 @@ export function VisualLawPanel(props: Props) {
   const [generating, setGenerating] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendingInventaria, setSendingInventaria] = useState(false);
   const [versions, setVersions] = useState<any[]>([]);
   const sendToAdvoga = useServerFn(sendPieceToAdvoga);
+  const sendToInventaria = useServerFn(sendPieceToInventaria);
 
   useEffect(() => {
     let alive = true;
@@ -182,6 +185,19 @@ export function VisualLawPanel(props: Props) {
     }
   }
 
+  async function sendNowInventaria() {
+    setSendingInventaria(true);
+    try {
+      const res = await sendToInventaria({ data: { pieceId: props.pieceId } });
+      if (res.ok) toast.success(`Enviado ao Inventaria.AI (HTTP ${res.status})`);
+      else toast.error(`Inventaria.AI retornou ${res.status}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
+    } finally {
+      setSendingInventaria(false);
+    }
+  }
+
   async function restoreVersion(v: any) {
     setStyle({ ...DEFAULT_STYLE, ...(v.style_snapshot ?? {}) });
     toast.success("Estilo restaurado");
@@ -231,6 +247,10 @@ export function VisualLawPanel(props: Props) {
           <Button variant="outline" onClick={sendNow} disabled={sending}>
             <Send className={`h-4 w-4 mr-2 ${sending ? "animate-pulse" : ""}`} />
             Enviar ao Advoga.AI
+          </Button>
+          <Button variant="outline" onClick={sendNowInventaria} disabled={sendingInventaria}>
+            <Send className={`h-4 w-4 mr-2 ${sendingInventaria ? "animate-pulse" : ""}`} />
+            Enviar ao Inventaria.AI
           </Button>
           <Button onClick={generatePdf} disabled={generating} className="bg-gradient-brand text-primary-foreground">
             <Download className="h-4 w-4 mr-2" /> {generating ? "Gerando..." : "Gerar Visual Law"}
