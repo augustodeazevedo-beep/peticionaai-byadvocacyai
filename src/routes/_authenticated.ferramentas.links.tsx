@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Star, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/ferramentas/links")({
-  head: () => ({ meta: [{ title: "Links Úteis — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Links Úteis — Peticiona.AI" }] }),
   component: Links,
 });
 

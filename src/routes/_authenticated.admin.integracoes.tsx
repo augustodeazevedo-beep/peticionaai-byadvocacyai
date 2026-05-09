@@ -17,13 +17,13 @@ export const Route = createFileRoute("/_authenticated/admin/integracoes")({
 type Setting = { key: string; value: string | null; description: string | null };
 
 const KEY_ORDER = [
-  "peticione_persona",
-  "peticione_rules_format",
-  "peticione_rules_citation",
-  "peticione_rules_antihalucinacao",
-  "peticione_structure",
-  "peticione_checklist_final",
-  "peticione_shadow_cabinet",
+  "peticiona_persona",
+  "peticiona_rules_format",
+  "peticiona_rules_citation",
+  "peticiona_rules_antihalucinacao",
+  "peticiona_structure",
+  "peticiona_checklist_final",
+  "peticiona_shadow_cabinet",
   "mike_endpoint",
   "mike_org",
   "mike_model",

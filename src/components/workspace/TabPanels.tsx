@@ -148,7 +148,7 @@ export function ModelosPanel() {
     <DropZone
       icon={Box}
       title="Arraste e solte o modelo a ser seguido"
-      hint="Ensine o Peticione.AI a escrever com o seu estilo. Prefira modelos em .docx para melhor preservação da formatação."
+      hint="Ensine o Peticiona.AI a escrever com o seu estilo. Prefira modelos em .docx para melhor preservação da formatação."
       actions={[
         { label: "Arquivos", icon: Upload },
         { label: "Inserir texto", icon: Type },
