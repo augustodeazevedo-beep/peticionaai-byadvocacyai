@@ -27,8 +27,8 @@ import { toast } from "sonner";
 import { useWorkspace } from "@/stores/workspace";
 
 export const Route = createFileRoute("/_authenticated/assistentes")({
-  head: () => ({ meta: [{ title: "Biblioteca — Peticiona.AI" }] }),
-  component: BibliotecaPage,
+  head: () => ({ meta: [{ title: "Assistentes — Peticiona.AI" }] }),
+  component: AssistentesPage,
 });
 
 const TYPE_META: Record<LibraryItemType, { label: string; icon: typeof BookOpen }> = {
@@ -44,7 +44,7 @@ const TYPE_META: Record<LibraryItemType, { label: string; icon: typeof BookOpen 
 
 const TYPES = Object.keys(TYPE_META) as LibraryItemType[];
 
-function BibliotecaPage() {
+function AssistentesPage() {
   const qc = useQueryClient();
   const [type, setType] = useState<LibraryItemType | "all">("all");
   const [search, setSearch] = useState("");
@@ -75,9 +75,9 @@ function BibliotecaPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-10">
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Biblioteca</h1>
+          <h1 className="text-2xl font-bold">Assistentes</h1>
           <p className="text-sm text-muted-foreground">
-            Prompts, documentos, modelos, legislações e referências reutilizáveis.
+            Prompts jurídicos prontos para acelerar a criação de peças.
           </p>
         </div>
         <NewItemDialog onCreated={() => qc.invalidateQueries({ queryKey: ["library_items"] })} />
@@ -86,7 +86,7 @@ function BibliotecaPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar na biblioteca..." className="pl-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar assistentes..." className="pl-9" />
         </div>
         <Select value={type} onValueChange={(v) => setType(v as LibraryItemType | "all")}>
           <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
@@ -104,8 +104,8 @@ function BibliotecaPage() {
       ) : items.length === 0 ? (
         <Card className="glass border-dashed border-border/50 p-10 text-center">
           <BookOpen className="mx-auto mb-3 h-8 w-8 text-accent" />
-          <p className="font-semibold">Sua biblioteca está vazia</p>
-          <p className="text-sm text-muted-foreground">Adicione seu primeiro prompt, modelo ou referência.</p>
+          <p className="font-semibold">Você ainda não tem assistentes</p>
+          <p className="text-sm text-muted-foreground">Adicione seu primeiro prompt jurídico.</p>
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
