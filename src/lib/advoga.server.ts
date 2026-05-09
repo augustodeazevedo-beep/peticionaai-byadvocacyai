@@ -51,16 +51,18 @@ export async function writeAdvogaSetting(
   isSecret: boolean,
   updatedBy?: string,
 ) {
-  const payload: Record<string, unknown> = {
-    key,
-    value,
-    is_secret: isSecret,
-    updated_at: new Date().toISOString(),
-  };
-  if (updatedBy) payload.updated_by = updatedBy;
   const { error } = await supabaseAdmin
     .from("system_settings")
-    .upsert(payload, { onConflict: "key" });
+    .upsert(
+      {
+        key,
+        value,
+        is_secret: isSecret,
+        updated_at: new Date().toISOString(),
+        updated_by: updatedBy ?? null,
+      },
+      { onConflict: "key" },
+    );
   if (error) throw error;
 }
 
