@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
 import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedBibliotecaRouteImport } from './routes/_authenticated.biblioteca'
@@ -65,6 +66,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCompartilhamentosRoute =
+  AuthenticatedCompartilhamentosRouteImport.update({
+    id: '/compartilhamentos',
+    path: '/compartilhamentos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedCnjRoute = AuthenticatedCnjRouteImport.update({
   id: '/cnj',
   path: '/cnj',
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
+  '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
@@ -135,6 +143,7 @@ export interface FileRoutesByTo {
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
+  '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/_authenticated/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/_authenticated/cnj': typeof AuthenticatedCnjRoute
+  '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/djen': typeof AuthenticatedDjenRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/biblioteca'
     | '/bibliotecarios'
     | '/cnj'
+    | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
     | '/workspace'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/biblioteca'
     | '/bibliotecarios'
     | '/cnj'
+    | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
     | '/workspace'
@@ -208,6 +220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/biblioteca'
     | '/_authenticated/bibliotecarios'
     | '/_authenticated/cnj'
+    | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
     | '/_authenticated/djen'
     | '/_authenticated/workspace'
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/compartilhamentos': {
+      id: '/_authenticated/compartilhamentos'
+      path: '/compartilhamentos'
+      fullPath: '/compartilhamentos'
+      preLoaderRoute: typeof AuthenticatedCompartilhamentosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/cnj': {
       id: '/_authenticated/cnj'
       path: '/cnj'
@@ -347,6 +367,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBibliotecaRoute: typeof AuthenticatedBibliotecaRoute
   AuthenticatedBibliotecariosRoute: typeof AuthenticatedBibliotecariosRoute
   AuthenticatedCnjRoute: typeof AuthenticatedCnjRoute
+  AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDjenRoute: typeof AuthenticatedDjenRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
@@ -361,6 +382,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBibliotecaRoute: AuthenticatedBibliotecaRoute,
   AuthenticatedBibliotecariosRoute: AuthenticatedBibliotecariosRoute,
   AuthenticatedCnjRoute: AuthenticatedCnjRoute,
+  AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDjenRoute: AuthenticatedDjenRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
@@ -385,3 +407,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
