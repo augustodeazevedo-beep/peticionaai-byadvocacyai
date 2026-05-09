@@ -23,10 +23,9 @@ import {
   Plus,
   Share2,
   ScrollText,
-  Megaphone,
   ListChecks,
   Search,
-  BookOpen,
+  Sparkles as SparklesIcon,
   Users,
   Cpu,
   LogOut,
@@ -38,19 +37,18 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const MAIN = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Nova Peça", url: "/pecas/nova", icon: FilePlus },
+  { title: "Assistentes", url: "/assistentes", icon: SparklesIcon },
+  { title: "Bibliotecários", url: "/bibliotecarios", icon: Users },
+  { title: "Configurações de IA", url: "/configuracoes/ia", icon: Cpu },
+] as const;
+
 const SHORTCUTS = [
   { title: "Compartilhamentos", url: "/compartilhamentos", icon: Share2 },
   { title: "Metadados CNJ", url: "/cnj", icon: ScrollText },
-  { title: "Comunicações DJEN", url: "/djen", icon: Megaphone },
   { title: "Histórico de Lote", url: "/historico-lote", icon: ListChecks },
-] as const;
-
-const FOOTER = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Nova Peça", url: "/pecas/nova", icon: FilePlus },
-  { title: "Biblioteca", url: "/biblioteca", icon: BookOpen },
-  { title: "Bibliotecários", url: "/bibliotecarios", icon: Users },
-  { title: "Configurações de IA", url: "/configuracoes/ia", icon: Cpu },
 ] as const;
 
 function useDebounced<T>(value: T, delay = 250): T {
