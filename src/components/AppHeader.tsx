@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, FilePlus, Link2, Settings, LogOut, Menu, Sparkles, BookOpen, Users } from "lucide-react";
+import { LayoutDashboard, FilePlus, Link2, Settings, LogOut, Menu, Sparkles, BookOpen, Users, Cpu } from "lucide-react";
 
 export function AppHeader() {
   const { user, isAdmin, signOut } = useAuth();
@@ -77,6 +77,9 @@ export function AppHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/ferramentas/links" })}>
                   <Link2 className="mr-2 h-4 w-4" /> Links Úteis
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/configuracoes/ia" })}>
+                  <Cpu className="mr-2 h-4 w-4" /> Configurações de IA
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem onClick={() => navigate({ to: "/admin/integracoes" })}>
