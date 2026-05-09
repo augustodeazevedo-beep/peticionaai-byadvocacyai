@@ -77,11 +77,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Peticione.AI — Redação assistida de peças jurídicas" },
       { name: "description", content: "Plataforma AI-Native para redação técnica de petições e peças jurídicas. Por Advocacy.AI." },
       { name: "author", content: "Advocacy.AI" },
-      { property: "og:title", content: "Peticione.AI" },
-      { property: "og:description", content: "Redação técnica e assistida de peças jurídicas com IA. Por Advocacy.AI." },
+      { property: "og:title", content: "Peticione.AI — Redação assistida de peças jurídicas" },
+      { property: "og:description", content: "Plataforma AI-Native para redação técnica de petições e peças jurídicas. Por Advocacy.AI." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@AdvocacyAI" },
+      { name: "twitter:title", content: "Peticione.AI — Redação assistida de peças jurídicas" },
+      { name: "twitter:description", content: "Plataforma AI-Native para redação técnica de petições e peças jurídicas. Por Advocacy.AI." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/efa7eea8-203a-4069-8f51-828f830d051d" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/efa7eea8-203a-4069-8f51-828f830d051d" },
     ],
     links: [
       {
