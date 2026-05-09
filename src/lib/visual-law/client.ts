@@ -42,14 +42,13 @@ export type VisualLawGenerateInput = {
 };
 
 export async function generateVisualLawPdf(input: VisualLawGenerateInput): Promise<{ url: string; versionId: string; path: string }> {
-  const blob = await pdf(
-    createElement(VisualLawDocument, {
-      title: input.title,
-      authorOrCase: input.authorOrCase,
-      contentText: input.contentText,
-      style: input.style,
-    })
-  ).toBlob();
+  const element = createElement(VisualLawDocument as any, {
+    title: input.title,
+    authorOrCase: input.authorOrCase,
+    contentText: input.contentText,
+    vlStyle: input.style,
+  });
+  const blob = await pdf(element as any).toBlob();
 
   const versionId = crypto.randomUUID();
   const path = `visual-law/${input.userId}/${input.pieceId}/${versionId}.pdf`;
