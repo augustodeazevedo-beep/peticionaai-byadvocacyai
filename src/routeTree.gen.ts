@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
 import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
@@ -50,6 +51,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/djen': typeof AuthenticatedDjenRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/djen': typeof AuthenticatedDjenRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/_authenticated/djen': typeof AuthenticatedDjenRoute
   '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/djen'
     | '/historico-lote'
     | '/workspace'
+    | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
     | '/ferramentas/links'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/djen'
     | '/historico-lote'
     | '/workspace'
+    | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
     | '/ferramentas/links'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/_authenticated/djen'
     | '/_authenticated/historico-lote'
     | '/_authenticated/workspace'
+    | '/p/$slug'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/ferramentas/links'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  PSlugRoute: typeof PSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/workspace': {
@@ -425,6 +445,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  PSlugRoute: PSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
