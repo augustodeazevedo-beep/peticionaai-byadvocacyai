@@ -12,11 +12,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Users, Plus, Trash2, Power, Settings2, Check } from "lucide-react";
+import { Users, Plus, Trash2, Power, Settings2, Check, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkspace } from "@/stores/workspace";
 
@@ -72,7 +74,7 @@ function BibliotecariosPage() {
         <div>
           <h1 className="text-2xl font-bold">Bibliotecários</h1>
           <p className="text-sm text-muted-foreground">
-            Agrupe itens da biblioteca em coleções temáticas e ative tudo de uma vez.
+            Assistentes evoluídos: raciocínio jurídico especializado, regras de formatação, Visual Law e modelos do seu acervo.
           </p>
         </div>
         <NewLibrarianDialog onCreated={() => qc.invalidateQueries({ queryKey: ["librarians"] })} />
@@ -84,7 +86,7 @@ function BibliotecariosPage() {
         <Card className="glass border-dashed border-border/50 p-10 text-center">
           <Users className="mx-auto mb-3 h-8 w-8 text-accent" />
           <p className="font-semibold">Nenhum bibliotecário ainda</p>
-          <p className="text-sm text-muted-foreground">Crie um para agrupar itens recorrentes da sua biblioteca.</p>
+          <p className="text-sm text-muted-foreground">Crie um especialista por área de atuação ou tipo de peça.</p>
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
