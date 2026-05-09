@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { BrandLockup, BrandMark } from "./Logo";
+import advocacyIcon from "@/assets/advocacy-ai-icon.png";
 import {
   Sidebar,
   SidebarContent,
@@ -109,7 +110,8 @@ export function AppSidebar() {
             ) : (
               <>
                 <BrandLockup size="sm" variant="horizontal" />
-                <span className="text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
+                <span className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
+                  <img src={advocacyIcon} alt="" className="h-3 w-auto" />
                   By Advocacy.AI
                 </span>
               </>
