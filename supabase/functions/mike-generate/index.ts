@@ -14,6 +14,8 @@ const inputSchema = z.object({
   area: z.string().trim().max(60).optional().nullable(),
   fields: z.record(z.unknown()).default({}),
   context: z.string().trim().max(8000).optional().nullable(),
+  workspace_id: z.string().uuid().optional().nullable(),
+  piece_id: z.string().uuid().optional().nullable(),
 });
 
 function jsonError(message: string, status: number) {
@@ -51,7 +53,7 @@ Deno.serve(async (req) => {
     if (!parsed.success) {
       return jsonError("Dados de entrada inválidos.", 400);
     }
-    const { piece_type, area, fields, context } = parsed.data;
+    const { piece_type, area, fields, context, workspace_id, piece_id } = parsed.data;
     if (area && !ALLOWED_AREAS.includes(area.toLowerCase() as typeof ALLOWED_AREAS[number])) {
       return jsonError("Área jurídica não suportada.", 400);
     }
@@ -71,35 +73,71 @@ Deno.serve(async (req) => {
     const structure = map.get("peticiona_structure") ?? "";
     const checklist = map.get("peticiona_checklist_final") ?? "";
     const shadow = map.get("peticiona_shadow_cabinet") ?? "";
-    const mikeEndpoint = map.get("mike_endpoint") ?? "";
+    const adminMikeEndpoint = map.get("mike_endpoint") ?? "";
     const fallbackModel = map.get("mike_model") || "google/gemini-2.5-flash";
+    const generationMode = (map.get("peticiona_generation_mode") || "mike_with_fallback").trim();
+
+    // BYOK Mike per user
+    const { data: userIntegration } = await supabase
+      .from("user_integrations")
+      .select("endpoint, api_key_encrypted, model, is_active, monthly_token_cap")
+      .eq("user_id", userId)
+      .eq("provider", "mike")
+      .maybeSingle();
+
+    const byokActive = !!(userIntegration?.is_active && userIntegration.endpoint && userIntegration.api_key_encrypted);
+    const mikeEndpoint = byokActive ? userIntegration!.endpoint! : adminMikeEndpoint;
+    const mikeKey = byokActive ? userIntegration!.api_key_encrypted! : (Deno.env.get("MIKE_API_KEY") ?? "");
+    const mikeModel = byokActive && userIntegration?.model ? userIntegration.model : (map.get("mike_model") || "");
+
+    // Enforce monthly cap (BYOK)
+    if (byokActive && userIntegration?.monthly_token_cap) {
+      const since = new Date(); since.setDate(1); since.setHours(0,0,0,0);
+      const { data: usageRows } = await supabase
+        .from("token_usage")
+        .select("total_tokens")
+        .eq("user_id", userId)
+        .gte("created_at", since.toISOString());
+      const used = (usageRows ?? []).reduce((acc, r: { total_tokens: number }) => acc + (r.total_tokens || 0), 0);
+      if (used >= userIntegration.monthly_token_cap) {
+        return jsonError("Cota mensal de tokens atingida na sua integração Mike. Ajuste em Configurações → IA.", 402);
+      }
+    }
 
     const systemPrompt = [persona, rulesFormat, rulesCit, rulesAnti, structure, shadow, checklist].filter(Boolean).join("\n\n---\n\n");
 
     const userPrompt = `Tipo de peça: ${piece_type}\nÁrea: ${area ?? "—"}\n\nDados fornecidos pelo operador (JSON):\n${fieldsJson}\n\nContexto adicional:\n${context ?? "—"}\n\nProduza a peça completa em Markdown, seguindo a estrutura e regras. Ao final inclua as seções "## Checklist Final" e "## Observações ao Operador".`;
 
-    const MIKE_API_KEY = Deno.env.get("MIKE_API_KEY");
     let content = "";
     let modelUsed = fallbackModel;
     let source: "mike" | "lovable_ai" = "lovable_ai";
+    let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } = {};
 
-    if (mikeEndpoint && MIKE_API_KEY) {
+    if (mikeEndpoint && mikeKey) {
       // Tenta Mike (formato OpenAI-compatible esperado)
       try {
         const r = await fetch(mikeEndpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${MIKE_API_KEY}` },
-          body: JSON.stringify({ messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${mikeKey}` },
+          body: JSON.stringify({
+            model: mikeModel || undefined,
+            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+          }),
         });
         if (r.ok) {
           const j = await r.json();
           content = j.choices?.[0]?.message?.content ?? j.content ?? "";
-          modelUsed = "mike";
+          modelUsed = j.model || mikeModel || "mike";
           source = "mike";
+          usage = j.usage ?? {};
         }
       } catch (e) {
         console.error("Mike call failed, falling back:", e);
       }
+    }
+
+    if (!content && generationMode === "mike_only") {
+      return jsonError("Provedor Mike indisponível. Configure seu endpoint em Configurações → IA ou peça ao admin para configurar o endpoint compartilhado.", 503);
     }
 
     if (!content) {
@@ -126,6 +164,7 @@ Deno.serve(async (req) => {
       const j = await r.json();
       content = j.choices?.[0]?.message?.content ?? "";
       modelUsed = fallbackModel;
+      usage = j.usage ?? {};
     }
 
     await supabase.from("integration_logs").insert({
@@ -134,7 +173,22 @@ Deno.serve(async (req) => {
       request_summary: `${piece_type} / ${area}`,
     });
 
-    return new Response(JSON.stringify({ content, model_used: modelUsed, source }), {
+    // Telemetria de tokens
+    try {
+      await supabase.from("token_usage").insert({
+        user_id: userId,
+        piece_id: piece_id ?? null,
+        workspace_id: workspace_id ?? null,
+        provider: source,
+        model: modelUsed,
+        prompt_tokens: usage.prompt_tokens ?? 0,
+        completion_tokens: usage.completion_tokens ?? 0,
+        total_tokens: usage.total_tokens ?? 0,
+        purpose: "piece_generation",
+      });
+    } catch (e) { console.error("token_usage insert failed:", e); }
+
+    return new Response(JSON.stringify({ content, model_used: modelUsed, source, usage, byok: byokActive }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
