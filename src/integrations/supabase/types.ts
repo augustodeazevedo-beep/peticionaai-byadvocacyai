@@ -350,10 +350,12 @@ export type Database = {
           created_at: string
           id: string
           input_data: Json
+          is_shared: boolean
           model_used: string | null
           observations: string | null
           piece_type: string
           project_id: string | null
+          public_slug: string | null
           status: Database["public"]["Enums"]["piece_status"]
           title: string
           updated_at: string
@@ -367,10 +369,12 @@ export type Database = {
           created_at?: string
           id?: string
           input_data?: Json
+          is_shared?: boolean
           model_used?: string | null
           observations?: string | null
           piece_type?: string
           project_id?: string | null
+          public_slug?: string | null
           status?: Database["public"]["Enums"]["piece_status"]
           title: string
           updated_at?: string
@@ -384,10 +388,12 @@ export type Database = {
           created_at?: string
           id?: string
           input_data?: Json
+          is_shared?: boolean
           model_used?: string | null
           observations?: string | null
           piece_type?: string
           project_id?: string | null
+          public_slug?: string | null
           status?: Database["public"]["Enums"]["piece_status"]
           title?: string
           updated_at?: string
@@ -437,9 +443,11 @@ export type Database = {
         Row: {
           area: string | null
           client_name: string | null
+          cnj_number: string | null
           created_at: string
           description: string | null
           id: string
+          metadata: Json
           title: string
           updated_at: string
           user_id: string
@@ -447,9 +455,11 @@ export type Database = {
         Insert: {
           area?: string | null
           client_name?: string | null
+          cnj_number?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json
           title: string
           updated_at?: string
           user_id: string
@@ -457,9 +467,11 @@ export type Database = {
         Update: {
           area?: string | null
           client_name?: string | null
+          cnj_number?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json
           title?: string
           updated_at?: string
           user_id?: string
