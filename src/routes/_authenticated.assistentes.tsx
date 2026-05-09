@@ -190,7 +190,7 @@ function NewItemDialog({ onCreated }: { onCreated: () => void }) {
       tags,
     }),
     onSuccess: () => {
-      toast.success("Item adicionado à biblioteca.");
+      toast.success("Assistente adicionado.");
       setOpen(false);
       setTitle(""); setDescription(""); setContent(""); setUrl(""); setTagsInput("");
       onCreated();
@@ -204,7 +204,7 @@ function NewItemDialog({ onCreated }: { onCreated: () => void }) {
         <Button className="bg-gradient-brand text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Adicionar</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Adicionar à biblioteca</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Novo assistente</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground">Tipo</label>
