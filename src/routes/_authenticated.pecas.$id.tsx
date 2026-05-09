@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { VisualLawPanel } from "@/components/visual-law/VisualLawPanel";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -124,6 +125,7 @@ function PieceEditor() {
         <TabsList>
           <TabsTrigger value="edit">Editor</TabsTrigger>
           <TabsTrigger value="preview">Visualização</TabsTrigger>
+          <TabsTrigger value="visual">Visual Law</TabsTrigger>
         </TabsList>
         <TabsContent value="edit">
           <Card className="glass border-border/50 p-2">
@@ -141,6 +143,17 @@ function PieceEditor() {
               <ReactMarkdown>{content}</ReactMarkdown>
             </article>
           </Card>
+        </TabsContent>
+        <TabsContent value="visual">
+          <VisualLawPanel
+            pieceId={piece.id}
+            title={piece.title}
+            contentText={content}
+            pieceType={piece.piece_type}
+            area={piece.area}
+            inputData={piece.input_data}
+            onContentChange={setContent}
+          />
         </TabsContent>
       </Tabs>
     </div>
