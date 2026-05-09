@@ -1,31 +1,17 @@
-## Banner de saudação no Dashboard
+## Nova imagem de fundo do banner de saudação
 
-Criar um container superior em `src/routes/_authenticated.dashboard.tsx` (acima do título "Minhas peças") replicando o estilo da imagem de referência:
+Gerar uma nova arte de fundo via IA com identidade visual da plataforma (Direito + IA) e aplicá-la ao container de boas-vindas do dashboard.
 
-- **Layout**: card horizontal full-width, altura ~140px, bordas arredondadas (`rounded-xl`), borda sutil `border-border/50`.
-- **Fundo**: gradiente escuro com a arte temática "circuitos + balança da justiça" no lado direito (decorativa, opacidade reduzida) — gerada via `imagegen` em `src/assets/dashboard-hero-bg.jpg` no mesmo estilo cyan→violeta da marca.
-- **Conteúdo (esquerda, padding generoso)**:
-  - Chip pequeno no topo: `AI-Native · Advoga.AI` em verde-lima sobre pílula escura.
-  - Saudação grande (`text-3xl md:text-4xl font-bold`):
-    - "Boa tarde, " em branco (varia conforme hora: Bom dia / Boa tarde / Boa noite).
-    - Nome do usuário em **MAIÚSCULAS** (`uppercase`) e cor `text-gradient-brand` (cyan→violeta), conforme print.
-  - Linha inferior: data por extenso em português (ex: "Sábado, 09 De Maio De 2026") em `text-muted-foreground text-sm`.
+### Conceito visual
+- Tema: **Justiça encontra Inteligência Artificial** — balança da justiça estilizada como circuito/rede neural, com livros de lei dissolvendo em partículas de dados luminosas.
+- Paleta: ciano (#22D3EE) → violeta (#8B5CF6) sobre fundo navy/preto profundo, alinhada aos tokens `text-gradient-brand` / `bg-gradient-brand`.
+- Estilo: futurista, minimalista, cinematográfico, com brilho sutil (glow) e linhas finas de circuito; lado direito mais denso para esmaecer suavemente à esquerda (onde fica o texto).
+- Proporção horizontal larga (1536×384, ~16:4) para ocupar a faixa do banner sem distorção.
 
-## Fonte do nome
+### Implementação
+- Gerar a imagem com `imagegen` (modelo `standard`) salvando em `src/assets/dashboard-hero-bg.jpg` (substitui o arquivo atual, mantendo o import existente).
+- Ajustar levemente o gradiente de máscara em `src/routes/_authenticated.dashboard.tsx` se necessário para garantir legibilidade do texto (lado esquerdo mais opaco).
+- Sem mudanças em outros arquivos, schema ou lógica.
 
-- Buscar `full_name` da tabela `profiles` (já existe, populada no signup) via `supabase.from("profiles").select("full_name").eq("id", user.id).single()`.
-- Fallback: parte local do e-mail (`user.email.split("@")[0]`).
-- Aplicar `.toUpperCase()` ao renderizar.
-
-## Detalhes técnicos
-
-- Arquivo a editar: `src/routes/_authenticated.dashboard.tsx`.
-- Novo componente local `DashboardHero` (mesmo arquivo, simples).
-- Saudação dinâmica por hora local: `<12 → "Bom dia"`, `<18 → "Boa tarde"`, senão `"Boa noite"`.
-- Data formatada com `date-fns` (já importado): `format(new Date(), "EEEE, dd 'De' MMMM 'De' yyyy", { locale: ptBR })` → capitalizar primeira letra e meses.
-- Imagem de fundo: `<div>` absoluto à direita com `bg-[url(...)] bg-cover bg-right opacity-40 mix-blend-screen mask-image` para esmaecer na esquerda.
-- Sem mudanças de schema, RLS já permite `select own profile`.
-
-## Fora de escopo
-
-- Edição/persistência do nome em uma página de "Configurações" (não existe ainda). Se desejar, criamos depois.
+### Fora de escopo
+- Nova animação, parallax ou troca dinâmica de imagem por horário.
