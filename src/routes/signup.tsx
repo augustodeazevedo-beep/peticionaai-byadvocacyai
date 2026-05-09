@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Criar conta — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Criar conta — Peticiona.AI" }] }),
   component: SignupPage,
 });
 

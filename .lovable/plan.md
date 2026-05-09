@@ -1,10 +1,10 @@
 # Plano de Upgrade — Funcionalidades inspiradas no Portal AI-Minuta
 
-Análise dos prints identificou 9 blocos de funcionalidade. Vou implementar em 5 fases, do esqueleto navegacional até as integrações pesadas, sempre respeitando o branding Peticione.AI (dark, gradiente cyan→violeta, BrandLockup).
+Análise dos prints identificou 9 blocos de funcionalidade. Vou implementar em 5 fases, do esqueleto navegacional até as integrações pesadas, sempre respeitando o branding Peticiona.AI (dark, gradiente cyan→violeta, BrandLockup).
 
 ## Visão geral das funcionalidades observadas
 
-| Print | Funcionalidade | Status atual no Peticione.AI |
+| Print | Funcionalidade | Status atual no Peticiona.AI |
 |-------|----------------|------------------------------|
 | Dashboard com nav superior (Início, Histórico, Documentos, Modelos, Referências, Biblioteca, Bibliotecários) + sidebar (Nova minuta, Compartilhamentos, Histórico de Lote, Projetos) | Workspace tabular para construir o "contexto" da peça | Não existe — temos apenas Dashboard simples + Nova Peça |
 | Modo Agêntico (Pensamento Baixo/Médio/Alto, Ativar perguntas, Aprovar roteiro, Referência rastreável, Jurisprudência, Legislação, Modelos, Contadoria, Verbosidade Curto/Longo) | Painel de configuração da estratégia da IA antes de redigir | Não existe |
@@ -25,7 +25,7 @@ Análise dos prints identificou 9 blocos de funcionalidade. Vou implementar em 5
 - Nova rota `/_authenticated/workspace.tsx` (entrada padrão pós-login junto com Dashboard).
 - Componente `<WorkspaceTabs>` com as 7 abas: Início, Histórico, Documentos, Modelos, Referências, Biblioteca, Bibliotecários (lucide icons + estilo "pill" dark com gradiente quando ativa).
 - Componente `<ContextComposer>` fixo no rodapé com:
-  - Textarea com placeholder "Instruções ao Peticione.AI para geração da peça…"
+  - Textarea com placeholder "Instruções ao Peticiona.AI para geração da peça…"
   - Slash menu `/` → prompts salvos; `@` → biblioteca/bibliotecários.
   - Chips inferiores: Perfil, Padrão/Agêntico (toggle), Indicador de contexto ("Sem contexto" / "N itens"), Pensamento (Baixo/Médio/Alto), botão de geração, microfone (placeholder).
 - Estado global do workspace via Zustand (`src/stores/workspace.ts`): `mode`, `thinking`, `contextItems[]`, `instructions`, `selectedTemplate`.
@@ -114,7 +114,7 @@ Análise dos prints identificou 9 blocos de funcionalidade. Vou implementar em 5
 ## Fora de escopo desta primeira rodada
 
 - Podcasts e Diagramas da Biblioteca (apenas placeholders na UI).
-- Extensão de navegador "Peticione Conecta" para tribunais.
+- Extensão de navegador "Peticiona Conecta" para tribunais.
 - Compartilhamento entre organizações (apenas usuário→usuário individual).
 - Contadoria com cálculos jurídicos completos (entra como stub).
 

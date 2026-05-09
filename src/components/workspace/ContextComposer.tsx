@@ -29,7 +29,7 @@ export function ContextComposer() {
 
   const onGenerate = () => {
     if (!instructions.trim()) {
-      toast.error("Escreva uma instrução para o Peticione.AI antes de gerar.");
+      toast.error("Escreva uma instrução para o Peticiona.AI antes de gerar.");
       return;
     }
     toast.info("Geração agêntica chega na Fase 5 do roadmap. Por ora, use Nova Peça.");
@@ -41,7 +41,7 @@ export function ContextComposer() {
         <Textarea
           value={instructions}
           onChange={(e) => setField("instructions", e.target.value)}
-          placeholder="Instruções ao Peticione.AI para geração da peça…"
+          placeholder="Instruções ao Peticiona.AI para geração da peça…"
           className="min-h-[88px] resize-y border-0 bg-transparent text-sm focus-visible:ring-0"
         />
         <p className="mt-1 text-xs text-muted-foreground">

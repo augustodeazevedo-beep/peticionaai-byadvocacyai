@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pecas/nova")({
-  head: () => ({ meta: [{ title: "Nova Peça — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Nova Peça — Peticiona.AI" }] }),
   component: NovaPeca,
 });
 
