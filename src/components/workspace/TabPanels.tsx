@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useWorkspace, type ContextItemType } from "@/stores/workspace";
 import { BrandLockup } from "@/components/Logo";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { listLibraryItems, listLibrarians } from "@/lib/library";
 import {
   Upload,
   Mic2,
@@ -197,19 +199,67 @@ export function ReferenciasPanel() {
 }
 
 export function BibliotecaPanel() {
+  const { data: items = [] } = useQuery({
+    queryKey: ["library_items_preview"],
+    queryFn: () => listLibraryItems(),
+  });
+  const add = useWorkspace((s) => s.addContextItem);
   return (
-    <ComingSoon
-      title="Biblioteca pessoal"
-      description="Em breve: pastas, prompts salvos, documentos, legislações e itens compartilhados, todos reutilizáveis em qualquer minuta."
-    />
+    <div className="space-y-4">
+      <Card className="glass flex items-center justify-between border-border/50 p-4">
+        <div>
+          <p className="font-semibold">Sua biblioteca ({items.length})</p>
+          <p className="text-xs text-muted-foreground">Adicione itens existentes ao contexto desta minuta.</p>
+        </div>
+        <Button asChild variant="outline" size="sm"><Link to="/biblioteca">Abrir biblioteca</Link></Button>
+      </Card>
+      {items.length === 0 ? (
+        <ComingSoon title="Biblioteca vazia" description="Crie seu primeiro item em /biblioteca." />
+      ) : (
+        <div className="grid gap-2 md:grid-cols-2">
+          {items.slice(0, 8).map((it) => (
+            <Card key={it.id} className="glass flex items-center justify-between border-border/50 p-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{it.title}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{it.type}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => add({ id: it.id, type: "biblioteca_item", title: it.title, preview: it.description ?? undefined })}>
+                Adicionar
+              </Button>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 export function BibliotecariosPanel() {
+  const { data: librarians = [] } = useQuery({
+    queryKey: ["librarians_preview"],
+    queryFn: listLibrarians,
+  });
   return (
-    <ComingSoon
-      title="Bibliotecários"
-      description="Em breve: agrupe vários itens da biblioteca em um 'bibliotecário' temático e ative o conjunto inteiro com um clique."
-    />
+    <div className="space-y-4">
+      <Card className="glass flex items-center justify-between border-border/50 p-4">
+        <div>
+          <p className="font-semibold">Bibliotecários ({librarians.length})</p>
+          <p className="text-xs text-muted-foreground">Coleções temáticas que você ativa de uma vez.</p>
+        </div>
+        <Button asChild variant="outline" size="sm"><Link to="/bibliotecarios">Gerenciar</Link></Button>
+      </Card>
+      {librarians.length === 0 ? (
+        <ComingSoon title="Sem bibliotecários" description="Crie em /bibliotecarios para agrupar itens recorrentes." />
+      ) : (
+        <div className="grid gap-2 md:grid-cols-2">
+          {librarians.map((l) => (
+            <Card key={l.id} className="glass border-border/50 p-3">
+              <p className="text-sm font-medium">{l.name}</p>
+              {l.description && <p className="line-clamp-2 text-xs text-muted-foreground">{l.description}</p>}
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
