@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -102,9 +103,21 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
-        <Link to="/" className="flex items-center justify-center px-2 py-2">
-          {collapsed ? <BrandMark size={28} /> : <BrandLockup size="sm" variant="horizontal" />}
-        </Link>
+        <div className="relative flex flex-col items-center px-2 py-2">
+          <Link to="/" className="flex flex-col items-center gap-1">
+            {collapsed ? (
+              <BrandMark size={28} />
+            ) : (
+              <>
+                <BrandLockup size="sm" variant="horizontal" />
+                <span className="text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
+                  By Advocacy.AI
+                </span>
+              </>
+            )}
+          </Link>
+          <SidebarTrigger className="absolute right-1 top-1 h-7 w-7" />
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
