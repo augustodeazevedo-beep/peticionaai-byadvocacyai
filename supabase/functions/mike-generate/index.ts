@@ -64,13 +64,13 @@ Deno.serve(async (req) => {
     const { data: settings } = await supabase.from("system_settings").select("key,value");
     const map = new Map((settings ?? []).map((s: { key: string; value: string | null }) => [s.key, s.value ?? ""]));
 
-    const persona = map.get("peticione_persona") ?? "";
-    const rulesFormat = map.get("peticione_rules_format") ?? "";
-    const rulesCit = map.get("peticione_rules_citation") ?? "";
-    const rulesAnti = map.get("peticione_rules_antihalucinacao") ?? "";
-    const structure = map.get("peticione_structure") ?? "";
-    const checklist = map.get("peticione_checklist_final") ?? "";
-    const shadow = map.get("peticione_shadow_cabinet") ?? "";
+    const persona = map.get("peticiona_persona") ?? "";
+    const rulesFormat = map.get("peticiona_rules_format") ?? "";
+    const rulesCit = map.get("peticiona_rules_citation") ?? "";
+    const rulesAnti = map.get("peticiona_rules_antihalucinacao") ?? "";
+    const structure = map.get("peticiona_structure") ?? "";
+    const checklist = map.get("peticiona_checklist_final") ?? "";
+    const shadow = map.get("peticiona_shadow_cabinet") ?? "";
     const mikeEndpoint = map.get("mike_endpoint") ?? "";
     const fallbackModel = map.get("mike_model") || "google/gemini-2.5-flash";
 

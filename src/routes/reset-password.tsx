@@ -9,7 +9,7 @@ import { BrandLockup } from "@/components/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Recuperar senha — Peticione.AI" }] }),
+  head: () => ({ meta: [{ title: "Recuperar senha — Peticiona.AI" }] }),
   component: ResetPage,
 });
 

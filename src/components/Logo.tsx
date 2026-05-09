@@ -1,9 +1,9 @@
-import icon from "@/assets/peticione-icon.png";
+import icon from "@/assets/peticiona-icon.png";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 /**
- * Peticione.AI — Brand System
+ * Peticiona.AI — Brand System
  *
  * Marca oficial: símbolo (pena estilizada com nós neurais cyan→violeta)
  * + wordmark tipográfico (Inter 600 + JetBrains Mono ".AI" com gradiente).
@@ -33,7 +33,7 @@ export function BrandMark({
   return (
     <img
       src={icon}
-      alt="Peticione.AI"
+      alt="Peticiona.AI"
       height={size}
       style={{ height: size, width: "auto" }}
       className={cn(glow && "drop-shadow-[0_0_24px_rgba(56,189,248,0.45)]", className)}
@@ -54,7 +54,7 @@ export function BrandWordmark({
         className,
       )}
     >
-      <span className={tone === "dark" ? "text-foreground" : "text-background"}>Peticione</span>
+      <span className={tone === "dark" ? "text-foreground" : "text-background"}>Peticiona</span>
       <span className="font-mono text-gradient-brand">.AI</span>
     </span>
   );
