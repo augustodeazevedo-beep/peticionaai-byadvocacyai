@@ -1,129 +1,114 @@
-# Plano de Upgrade — Funcionalidades inspiradas no Portal AI-Minuta
 
-Análise dos prints identificou 9 blocos de funcionalidade. Vou implementar em 5 fases, do esqueleto navegacional até as integrações pesadas, sempre respeitando o branding Peticiona.AI (dark, gradiente cyan→violeta, BrandLockup).
+# Plano — Fase 3 (Documentos/Modelos/Referências) + Relatório PDF + Integração Mike-first
 
-## Visão geral das funcionalidades observadas
+Três entregas conectadas: (A) Fase 3 com upload real; (B) relatório PDF de benchmarking; (C) reforço da arquitetura Mike-first para que toda geração de peça consuma tokens via Mike (open-source) e o cliente pague apenas isso. Lovable AI fica como fallback opcional, nunca como caminho padrão.
 
-| Print | Funcionalidade | Status atual no Peticiona.AI |
-|-------|----------------|------------------------------|
-| Dashboard com nav superior (Início, Histórico, Documentos, Modelos, Referências, Biblioteca, Bibliotecários) + sidebar (Nova minuta, Compartilhamentos, Histórico de Lote, Projetos) | Workspace tabular para construir o "contexto" da peça | Não existe — temos apenas Dashboard simples + Nova Peça |
-| Modo Agêntico (Pensamento Baixo/Médio/Alto, Ativar perguntas, Aprovar roteiro, Referência rastreável, Jurisprudência, Legislação, Modelos, Contadoria, Verbosidade Curto/Longo) | Painel de configuração da estratégia da IA antes de redigir | Não existe |
-| Composer inferior com Padrão/Agêntico, "Sem contexto", Perfil, microfone | Editor de prompt com chips de contexto e modo | Parcial — temos formulário rígido em `/pecas/nova` |
-| Documentos (drag-drop, OCR automático, Arquivos/Transcrever/URL/Inserir texto/Biblioteca) | Ingestão de fontes documentais como contexto | Não existe |
-| Modelos (drag-drop modelo + Flexível/Rigoroso/Molde) | Templates de estilo de redação | Não existe |
-| Legislação (pesquisa semântica em 18.187 leis federais + filtros) | Busca de normas com RAG | Não existe |
-| Jurisprudência (TJRS, TRF4, STJ, STF, Pesquisa inteligente) | Busca de precedentes | Não existe |
-| Pesquisa Web | Busca web genérica para fundamentação | Não existe |
-| Biblioteca (Pastas, Minha biblioteca, Compartilhados, Podcasts, Diagramas — Prompt/Documento/Legislação) | Repositório pessoal de ativos reutilizáveis | Não existe |
-| Bibliotecários (agrupamentos com Ativar/desativar) | "Coleções" temáticas que ativam vários ativos de uma vez | Não existe |
-| Processamento Individual / em Lote | Geração em massa de peças | Parcial — só individual |
+---
 
-## Fase 1 — Workspace + arquitetura de contexto (fundação)
+## Parte C — Mike-first (premissa transversal)
 
-**Objetivo:** substituir o formulário rígido por um workspace que reproduz a barra superior de abas e o composer inferior.
+Hoje `supabase/functions/mike-generate/index.ts` já tenta o endpoint Mike e cai para Lovable AI quando falta `MIKE_API_KEY` ou `mike_endpoint`. Vamos endurecer isso:
 
-- Nova rota `/_authenticated/workspace.tsx` (entrada padrão pós-login junto com Dashboard).
-- Componente `<WorkspaceTabs>` com as 7 abas: Início, Histórico, Documentos, Modelos, Referências, Biblioteca, Bibliotecários (lucide icons + estilo "pill" dark com gradiente quando ativa).
-- Componente `<ContextComposer>` fixo no rodapé com:
-  - Textarea com placeholder "Instruções ao Peticiona.AI para geração da peça…"
-  - Slash menu `/` → prompts salvos; `@` → biblioteca/bibliotecários.
-  - Chips inferiores: Perfil, Padrão/Agêntico (toggle), Indicador de contexto ("Sem contexto" / "N itens"), Pensamento (Baixo/Médio/Alto), botão de geração, microfone (placeholder).
-- Estado global do workspace via Zustand (`src/stores/workspace.ts`): `mode`, `thinking`, `contextItems[]`, `instructions`, `selectedTemplate`.
-- Sidebar esquerdo expansível: Nova minuta, Compartilhamentos, Histórico de Lote, Projetos, Histórico (últimos 7 dias) — usando `<Sheet>` em mobile.
+- **Modo de operação configurável** em `system_settings.peticiona_generation_mode`: `mike_only` (padrão) | `mike_with_fallback` | `lovable_only` (apenas dev).
+- Em `mike_only`, se Mike falhar → erro claro ao usuário ("Configure o endpoint Mike em Admin → Integrações"), sem cair no Lovable.
+- **BYOK por usuário (token-based billing)**: nova tabela `user_integrations` (`user_id`, `provider='mike'`, `endpoint`, `api_key_encrypted`, `model`, `monthly_token_cap`). RLS estrito por `user_id`. A função `mike-generate` lê primeiro o BYOK do usuário; só usa o endpoint global como fallback admin.
+- **Telemetria de tokens**: nova tabela `token_usage` (`user_id`, `piece_id`, `provider`, `model`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `cost_usd_estimate`, `created_at`). Mike retorna `usage` no payload OpenAI-compatible — gravar a cada chamada. Dashboard exibirá consumo por mês.
+- **Documentação Mike**: `docs/integracao-mike.md` com (i) endpoint esperado (`/v1/chat/completions` OpenAI-compatible), (ii) variáveis exigidas, (iii) link para o repositório upstream do Mike, (iv) exemplo de self-host (Docker compose) que o usuário/escritório pode rodar para pagar só os tokens do provedor de modelos.
+- **UI**: nova página `/_authenticated/configuracoes/ia` onde o usuário cola seu endpoint Mike + chave + escolhe modelo + cota mensal. Campo `api_key` é write-only (mostrado mascarado depois).
+- **Composer**: chip "Provider: Mike (BYOK)" / "Mike (compartilhado)" / "Lovable AI (fallback)" para deixar transparente o que será cobrado.
 
-**Banco:** novas tabelas `workspaces`, `workspace_context_items` (tipo enum: documento, modelo, legislacao, jurisprudencia, web, biblioteca_item, bibliotecario), `projects`.
+> Toda a Fase 3 abaixo grava contexto que **será consumido pelo Mike** na Fase 5 — nada de geração nesta fase, apenas ingestão.
 
-## Fase 2 — Biblioteca e Bibliotecários
+---
 
-**Objetivo:** dar ao usuário um repositório pessoal de ativos reutilizáveis e a capacidade de agrupá-los.
+## Parte A — Fase 3: Documentos, Modelos e Referências com upload real
 
-- Rotas: `/_authenticated/biblioteca.tsx`, `/_authenticated/bibliotecarios.tsx`.
-- Tabelas:
-  - `library_items` (id, user_id, type: prompt|documento|legislacao|jurisprudencia|modelo|podcast|diagrama, title, description, content_text, file_path, tags[], folder_id, is_shared).
-  - `library_folders` (hierárquica via parent_id).
-  - `librarians` (id, user_id, name, description, color, icon).
-  - `librarian_items` (junção many-to-many).
-- UI Biblioteca: árvore de pastas à esquerda, lista com chips de tipo, busca, botões Adicionar / Compartilhamentos, ações (favoritar, visualizar, mover, compartilhar, excluir).
-- UI Bibliotecários: cards com ícone colorido, contador de itens (documentos/modelos/comentários), botão **Ativar** que injeta todos os itens do bibliotecário no `contextItems` do workspace atual.
-- Storage bucket `library-files` (privado, RLS por user_id) para uploads de PDF/DOCX.
+### A.1. Migration única
 
-## Fase 3 — Aba Documentos + Modelos + Referências
+Reutiliza buckets existentes (`library-files`, `case-files`). Sem buckets novos.
 
-**Objetivo:** popular o "contexto" do workspace.
+- enum `template_strictness`: `flexivel | rigoroso | molde`.
+- enum `document_source`: `upload | url | texto | transcricao | biblioteca`.
+- ALTER `library_items`: `template_strictness`, `ocr_status text` (`pending|done|skipped|failed`), `ocr_text text`, `source document_source NOT NULL DEFAULT 'upload'`.
+- ALTER `workspace_context_items`: `library_item_id uuid`, `strictness template_strictness`, `ocr_required boolean DEFAULT false`.
+- Index `(workspace_id, display_order)`.
+- Tabelas novas para a Parte C: `user_integrations`, `token_usage` (RLS `auth.uid() = user_id`).
+- Storage policies extra em `library-files` para subpastas `documentos/{uid}`, `modelos/{uid}`, `transcricoes/{uid}`.
 
-- **Documentos:** drag-and-drop, toggle OCR automático, opções Arquivos / Transcrever (áudio→texto via Lovable AI gemini) / URL (fetch + extração) / Inserir texto / Biblioteca (modal escolhendo `library_items` tipo documento). Cada item vira um `workspace_context_items` com preview.
-- **Modelos:** drag-drop de .docx (preferência), 3 modos: **Flexível** (apenas inspiração), **Rigoroso** (segue estrutura), **Molde** (substitui placeholders). Persistido como `library_items` tipo modelo.
-- **Referências:** lista consolidada do que já está no contexto, com possibilidade de remover/reordenar.
+### A.2. Server functions (TanStack `createServerFn` + middleware `requireSupabaseAuth`)
 
-## Fase 4 — Pesquisa: Legislação, Jurisprudência, Web
+Arquivo `src/lib/workspace-ingest.functions.ts`:
 
-**Objetivo:** três motores de busca acopláveis ao contexto.
+1. `createSignedUploadUrl({ kind, filename, mime })` → upload direto via `uploadToSignedUrl`.
+2. `registerUploadedDocument({ workspaceId, path, mime, size, title, runOcr })`.
+3. `registerUploadedTemplate({ workspaceId, path, mime, size, title, strictness })`.
+4. `ingestUrl({ workspaceId, url, title })` — fetch server-side, HTML→texto.
+5. `ingestText({ workspaceId, title, content })`.
+6. `addLibraryItemToWorkspace({ workspaceId, libraryItemId })`.
+7. `reorderContext`, `removeContextItem`.
+8. `runOcr` e `transcribeAudio` — chamam o **Mike** primeiro (mesmo fluxo BYOK). Se o endpoint Mike do usuário não suportar visão/áudio, cair só nesta etapa para Lovable AI (pois OCR/transcrição não é "geração de peça") — registrado em `token_usage` com `provider='lovable_ai_utility'`.
 
-- **Legislação:** busca semântica via embeddings sobre uma base curada (fase inicial: ingestão dos códigos principais — CC, CPC, CP, CPP, CLT, CDC, CTN — em `legislation_articles` com pgvector). Filtros avançados: norma, ano, palavras. Botão "Salvar na biblioteca" e "Adicionar ao contexto".
-- **Jurisprudência:** busca por palavras-chave + toggle "Pesquisa inteligente" (reescrita do query por LLM). Tribunais como chips removíveis (TJRS, TRF4, STJ, STF — extensível). Provedor: edge function `search-jurisprudence` que faz scraping/API pública (DataJud CNJ) + cache.
-- **Web:** edge function `web-search` usando uma API de busca (Brave/Tavily — pedir secret se necessário). Resultados com título, URL, snippet, botão de adicionar.
-- Dropdown unificado no header das três abas para alternar entre Legislação/Jurisprudência/Web (igual ao print).
+Validação Zod: 20 MB máx, mimes whitelisted (pdf/docx/png/jpg/mp3/m4a/wav/txt).
 
-## Fase 5 — Modo Agêntico + Processamento em Lote + Histórico
+### A.3. Frontend
 
-**Objetivo:** orquestração avançada da geração.
+`src/components/workspace/ingest/`:
+- `<DropZoneCard>` (drag-drop + click).
+- `<UrlIngestDialog>`, `<TextIngestDialog>`, `<TranscribeDialog>` (MediaRecorder).
+- `<LibraryPickerDialog>` filtrável por tipo.
+- `<TemplateStrictnessSelect>` (Flexível/Rigoroso/Molde).
 
-- **Modo Agêntico (modal "Como o agente trabalha"):**
-  - Fase 1 — Pensamento (Baixo/Médio/Alto) → mapeia para max_tokens de raciocínio.
-  - Fases 2-3 — Interação: toggles Ativar perguntas (o agente faz perguntas antes de gerar) e Aprovar roteiro (mostra outline para aprovação).
-  - Fase 4 — Pesquisas: toggles Referência rastreável, Jurisprudência, Legislação, Modelos, Contadoria (cálculos jurídicos).
-  - Fase 5 — Verbosidade (Curto/Longo).
-- Edge function `mike-generate` evoluída para um agente multi-step (planejamento → perguntas → outline → redação → citações) usando `google/gemini-3-flash-preview` por padrão e `google/gemini-2.5-pro` no modo Alto + Referência rastreável.
-- **Processamento em Lote:** rota `/_authenticated/lote.tsx` para gerar N peças aplicando o mesmo contexto a uma planilha CSV/XLSX de variáveis. Tabela `batch_jobs` + `batch_items` com status por item.
-- **Histórico:** rota `/_authenticated/historico.tsx` com agrupamento "Últimos 7 dias", "Este mês", busca, filtros por projeto/status.
-- **Projetos:** agrupamento de peças (`projects`, `pieces.project_id`) com UI no sidebar.
+Refatorar `TabPanels.tsx`:
+- `DocumentosPanel`: lista de contextos tipo `documento` + dropzone + 5 botões (Arquivos/Transcrever/URL/Inserir texto/Biblioteca).
+- `ModelosPanel`: idem para `modelo` + strictness.
+- `ReferenciasPanel`: lista consolidada com drag-to-reorder via `@dnd-kit/sortable` e badge OCR.
 
-## Detalhes técnicos
+### A.4. Critérios de aceitação
 
-- **Estado:** Zustand para workspace (já listado); TanStack Query para todos os fetches Supabase.
-- **Backend:** Lovable Cloud (Supabase). Migrations separadas por fase. RLS estrito por `user_id` em todas as tabelas; `librarians` e `library_items` com flag `is_shared` + tabela `share_grants`.
-- **Edge functions novas:** `transcribe-audio`, `extract-url`, `search-legislation`, `search-jurisprudence`, `web-search`, `agent-orchestrate`, `batch-process`.
-- **IA:** Lovable AI Gateway. Embeddings via `google/gemini-3-flash-preview` (texto) ou OpenAI ada quando necessário (pedir secret). pgvector ativado.
-- **UI kit:** continuar shadcn + tokens de `src/styles.css`. Padronizar `<TabPill>`, `<ContextChip>`, `<ResourceCard>`, `<DropZone>`, `<SemanticSearchBox>` em `src/components/workspace/`.
-- **Acessibilidade & responsividade:** sidebar vira Sheet em <md, abas superiores viram horizontal scroll com snap, composer fixo com `safe-area-inset-bottom`.
+- PDF arrastado → aparece com chip "OCR pendente" → "OCR ✓" + texto disponível em Referências.
+- Modelo .docx (strictness=Molde) renderiza em Modelos e Referências.
+- URL processada gera preview ≤ 200 chars.
+- Reordenar persiste em `display_order`.
+- Outro usuário não vê os arquivos (RLS validado).
+- **Nenhuma rota de Fase 3 chama Lovable AI para geração de peça**; apenas OCR/transcrição podem usar fallback de utilidade.
 
-## Diagrama de navegação
+---
 
-```text
-/_authenticated
-├── /workspace            ← novo home: tabs + composer
-│   ├── tab: Início
-│   ├── tab: Histórico
-│   ├── tab: Documentos
-│   ├── tab: Modelos
-│   ├── tab: Referências
-│   ├── tab: Biblioteca   ← também acessível em /biblioteca
-│   └── tab: Bibliotecários
-├── /biblioteca
-├── /bibliotecarios
-├── /pesquisa/legislacao
-├── /pesquisa/jurisprudencia
-├── /pesquisa/web
-├── /lote                 ← processamento em lote
-├── /historico
-├── /projetos/$id
-├── /pecas/$id            ← editor (já existe, será integrado ao agente)
-└── /admin/...
-```
+## Parte B — Relatório PDF (`/mnt/documents/benchmarking-plataformas-juridicas-ai.pdf`)
 
-## Fora de escopo desta primeira rodada
+### B.1. Coleta (websearch + fetch_website)
 
-- Podcasts e Diagramas da Biblioteca (apenas placeholders na UI).
-- Extensão de navegador "Peticiona Conecta" para tribunais.
-- Compartilhamento entre organizações (apenas usuário→usuário individual).
-- Contadoria com cálculos jurídicos completos (entra como stub).
+Para cada plataforma — **MinutaIA**, **Portal-IA DPE-RS**, **jAI** — capturar: visão geral, APIs/SDKs, auth, rate limits, integrações (PJe/Projudi/eproc/SSO/webhook), fluxo de geração observável, suporte a modelos customizados, preços/tier dev, casos reais. **Adicionar coluna Mike** em todas as comparações para evidenciar a estratégia open-source + BYOK do Peticiona.AI.
 
-## Sequência de entrega sugerida
+### B.2. Estrutura
 
-1. **Fase 1** — Workspace + composer + estado global (1 entregável).
-2. **Fase 2** — Biblioteca + Bibliotecários (1 entregável).
-3. **Fase 3** — Documentos + Modelos + Referências (1 entregável).
-4. **Fase 4** — Pesquisas (Legislação → Jurisprudência → Web; pode ser quebrado em 2).
-5. **Fase 5** — Agente + Lote + Histórico (1-2 entregáveis).
+1. Capa (branding Peticiona.AI).
+2. Sumário executivo.
+3. Metodologia.
+4. Fichas técnicas (4–6 págs por plataforma + 1 ficha Mike).
+5. Comparativo lado-a-lado (tabela).
+6. **3 diagramas Mermaid → PNG**:
+   - Arquitetura genérica de plataforma jurídica AI.
+   - Fluxo agêntico (planejamento → pesquisa → redação → citação) **rodando sobre Mike**.
+   - Topologia BYOK Mike + integrações tribunais.
+7. Checklist de integração (auth, LGPD, retenção, OCR, RAG legislação/jurisprudência, audit log, SLA, billing por token).
+8. Recomendações para Peticiona.AI (gap analysis + plano BYOK Mike).
+9. Anexos com URLs.
 
-Posso começar pela Fase 1 ao aprovar este plano, ou ajustar prioridades se você quiser entregar Biblioteca/Pesquisa antes do workspace.
+Geração via `reportlab` (Platypus). QA visual obrigatório (`pdftoppm` → inspeção página a página). Entrega via `<lov-artifact>`.
+
+### B.3. Aceitação
+
+≥ 30 págs, todas as fontes citadas, diagramas ≥ 150 DPI, tabela sem clipping, lista de issues do QA visual reportada.
+
+---
+
+## Ordem de execução
+
+1. Migration (Fase 3 + tabelas Mike BYOK) — aprovação do usuário antes de prosseguir.
+2. Endurecimento da `mike-generate` (mode `mike_only`, leitura de `user_integrations`, gravação de `token_usage`).
+3. Página `/configuracoes/ia` (BYOK).
+4. Server functions de ingestão + dialogs + refactor dos panels.
+5. Em paralelo: pesquisa web e geração do PDF.
+
+Se preferir entregar em pedaços menores (ex.: só Mike-first primeiro, depois Fase 3, depois PDF), é só dizer.
