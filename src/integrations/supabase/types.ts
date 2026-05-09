@@ -228,10 +228,16 @@ export type Database = {
           is_shared: boolean
           metadata: Json
           mime_type: string | null
+          ocr_status: string | null
+          ocr_text: string | null
           size_bytes: number | null
+          source: Database["public"]["Enums"]["document_source"]
           source_url: string | null
           storage_path: string | null
           tags: string[]
+          template_strictness:
+            | Database["public"]["Enums"]["template_strictness"]
+            | null
           title: string
           type: Database["public"]["Enums"]["library_item_type"]
           updated_at: string
@@ -247,10 +253,16 @@ export type Database = {
           is_shared?: boolean
           metadata?: Json
           mime_type?: string | null
+          ocr_status?: string | null
+          ocr_text?: string | null
           size_bytes?: number | null
+          source?: Database["public"]["Enums"]["document_source"]
           source_url?: string | null
           storage_path?: string | null
           tags?: string[]
+          template_strictness?:
+            | Database["public"]["Enums"]["template_strictness"]
+            | null
           title: string
           type: Database["public"]["Enums"]["library_item_type"]
           updated_at?: string
@@ -266,10 +278,16 @@ export type Database = {
           is_shared?: boolean
           metadata?: Json
           mime_type?: string | null
+          ocr_status?: string | null
+          ocr_text?: string | null
           size_bytes?: number | null
+          source?: Database["public"]["Enums"]["document_source"]
           source_url?: string | null
           storage_path?: string | null
           tags?: string[]
+          template_strictness?:
+            | Database["public"]["Enums"]["template_strictness"]
+            | null
           title?: string
           type?: Database["public"]["Enums"]["library_item_type"]
           updated_at?: string
@@ -475,6 +493,51 @@ export type Database = {
         }
         Relationships: []
       }
+      token_usage: {
+        Row: {
+          completion_tokens: number
+          cost_usd_estimate: number | null
+          created_at: string
+          id: string
+          model: string | null
+          piece_id: string | null
+          prompt_tokens: number
+          provider: string
+          purpose: string | null
+          total_tokens: number
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          completion_tokens?: number
+          cost_usd_estimate?: number | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          piece_id?: string | null
+          prompt_tokens?: number
+          provider: string
+          purpose?: string | null
+          total_tokens?: number
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          completion_tokens?: number
+          cost_usd_estimate?: number | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          piece_id?: string | null
+          prompt_tokens?: number
+          provider?: string
+          purpose?: string | null
+          total_tokens?: number
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       useful_links: {
         Row: {
           category: string
@@ -505,6 +568,45 @@ export type Database = {
           is_active?: boolean
           title?: string
           url?: string
+        }
+        Relationships: []
+      }
+      user_integrations: {
+        Row: {
+          api_key_encrypted: string | null
+          created_at: string
+          endpoint: string | null
+          id: string
+          is_active: boolean
+          model: string | null
+          monthly_token_cap: number | null
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          endpoint?: string | null
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          monthly_token_cap?: number | null
+          provider?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          endpoint?: string | null
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          monthly_token_cap?: number | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -560,10 +662,13 @@ export type Database = {
           created_at: string
           display_order: number
           id: string
+          library_item_id: string | null
+          ocr_required: boolean
           payload: Json
           preview: string | null
           source_url: string | null
           storage_path: string | null
+          strictness: Database["public"]["Enums"]["template_strictness"] | null
           title: string
           type: Database["public"]["Enums"]["context_item_type"]
           user_id: string
@@ -573,10 +678,13 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          library_item_id?: string | null
+          ocr_required?: boolean
           payload?: Json
           preview?: string | null
           source_url?: string | null
           storage_path?: string | null
+          strictness?: Database["public"]["Enums"]["template_strictness"] | null
           title: string
           type: Database["public"]["Enums"]["context_item_type"]
           user_id: string
@@ -586,10 +694,13 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          library_item_id?: string | null
+          ocr_required?: boolean
           payload?: Json
           preview?: string | null
           source_url?: string | null
           storage_path?: string | null
+          strictness?: Database["public"]["Enums"]["template_strictness"] | null
           title?: string
           type?: Database["public"]["Enums"]["context_item_type"]
           user_id?: string
@@ -692,6 +803,7 @@ export type Database = {
         | "transcricao"
         | "url"
         | "texto"
+      document_source: "upload" | "url" | "texto" | "transcricao" | "biblioteca"
       library_item_type:
         | "prompt"
         | "documento"
@@ -702,6 +814,7 @@ export type Database = {
         | "diagrama"
         | "referencia_web"
       piece_status: "draft" | "generating" | "ready" | "exported" | "archived"
+      template_strictness: "flexivel" | "rigoroso" | "molde"
       thinking_level: "baixo" | "medio" | "alto"
       workspace_mode: "padrao" | "agentico"
     }
@@ -845,6 +958,7 @@ export const Constants = {
         "url",
         "texto",
       ],
+      document_source: ["upload", "url", "texto", "transcricao", "biblioteca"],
       library_item_type: [
         "prompt",
         "documento",
@@ -856,6 +970,7 @@ export const Constants = {
         "referencia_web",
       ],
       piece_status: ["draft", "generating", "ready", "exported", "archived"],
+      template_strictness: ["flexivel", "rigoroso", "molde"],
       thinking_level: ["baixo", "medio", "alto"],
       workspace_mode: ["padrao", "agentico"],
     },
