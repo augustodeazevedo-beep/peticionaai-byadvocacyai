@@ -20,6 +20,8 @@ import {
   Construction,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
 const ICON_BY_TYPE: Record<ContextItemType, typeof Box> = {
   documento: Upload,
@@ -75,6 +77,7 @@ function DropZone({ icon: Icon, title, hint, actions }: { icon: typeof Box; titl
 export function InicioPanel() {
   const title = useWorkspace((s) => s.title);
   const setField = useWorkspace((s) => s.setField);
+  const items = useWorkspace((s) => s.contextItems);
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-3 py-6">
@@ -83,6 +86,8 @@ export function InicioPanel() {
           Construa o contexto da sua peça nas abas acima e descreva sua instrução abaixo.
         </p>
       </div>
+
+      {items.length === 0 && <EmptyContextOnboarding />}
 
       <Card className="glass border-border/50 p-5">
         <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
