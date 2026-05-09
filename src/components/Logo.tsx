@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 type Tone = "dark" | "light";
 type Size = "sm" | "md" | "lg" | "xl";
 
-const SYMBOL_PX: Record<Size, number> = { sm: 24, md: 36, lg: 56, xl: 88 };
+const SYMBOL_PX: Record<Size, number> = { sm: 28, md: 44, lg: 72, xl: 120 };
 const WORDMARK_TEXT_CLASS: Record<Size, string> = {
   sm: "text-base",
   md: "text-xl",
@@ -34,9 +34,8 @@ export function BrandMark({
     <img
       src={icon}
       alt="Peticione.AI"
-      width={size}
       height={size}
-      style={{ width: size, height: size, objectFit: "contain" }}
+      style={{ height: size, width: "auto" }}
       className={cn(glow && "drop-shadow-[0_0_24px_rgba(56,189,248,0.45)]", className)}
     />
   );
