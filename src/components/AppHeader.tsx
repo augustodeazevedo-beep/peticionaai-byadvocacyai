@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, FilePlus, Link2, Settings, LogOut, Menu, Sparkles } from "lucide-react";
+import { LayoutDashboard, FilePlus, Link2, Settings, LogOut, Menu, Sparkles, BookOpen, Users } from "lucide-react";
 
 export function AppHeader() {
   const { user, isAdmin, signOut } = useAuth();
@@ -27,6 +27,9 @@ export function AppHeader() {
             <nav className="hidden items-center gap-1 md:flex">
               <Link to="/workspace" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
                 Workspace
+              </Link>
+              <Link to="/biblioteca" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
+                Biblioteca
               </Link>
               <Link to="/dashboard" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground" activeProps={{ className: "rounded-md px-3 py-1.5 text-sm text-foreground bg-secondary" }}>
                 Dashboard
@@ -59,6 +62,12 @@ export function AppHeader() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate({ to: "/workspace" })}>
                   <Sparkles className="mr-2 h-4 w-4" /> Workspace
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/biblioteca" })}>
+                  <BookOpen className="mr-2 h-4 w-4" /> Biblioteca
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/bibliotecarios" })}>
+                  <Users className="mr-2 h-4 w-4" /> Bibliotecários
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
                   <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
