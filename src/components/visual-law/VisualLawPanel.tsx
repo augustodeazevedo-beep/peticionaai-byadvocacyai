@@ -162,14 +162,6 @@ export function VisualLawPanel(props: Props) {
         .order("created_at", { ascending: false });
       setVersions((data as any[]) ?? []);
       toast.success("PDF Visual Law gerado");
-      // Best-effort auto-send when configured
-      sendToAdvoga({ data: { pieceId: props.pieceId } })
-        .then((res) => {
-          if (res?.ok) toast.success("Enviado ao Advoga.AI");
-        })
-        .catch(() => {
-          /* silencioso quando não configurado */
-        });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao gerar PDF");
     } finally {
