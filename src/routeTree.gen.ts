@@ -14,7 +14,9 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
+import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
 import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
@@ -51,11 +53,22 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedHistoricoLoteRoute =
+  AuthenticatedHistoricoLoteRouteImport.update({
+    id: '/historico-lote',
+    path: '/historico-lote',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedDjenRoute = AuthenticatedDjenRouteImport.update({
   id: '/djen',
   path: '/djen',
@@ -128,7 +141,9 @@ export interface FileRoutesByFullPath {
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
+  '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -146,7 +161,9 @@ export interface FileRoutesByTo {
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
+  '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -166,7 +183,9 @@ export interface FileRoutesById {
   '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/djen': typeof AuthenticatedDjenRoute
+  '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
+  '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -186,7 +205,9 @@ export interface FileRouteTypes {
     | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
+    | '/historico-lote'
     | '/workspace'
+    | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
     | '/ferramentas/links'
@@ -204,7 +225,9 @@ export interface FileRouteTypes {
     | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
+    | '/historico-lote'
     | '/workspace'
+    | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
     | '/ferramentas/links'
@@ -223,7 +246,9 @@ export interface FileRouteTypes {
     | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
     | '/_authenticated/djen'
+    | '/_authenticated/historico-lote'
     | '/_authenticated/workspace'
+    | '/p/$slug'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/ferramentas/links'
@@ -237,6 +262,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  PSlugRoute: typeof PSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -276,11 +302,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/workspace': {
       id: '/_authenticated/workspace'
       path: '/workspace'
       fullPath: '/workspace'
       preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/historico-lote': {
+      id: '/_authenticated/historico-lote'
+      path: '/historico-lote'
+      fullPath: '/historico-lote'
+      preLoaderRoute: typeof AuthenticatedHistoricoLoteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/djen': {
@@ -370,6 +410,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDjenRoute: typeof AuthenticatedDjenRoute
+  AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
@@ -385,6 +426,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDjenRoute: AuthenticatedDjenRoute,
+  AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
@@ -403,6 +445,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  PSlugRoute: PSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
