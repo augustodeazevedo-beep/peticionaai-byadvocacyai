@@ -47,6 +47,57 @@ function ComingSoon({ title, description }: { title: string; description: string
   );
 }
 
+const ONBOARDING_KEY = "peticiona.workspace.onboardingDismissed";
+
+function EmptyContextOnboarding() {
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => { setDismissed(localStorage.getItem(ONBOARDING_KEY) === "1"); }, []);
+  if (dismissed) return null;
+  const chips = [
+    { label: "Documentos", icon: Upload },
+    { label: "Modelos", icon: Box },
+    { label: "Jurisprudência", icon: Search },
+    { label: "Legislação", icon: BookOpenText },
+    { label: "Web", icon: LinkIcon },
+  ];
+  return (
+    <Card className="glass border-border/50 p-6">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold">Contexto vazio</h3>
+        <p className="text-sm text-muted-foreground">Adicione contexto para gerar minutas precisas:</p>
+      </div>
+      <ol className="space-y-3 text-sm">
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-[11px] font-semibold text-accent">1</span>
+          <div className="space-y-2">
+            <p>Adicione contexto usando as abas superiores</p>
+            <div className="flex flex-wrap gap-2">
+              {chips.map((c) => (
+                <span key={c.label} className="inline-flex items-center gap-1.5 rounded-md border border-border/50 bg-secondary/40 px-2 py-1 text-xs">
+                  <c.icon className="h-3 w-3 text-accent" /> {c.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </li>
+        <li className="flex gap-3">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-[11px] font-semibold text-accent">2</span>
+          <p>Digite suas instruções no campo abaixo — o Peticiona.AI gerará a minuta com base no contexto selecionado.</p>
+        </li>
+      </ol>
+      <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <p><strong className="font-semibold">Atenção:</strong> ao gerar minutas, a IA pesquisa jurisprudência automaticamente no banco interno. Para maior controle, selecione precedentes específicos na aba Jurisprudência.</p>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button variant="ghost" size="sm" onClick={() => { localStorage.setItem(ONBOARDING_KEY, "1"); setDismissed(true); }}>
+          Não mostrar novamente
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 function DropZone({ icon: Icon, title, hint, actions }: { icon: typeof Box; title: string; hint: string; actions: { label: string; icon: typeof Box; onClick?: () => void }[] }) {
   return (
     <Card className="glass flex min-h-[280px] flex-col items-center justify-center gap-4 border-dashed border-border/50 p-10 text-center">
