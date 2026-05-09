@@ -1,4 +1,4 @@
-import icon from "@/assets/peticiona-icon.png";
+import icon from "@/assets/peticione-icon.png";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
