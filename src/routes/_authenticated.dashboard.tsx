@@ -115,15 +115,15 @@ function DashboardHero({ name }: { name: string }) {
         backgroundPosition: "right center",
       }}
     >
-      <div className="relative z-10 px-6 py-7 md:px-8 md:py-8">
-        <span className="inline-flex items-center rounded-full border border-accent/40 bg-background/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+      <div className="relative z-10 px-5 py-4 md:px-6 md:py-5">
+        <span className="inline-flex items-center rounded-full border border-accent/40 bg-background/60 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-accent">
           AI-Native · Advoga.AI
         </span>
-        <h2 className="mt-3 text-2xl font-bold leading-tight md:text-4xl">
+        <h2 className="mt-2 text-base font-semibold leading-tight md:text-lg">
           <span className="text-foreground">{greeting}, </span>
           <span className="text-gradient-brand uppercase">{name || "..."}</span>
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">{dateLabel}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{dateLabel}</p>
       </div>
     </div>
   );
