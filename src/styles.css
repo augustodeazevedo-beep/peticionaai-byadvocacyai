@@ -171,3 +171,12 @@
     background: linear-gradient(135deg, var(--brand-neon), var(--brand-cyan));
   }
 }
+
+/* Hide scrollbar inside the app sidebar (keep scroll behavior) */
+[data-sidebar="content"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-sidebar="content"]::-webkit-scrollbar {
+  display: none;
+}
