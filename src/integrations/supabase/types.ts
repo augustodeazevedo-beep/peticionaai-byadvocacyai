@@ -341,6 +341,78 @@ export type Database = {
           },
         ]
       }
+      piece_visual_styles: {
+        Row: {
+          color_palette: string
+          custom_accent: string | null
+          custom_primary: string | null
+          density: Database["public"]["Enums"]["visual_law_density"]
+          direction: Database["public"]["Enums"]["visual_law_direction"]
+          elements: Json
+          extra_instructions: string | null
+          font: string
+          piece_id: string
+          template: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color_palette?: string
+          custom_accent?: string | null
+          custom_primary?: string | null
+          density?: Database["public"]["Enums"]["visual_law_density"]
+          direction?: Database["public"]["Enums"]["visual_law_direction"]
+          elements?: Json
+          extra_instructions?: string | null
+          font?: string
+          piece_id: string
+          template?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color_palette?: string
+          custom_accent?: string | null
+          custom_primary?: string | null
+          density?: Database["public"]["Enums"]["visual_law_density"]
+          direction?: Database["public"]["Enums"]["visual_law_direction"]
+          elements?: Json
+          extra_instructions?: string | null
+          font?: string
+          piece_id?: string
+          template?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      piece_visual_versions: {
+        Row: {
+          created_at: string
+          id: string
+          pdf_storage_path: string | null
+          piece_id: string
+          style_snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pdf_storage_path?: string | null
+          piece_id: string
+          style_snapshot?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pdf_storage_path?: string | null
+          piece_id?: string
+          style_snapshot?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       pieces: {
         Row: {
           area: string | null
@@ -828,6 +900,8 @@ export type Database = {
       piece_status: "draft" | "generating" | "ready" | "exported" | "archived"
       template_strictness: "flexivel" | "rigoroso" | "molde"
       thinking_level: "baixo" | "medio" | "alto"
+      visual_law_density: "enxuto" | "padrao" | "confortavel"
+      visual_law_direction: "organizar" | "explicar" | "mais_visual"
       workspace_mode: "padrao" | "agentico"
     }
     CompositeTypes: {
@@ -984,6 +1058,8 @@ export const Constants = {
       piece_status: ["draft", "generating", "ready", "exported", "archived"],
       template_strictness: ["flexivel", "rigoroso", "molde"],
       thinking_level: ["baixo", "medio", "alto"],
+      visual_law_density: ["enxuto", "padrao", "confortavel"],
+      visual_law_direction: ["organizar", "explicar", "mais_visual"],
       workspace_mode: ["padrao", "agentico"],
     },
   },
