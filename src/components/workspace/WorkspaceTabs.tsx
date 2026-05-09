@@ -16,7 +16,7 @@ const TABS: { key: WorkspaceTabKey; label: string; Icon: typeof Home }[] = [
   { key: "documentos", label: "Documentos", Icon: FolderOpen },
   { key: "modelos", label: "Modelos", Icon: Box },
   { key: "referencias", label: "Referências", Icon: Layers },
-  { key: "biblioteca", label: "Biblioteca", Icon: BookOpenText },
+  { key: "biblioteca", label: "Assistentes", Icon: BookOpenText },
   { key: "bibliotecarios", label: "Bibliotecários", Icon: Users },
 ];
 
