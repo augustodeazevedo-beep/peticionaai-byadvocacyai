@@ -69,11 +69,11 @@ export async function generateVisualLawPdf(input: VisualLawGenerateInput): Promi
 
   const { data: signed } = await supabase.storage
     .from("piece-exports")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(path, 60 * 60 * 24);
   return { url: signed?.signedUrl ?? "", versionId, path };
 }
 
 export async function downloadVersionPdf(path: string): Promise<string> {
-  const { data } = await supabase.storage.from("piece-exports").createSignedUrl(path, 60 * 60);
+  const { data } = await supabase.storage.from("piece-exports").createSignedUrl(path, 60 * 60 * 24);
   return data?.signedUrl ?? "";
 }
