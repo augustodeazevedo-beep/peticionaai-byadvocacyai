@@ -22,6 +22,7 @@ import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_au
 import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedAssistentesRouteImport } from './routes/_authenticated.assistentes'
+import { Route as ApiPublicAdvogaProcessContextRouteImport } from './routes/api/public/advoga-process-context'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
@@ -96,6 +97,12 @@ const AuthenticatedAssistentesRoute =
     path: '/assistentes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicAdvogaProcessContextRoute =
+  ApiPublicAdvogaProcessContextRouteImport.update({
+    id: '/api/public/advoga-process-context',
+    path: '/api/public/advoga-process-context',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedPecasNovaRoute = AuthenticatedPecasNovaRouteImport.update({
   id: '/pecas/nova',
   path: '/pecas/nova',
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
+  '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
+  '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -183,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
+  '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
+    | '/api/public/advoga-process-context'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
+    | '/api/public/advoga-process-context'
   id:
     | '__root__'
     | '/'
@@ -243,6 +255,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ferramentas/links'
     | '/_authenticated/pecas/$id'
     | '/_authenticated/pecas/nova'
+    | '/api/public/advoga-process-context'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,6 +265,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   PSlugRoute: typeof PSlugRoute
+  ApiPublicAdvogaProcessContextRoute: typeof ApiPublicAdvogaProcessContextRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -347,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssistentesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/advoga-process-context': {
+      id: '/api/public/advoga-process-context'
+      path: '/api/public/advoga-process-context'
+      fullPath: '/api/public/advoga-process-context'
+      preLoaderRoute: typeof ApiPublicAdvogaProcessContextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/pecas/nova': {
       id: '/_authenticated/pecas/nova'
       path: '/pecas/nova'
@@ -426,7 +447,18 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   PSlugRoute: PSlugRoute,
+  ApiPublicAdvogaProcessContextRoute: ApiPublicAdvogaProcessContextRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
