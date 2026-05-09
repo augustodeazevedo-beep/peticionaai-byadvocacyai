@@ -167,7 +167,7 @@ export function InicioPanel() {
           <p className="mb-1 text-xs uppercase tracking-wide text-accent">Roadmap</p>
           <h3 className="font-semibold">Próximas funcionalidades</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Biblioteca, Bibliotecários, pesquisa de Legislação/Jurisprudência/Web e geração agêntica multi-step.
+            Assistentes, Bibliotecários, pesquisa de Legislação/Jurisprudência/Web e geração agêntica multi-step.
           </p>
         </Card>
       </div>
@@ -195,7 +195,7 @@ export function DocumentosPanel() {
         { label: "Transcrever", icon: Mic2 },
         { label: "URL", icon: LinkIcon },
         { label: "Inserir texto", icon: Type },
-        { label: "Biblioteca", icon: BookOpenText },
+        { label: "Assistentes", icon: BookOpenText },
       ]}
     />
   );
@@ -211,7 +211,7 @@ export function ModelosPanel() {
         { label: "Arquivos", icon: Upload },
         { label: "Inserir texto", icon: Type },
         { label: "Importar Minuta", icon: History },
-        { label: "Biblioteca", icon: BookOpenText },
+        { label: "Assistentes", icon: BookOpenText },
       ]}
     />
   );
@@ -225,7 +225,7 @@ export function ReferenciasPanel() {
     return (
       <ComingSoon
         title="Sem referências no contexto"
-        description="Adicione documentos, modelos, legislações, jurisprudência ou itens da biblioteca para que apareçam aqui."
+        description="Adicione documentos, modelos, legislações, jurisprudência ou assistentes para que apareçam aqui."
       />
     );
   }
@@ -264,13 +264,13 @@ export function BibliotecaPanel() {
     <div className="space-y-4">
       <Card className="glass flex items-center justify-between border-border/50 p-4">
         <div>
-          <p className="font-semibold">Sua biblioteca ({items.length})</p>
-          <p className="text-xs text-muted-foreground">Adicione itens existentes ao contexto desta minuta.</p>
+          <p className="font-semibold">Seus assistentes ({items.length})</p>
+          <p className="text-xs text-muted-foreground">Adicione assistentes existentes ao contexto desta minuta.</p>
         </div>
-        <Button asChild variant="outline" size="sm"><Link to="/biblioteca">Abrir biblioteca</Link></Button>
+        <Button asChild variant="outline" size="sm"><Link to="/assistentes">Abrir assistentes</Link></Button>
       </Card>
       {items.length === 0 ? (
-        <ComingSoon title="Biblioteca vazia" description="Crie seu primeiro item em /biblioteca." />
+        <ComingSoon title="Sem assistentes" description="Crie seu primeiro em /assistentes." />
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
           {items.slice(0, 8).map((it) => (
