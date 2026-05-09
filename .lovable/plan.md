@@ -1,14 +1,56 @@
-## Implementação
+## Apps Launcher (ecossistema Advocacy.AI)
 
-**1. `src/components/AppSidebar.tsx`**
-- Adicionar "BY ADVOCACY.AI" abaixo do `<BrandLockup>` no `SidebarHeader` (apenas quando expandido), com `text-[10px] tracking-[0.25em] text-muted-foreground text-center`.
-- Adicionar `<SidebarTrigger>` no canto superior direito do header para colapsar/expandir.
+Criar um menu "Apps" no `AppHeader` igual ao da imagem, listando todas as plataformas do ecossistema com link para cada uma. O Peticione.AI aparece marcado como "atual"; as demais abrem em nova aba.
 
-**2. `src/styles.css`**
-- Adicionar regra para ocultar scrollbar do conteúdo do sidebar:
-  ```css
-  [data-sidebar="content"] { scrollbar-width: none; }
-  [data-sidebar="content"]::-webkit-scrollbar { display: none; }
-  ```
+### Apps (1 fonte de verdade)
 
-Sidebar já está com `collapsible="icon"`, então o modo "só ícones" já funciona — apenas falta o gatilho visível dentro do próprio sidebar.
+Novo arquivo `src/lib/ecosystem.ts`:
+
+```ts
+export type EcosystemApp = {
+  id: "peticione" | "advoga" | "inventaria" | "fin";
+  name: string;          // "Peticiona.AI"
+  tagline: string;       // "Petições, minutas e contratos"
+  url: string;           // https://...lovable.app
+  icon: LucideIcon;      // FileText / Briefcase / Scale / Wallet
+  current?: boolean;     // true para Peticione
+};
+```
+
+URLs:
+- **Peticiona.AI** (atual) — `https://peticionaai-byadvocacyai.lovable.app` — `FileText`
+- **Advoga.AI** — `https://advogaai-byadvocacy.lovable.app` — `Briefcase`
+- **Inventaria.AI** — `https://inventariaai.lovable.app` — `Scale`
+- **Fin.AI** — preciso confirmar a URL publicada (ver pergunta abaixo) — `Wallet`
+
+### UI (`src/components/AppHeader.tsx`)
+
+Antes do menu do usuário, adicionar:
+
+```
+[ ⊞ Apps ▾ ]
+```
+
+Botão `variant="outline"` com ícone `LayoutGrid` (lucide). Ao clicar, abre `DropdownMenuContent` com:
+
+- Cabeçalho: `ECOSSISTEMA` (uppercase 10px tracking-wide accent) + `Advocacy.AI` (font-semibold, .AI em `text-gradient-brand`).
+- Lista de apps em cards verticais:
+  - Item ativo (Peticiona): fundo `bg-secondary/60 border border-accent/40`, badge ✓ ao lado do nome, sem ícone de "abrir".
+  - Demais: hover `bg-secondary/40`, ícone `ExternalLink` no canto direito; `<a target="_blank" rel="noopener noreferrer">`.
+  - Cada item: ícone do app em quadradinho (`p-2 rounded bg-muted`), nome com sufixo `.AI` em verde-neon (`text-gradient-brand`), tagline `text-xs text-muted-foreground`.
+
+Visível para todos os usuários logados (não depende de admin). No mobile, mantém como dropdown.
+
+### Sem mudanças de backend
+
+Apenas frontend e copy. Sem migrations, sem secrets.
+
+### Pergunta antes de implementar
+
+Confirme a **URL publicada do Fin.AI**. Possíveis padrões Lovable:
+- `https://finai.lovable.app`
+- `https://fin-ai.lovable.app`
+- `https://finai-byadvocacy.lovable.app`
+- `https://project--baeca359-2d19-4855-87bc-8f4f0de7344d.lovable.app` (URL estável por ID — recomendado se ainda não publicou com slug fixo)
+
+Qual usar? Se preferir, já posso usar a URL estável `project--baeca359-...lovable.app` para todos os 4 apps (mais robusta, nunca quebra). Recomendo essa opção.
