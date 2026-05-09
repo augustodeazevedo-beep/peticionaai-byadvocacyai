@@ -148,34 +148,52 @@ export type Database = {
           color: string
           created_at: string
           description: string | null
+          formatting_rules: Json
           icon: string
           id: string
           is_active: boolean
+          model_piece_ids: string[]
           name: string
+          piece_type: string | null
+          practice_area: string | null
+          reasoning_prompt: string | null
           updated_at: string
           user_id: string
+          visual_law_defaults: Json
         }
         Insert: {
           color?: string
           created_at?: string
           description?: string | null
+          formatting_rules?: Json
           icon?: string
           id?: string
           is_active?: boolean
+          model_piece_ids?: string[]
           name: string
+          piece_type?: string | null
+          practice_area?: string | null
+          reasoning_prompt?: string | null
           updated_at?: string
           user_id: string
+          visual_law_defaults?: Json
         }
         Update: {
           color?: string
           created_at?: string
           description?: string | null
+          formatting_rules?: Json
           icon?: string
           id?: string
           is_active?: boolean
+          model_piece_ids?: string[]
           name?: string
+          piece_type?: string | null
+          practice_area?: string | null
+          reasoning_prompt?: string | null
           updated_at?: string
           user_id?: string
+          visual_law_defaults?: Json
         }
         Relationships: []
       }
