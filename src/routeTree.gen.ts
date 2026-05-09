@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
+import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
 import { Route as AuthenticatedDjenRouteImport } from './routes/_authenticated.djen'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
@@ -56,6 +57,12 @@ const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedHistoricoLoteRoute =
+  AuthenticatedHistoricoLoteRouteImport.update({
+    id: '/historico-lote',
+    path: '/historico-lote',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedDjenRoute = AuthenticatedDjenRouteImport.update({
   id: '/djen',
   path: '/djen',
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
+  '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/djen': typeof AuthenticatedDjenRoute
+  '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -166,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/djen': typeof AuthenticatedDjenRoute
+  '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
+    | '/historico-lote'
     | '/workspace'
     | '/admin/integracoes'
     | '/configuracoes/ia'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/compartilhamentos'
     | '/dashboard'
     | '/djen'
+    | '/historico-lote'
     | '/workspace'
     | '/admin/integracoes'
     | '/configuracoes/ia'
@@ -223,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
     | '/_authenticated/djen'
+    | '/_authenticated/historico-lote'
     | '/_authenticated/workspace'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/configuracoes/ia'
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/workspace'
       fullPath: '/workspace'
       preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/historico-lote': {
+      id: '/_authenticated/historico-lote'
+      path: '/historico-lote'
+      fullPath: '/historico-lote'
+      preLoaderRoute: typeof AuthenticatedHistoricoLoteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/djen': {
@@ -370,6 +390,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDjenRoute: typeof AuthenticatedDjenRoute
+  AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
@@ -385,6 +406,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDjenRoute: AuthenticatedDjenRoute,
+  AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
@@ -407,3 +429,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
