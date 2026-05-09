@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
 import { Route as AuthenticatedBibliotecariosRouteImport } from './routes/_authenticated.bibliotecarios'
 import { Route as AuthenticatedBibliotecaRouteImport } from './routes/_authenticated.biblioteca'
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
@@ -56,6 +57,11 @@ const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCnjRoute = AuthenticatedCnjRouteImport.update({
+  id: '/cnj',
+  path: '/cnj',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedBibliotecariosRoute =
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/cnj': typeof AuthenticatedCnjRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/cnj': typeof AuthenticatedCnjRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/biblioteca': typeof AuthenticatedBibliotecaRoute
   '/_authenticated/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
+  '/_authenticated/cnj': typeof AuthenticatedCnjRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/biblioteca'
     | '/bibliotecarios'
+    | '/cnj'
     | '/dashboard'
     | '/workspace'
     | '/admin/integracoes'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/biblioteca'
     | '/bibliotecarios'
+    | '/cnj'
     | '/dashboard'
     | '/workspace'
     | '/admin/integracoes'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/biblioteca'
     | '/_authenticated/bibliotecarios'
+    | '/_authenticated/cnj'
     | '/_authenticated/dashboard'
     | '/_authenticated/workspace'
     | '/_authenticated/admin/integracoes'
@@ -253,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cnj': {
+      id: '/_authenticated/cnj'
+      path: '/cnj'
+      fullPath: '/cnj'
+      preLoaderRoute: typeof AuthenticatedCnjRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/bibliotecarios': {
       id: '/_authenticated/bibliotecarios'
       path: '/bibliotecarios'
@@ -308,6 +327,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedBibliotecaRoute: typeof AuthenticatedBibliotecaRoute
   AuthenticatedBibliotecariosRoute: typeof AuthenticatedBibliotecariosRoute
+  AuthenticatedCnjRoute: typeof AuthenticatedCnjRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
@@ -320,6 +340,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBibliotecaRoute: AuthenticatedBibliotecaRoute,
   AuthenticatedBibliotecariosRoute: AuthenticatedBibliotecariosRoute,
+  AuthenticatedCnjRoute: AuthenticatedCnjRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
@@ -343,3 +364,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
