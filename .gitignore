@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Environment variables — nunca commitar arquivos com credenciais reais
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
