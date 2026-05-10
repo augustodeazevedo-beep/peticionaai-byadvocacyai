@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Download, FileDown, Save, RefreshCw, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/pecas/$id")({{
+export const Route = createFileRoute("/_authenticated/pecas/$id")({
   head: () => ({ meta: [{ title: "Editor de Peça — Peticiona.AI" }] }),
   component: PieceEditor,
 });
