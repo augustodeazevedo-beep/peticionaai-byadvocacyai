@@ -26,3 +26,40 @@ export async function exportPieceDocx(piece_id: string): Promise<ExportResult> {
   if (error) throw error;
   return data as ExportResult;
 }
+
+/**
+ * Calls the export-document edge function and returns the raw HTML blob
+ * as an object URL that can be used to trigger a browser file download.
+ */
+export async function exportPieceHtml(piece_id: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Sessão expirada. Faça login novamente.");
+
+  const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl
+    ?? import.meta.env.VITE_SUPABASE_URL;
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/export-document`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ piece_id }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Erro ao exportar HTML: ${res.status} ${text}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "peticao.html";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
