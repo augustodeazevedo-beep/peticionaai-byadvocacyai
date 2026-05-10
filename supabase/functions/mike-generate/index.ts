@@ -34,7 +34,6 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Require authenticated caller
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return jsonError("Unauthorized", 401);
   const token = authHeader.replace("Bearer ", "");
@@ -62,7 +61,6 @@ Deno.serve(async (req) => {
       return jsonError("Campos excedem o tamanho máximo permitido.", 400);
     }
 
-    // Load settings
     const { data: settings } = await supabase.from("system_settings").select("key,value");
     const map = new Map((settings ?? []).map((s: { key: string; value: string | null }) => [s.key, s.value ?? ""]));
 
@@ -77,7 +75,6 @@ Deno.serve(async (req) => {
     const fallbackModel = map.get("mike_model") || "google/gemini-2.5-flash";
     const generationMode = (map.get("peticiona_generation_mode") || "mike_with_fallback").trim();
 
-    // BYOK Mike per user
     const { data: userIntegration } = await supabase
       .from("user_integrations")
       .select("endpoint, api_key_encrypted, model, is_active, monthly_token_cap")
@@ -90,36 +87,18 @@ Deno.serve(async (req) => {
     const mikeKey = byokActive ? userIntegration!.api_key_encrypted! : (Deno.env.get("MIKE_API_KEY") ?? "");
     const mikeModel = byokActive && userIntegration?.model ? userIntegration.model : (map.get("mike_model") || "");
 
-    // Enforce monthly cap (BYOK) de forma atômica usando RPC.
-    // NOTA: A função check_and_increment_token_usage usa FOR UPDATE para evitar
-    // race conditions onde múltiplas requisições concorrentes poderiam ultrapassar
-    // o limite ao fazerem SELECT e UPDATE em operações separadas.
-    // Ver migration: 20260510100100_add_check_and_increment_token_usage.sql
+    // Atomic pre-check: uses FOR UPDATE lock to prevent concurrent bypass
     if (byokActive && userIntegration?.monthly_token_cap) {
-      const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-
-      // TODO: Substituir a verificação abaixo pela chamada RPC atômica após aplicar a migration:
-      // const { data: tokenResult } = await supabase.rpc('check_and_increment_token_usage', {
-      //   p_user_id: userId,
-      //   p_month_year: currentMonth,
-      //   p_tokens: 0, // pré-verificação sem incremento; incrementar após geração
-      //   p_monthly_cap: userIntegration.monthly_token_cap,
-      // });
-      // if (tokenResult && !tokenResult[0]?.allowed) {
-      //   return jsonError("Cota mensal de tokens atingida na sua integração Mike. Ajuste em Configurações → IA.", 402);
-      // }
-      //
-      // RACE CONDITION CONHECIDA: O código abaixo faz SELECT e comparação em operações separadas.
-      // Requisições concorrentes podem ambas passar a verificação antes de qualquer uma incrementar.
-      // A função SQL acima (quando ativada) resolve isso com FOR UPDATE + UPDATE atômico.
-      const since = new Date(); since.setDate(1); since.setHours(0,0,0,0);
-      const { data: usageRows } = await supabase
-        .from("token_usage")
-        .select("total_tokens")
-        .eq("user_id", userId)
-        .gte("created_at", since.toISOString());
-      const used = (usageRows ?? []).reduce((acc, r: { total_tokens: number }) => acc + (r.total_tokens || 0), 0);
-      if (used >= userIntegration.monthly_token_cap) {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: tokenCheck, error: tokenCheckError } = await supabase.rpc("check_and_increment_token_usage", {
+        p_user_id: userId,
+        p_month_year: currentMonth,
+        p_tokens: 0,
+        p_monthly_cap: userIntegration.monthly_token_cap,
+      });
+      if (tokenCheckError) {
+        console.error("Token pre-check error:", tokenCheckError);
+      } else if (tokenCheck && !tokenCheck[0]?.allowed) {
         return jsonError("Cota mensal de tokens atingida na sua integração Mike. Ajuste em Configurações → IA.", 402);
       }
     }
@@ -134,7 +113,6 @@ Deno.serve(async (req) => {
     let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } = {};
 
     if (mikeEndpoint && mikeKey) {
-      // Tenta Mike (formato OpenAI-compatible esperado)
       try {
         const r = await fetch(mikeEndpoint, {
           method: "POST",
@@ -161,7 +139,6 @@ Deno.serve(async (req) => {
     }
 
     if (!content) {
-      // Fallback Lovable AI
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}` },
@@ -193,8 +170,17 @@ Deno.serve(async (req) => {
       request_summary: `${piece_type} / ${area}`,
     });
 
-    // Telemetria de tokens
+    // Atomic increment + audit trail
     try {
+      if (byokActive && userIntegration?.monthly_token_cap) {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        await supabase.rpc("check_and_increment_token_usage", {
+          p_user_id: userId,
+          p_month_year: currentMonth,
+          p_tokens: usage.total_tokens ?? 0,
+          p_monthly_cap: userIntegration.monthly_token_cap,
+        });
+      }
       await supabase.from("token_usage").insert({
         user_id: userId,
         piece_id: piece_id ?? null,
