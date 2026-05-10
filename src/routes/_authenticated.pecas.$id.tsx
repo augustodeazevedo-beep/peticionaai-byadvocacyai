@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { exportPieceDocx, generatePiece } from "@/lib/mikeClient";
+import { exportPieceDocx, exportPieceHtml, generatePiece } from "@/lib/mikeClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -10,9 +10,9 @@ import { VisualLawPanel } from "@/components/visual-law/VisualLawPanel";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { Download, Save, RefreshCw, ArrowLeft } from "lucide-react";
+import { Download, FileDown, Save, RefreshCw, ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/pecas/$id")({
+export const Route = createFileRoute("/_authenticated/pecas/$id")({{
   head: () => ({ meta: [{ title: "Editor de Peça — Peticiona.AI" }] }),
   component: PieceEditor,
 });
@@ -35,6 +35,7 @@ function PieceEditor() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingHtml, setExportingHtml] = useState(false);
   const [regen, setRegen] = useState(false);
 
   useEffect(() => {
@@ -93,6 +94,21 @@ function PieceEditor() {
     }
   }
 
+  async function doExportHtml() {
+    if (!piece) return;
+    setExportingHtml(true);
+    try {
+      // Salva antes para garantir que o HTML reflete o conteúdo atual
+      await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
+      await exportPieceHtml(piece.id);
+      toast.success("Documento HTML baixado com sucesso");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar HTML");
+    } finally {
+      setExportingHtml(false);
+    }
+  }
+
   if (!piece) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -108,12 +124,15 @@ function PieceEditor() {
             <span className="text-xs text-muted-foreground">Modelo: {piece.model_used ?? "—"}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={regenerate} disabled={regen}>
             <RefreshCw className={`mr-2 h-4 w-4 ${regen ? "animate-spin" : ""}`} /> Regenerar
           </Button>
           <Button variant="outline" onClick={save} disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> Salvar
+          </Button>
+          <Button variant="outline" onClick={doExportHtml} disabled={exportingHtml}>
+            <FileDown className="mr-2 h-4 w-4" /> {exportingHtml ? "Exportando..." : "⬇ Exportar HTML"}
           </Button>
           <Button onClick={doExport} disabled={exporting} className="bg-gradient-brand text-primary-foreground">
             <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar .docx"}
