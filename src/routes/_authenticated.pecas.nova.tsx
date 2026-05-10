@@ -12,6 +12,86 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
+/**
+ * Converte Markdown simples para HTML.
+ * Usa expressões regulares para os padrões mais comuns em peças jurídicas:
+ * headings, negrito, itálico, listas e parágrafos.
+ * Se o projeto adicionar `marked` ao package.json, substitua esta função por:
+ *   import { marked } from 'marked';
+ *   const markdownToHtml = (md: string) => marked(md);
+ */
+function markdownToHtml(md: string): string {
+  const lines = md.split("\n");
+  const html: string[] = [];
+  let inList = false;
+
+  for (const raw of lines) {
+    let line = raw;
+
+    // Headings
+    if (/^######\s/.test(line)) { line = `<h6>${line.slice(7)}</h6>`; }
+    else if (/^#####\s/.test(line)) { line = `<h5>${line.slice(6)}</h5>`; }
+    else if (/^####\s/.test(line)) { line = `<h4>${line.slice(5)}</h4>`; }
+    else if (/^###\s/.test(line)) { line = `<h3>${line.slice(4)}</h3>`; }
+    else if (/^##\s/.test(line)) { line = `<h2>${line.slice(3)}</h2>`; }
+    else if (/^#\s/.test(line)) { line = `<h1>${line.slice(2)}</h1>`; }
+    // Unordered list items
+    else if (/^[-*+]\s/.test(line)) {
+      if (!inList) { html.push("<ul>"); inList = true; }
+      // Apply inline formatting then wrap
+      line = applyInline(line.slice(2));
+      html.push(`<li>${line}</li>`);
+      continue;
+    }
+    // Ordered list items
+    else if (/^\d+\.\s/.test(line)) {
+      if (!inList) { html.push("<ol>"); inList = true; }
+      line = applyInline(line.replace(/^\d+\.\s/, ""));
+      html.push(`<li>${line}</li>`);
+      continue;
+    }
+    else {
+      // Close any open list
+      if (inList) {
+        html.push(html[html.length - 1]?.startsWith("<li") ? "</ul>" : "</ol>");
+        inList = false;
+      }
+      // Horizontal rule
+      if (/^---+$/.test(line.trim())) {
+        html.push("<hr />");
+        continue;
+      }
+      // Empty line → paragraph break
+      if (line.trim() === "") {
+        html.push("<br />");
+        continue;
+      }
+      line = applyInline(line);
+      html.push(`<p>${line}</p>`);
+      continue;
+    }
+
+    // Close list if heading or hr was hit mid-list
+    if (inList) { html.push("</ul>"); inList = false; }
+    html.push(line);
+  }
+
+  if (inList) html.push("</ul>");
+  return html.join("\n");
+}
+
+function applyInline(text: string): string {
+  return text
+    // Bold+italic
+    .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    // Italic
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    // Inline code
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
 export const Route = createFileRoute("/_authenticated/pecas/nova")({
   head: () => ({ meta: [{ title: "Nova Peça — Peticiona.AI" }] }),
   component: NovaPeca,
@@ -68,12 +148,15 @@ function NovaPeca() {
         context: form.contexto,
       });
 
+      // A IA retorna conteúdo em Markdown; converter para HTML antes de salvar em content_html.
+      const contentHtml = markdownToHtml(result.content);
+
       await supabase
         .from("pieces")
         .update({
           status: "ready",
           content_text: result.content,
-          content_html: result.content,
+          content_html: contentHtml,
           model_used: result.model_used,
         })
         .eq("id", piece.id);

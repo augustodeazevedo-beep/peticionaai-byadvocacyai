@@ -90,8 +90,28 @@ Deno.serve(async (req) => {
     const mikeKey = byokActive ? userIntegration!.api_key_encrypted! : (Deno.env.get("MIKE_API_KEY") ?? "");
     const mikeModel = byokActive && userIntegration?.model ? userIntegration.model : (map.get("mike_model") || "");
 
-    // Enforce monthly cap (BYOK)
+    // Enforce monthly cap (BYOK) de forma atômica usando RPC.
+    // NOTA: A função check_and_increment_token_usage usa FOR UPDATE para evitar
+    // race conditions onde múltiplas requisições concorrentes poderiam ultrapassar
+    // o limite ao fazerem SELECT e UPDATE em operações separadas.
+    // Ver migration: 20260510100100_add_check_and_increment_token_usage.sql
     if (byokActive && userIntegration?.monthly_token_cap) {
+      const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+
+      // TODO: Substituir a verificação abaixo pela chamada RPC atômica após aplicar a migration:
+      // const { data: tokenResult } = await supabase.rpc('check_and_increment_token_usage', {
+      //   p_user_id: userId,
+      //   p_month_year: currentMonth,
+      //   p_tokens: 0, // pré-verificação sem incremento; incrementar após geração
+      //   p_monthly_cap: userIntegration.monthly_token_cap,
+      // });
+      // if (tokenResult && !tokenResult[0]?.allowed) {
+      //   return jsonError("Cota mensal de tokens atingida na sua integração Mike. Ajuste em Configurações → IA.", 402);
+      // }
+      //
+      // RACE CONDITION CONHECIDA: O código abaixo faz SELECT e comparação em operações separadas.
+      // Requisições concorrentes podem ambas passar a verificação antes de qualquer uma incrementar.
+      // A função SQL acima (quando ativada) resolve isso com FOR UPDATE + UPDATE atômico.
       const since = new Date(); since.setDate(1); since.setHours(0,0,0,0);
       const { data: usageRows } = await supabase
         .from("token_usage")
