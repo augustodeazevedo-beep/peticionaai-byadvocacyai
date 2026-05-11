@@ -117,7 +117,7 @@ function DashboardHero({ name }: { name: string }) {
     >
       <div className="relative z-10 px-5 py-4 md:px-6 md:py-5">
         <span className="inline-flex items-center rounded-full border border-accent/40 bg-background/60 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-accent">
-          AI-Native · Advoga.AI
+          AI-Native | Peticiona.AI
         </span>
         <h2 className="mt-2 text-base font-semibold leading-tight md:text-lg">
           <span className="text-foreground">{greeting}, </span>
