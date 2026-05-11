@@ -5,15 +5,23 @@ import type { Database } from './types';
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const viteUrl = import.meta.env.VITE_SUPABASE_URL;
+  const viteKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const procUrl = typeof process !== 'undefined' ? process.env?.SUPABASE_URL : undefined;
+  const procKey = typeof process !== 'undefined' ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined;
+
+  const SUPABASE_URL = viteUrl || procUrl;
+  const SUPABASE_PUBLISHABLE_KEY = viteKey || procKey;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
+    const isBrowser = typeof window !== 'undefined';
+    const missing: string[] = [];
+    if (!SUPABASE_URL) missing.push(isBrowser ? 'VITE_SUPABASE_URL' : 'SUPABASE_URL');
+    if (!SUPABASE_PUBLISHABLE_KEY) missing.push(isBrowser ? 'VITE_SUPABASE_PUBLISHABLE_KEY' : 'SUPABASE_PUBLISHABLE_KEY');
+    const hint = isBrowser
+      ? 'The published bundle is missing build-time VITE_* envs. Republish the app from Lovable to rebuild with the current .env.'
+      : 'Connect Supabase in Lovable Cloud.';
+    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. ${hint}`;
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }
