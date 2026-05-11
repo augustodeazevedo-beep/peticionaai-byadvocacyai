@@ -1,29 +1,37 @@
-## Diagnóstico
-Dois problemas no hero do dashboard:
+# Diagnóstico
 
-1. **A imagem não aparece**: o gradiente usa `hsl(var(--card))`, mas `--card` está definido em **oklch** no `src/styles.css` (`--card: oklch(0.22 0.03 260)`). `hsl(oklch(...))` é sintaxe inválida → todo o `background-image` é descartado pelo CSS → a `url(${heroBg})` nunca renderiza. Por isso a caixa aparece totalmente preta.
-2. **Os blocos não estão translúcidos**: o hero usa `bg-card` (sólido). Os outros cards do dashboard já usam a classe utilitária `.glass` (definida em `src/styles.css` como `oklch(0.22 0.03 260 / 0.6)` + `backdrop-filter: blur(12px)`), mas o hero não.
+Reproduzi o erro no domínio publicado (`/login`) e capturei o console:
 
-## Alterações
-Arquivo único: `src/routes/_authenticated.dashboard.tsx` (componente `DashboardHero`).
+```
+[Supabase] Missing Supabase environment variable(s):
+SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY.
+Connect Supabase in Lovable Cloud.
+```
 
-1. **Trocar `bg-card` por `glass`** no container do hero, alinhando ao restante dos cards do dashboard (translúcido + blur + borda sutil).
+O bundle `index-1XI0webW.js` é renderizado no browser sem as variáveis `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` embutidas. Quando o `AuthProvider` (carregado em `__root.tsx`) tenta inicializar o cliente Supabase, ele lança, o root `errorComponent` captura, e aparece a tela "This page didn't load / The app encountered an error".
 
-2. **Corrigir o overlay sobre a imagem** usando cores válidas em oklch (não `hsl(var(--card))`):
-   ```ts
-   backgroundImage: `linear-gradient(90deg,
-     oklch(0.16 0.02 260 / 0.92) 0%,
-     oklch(0.16 0.02 260 / 0.75) 30%,
-     oklch(0.16 0.02 260 / 0.35) 55%,
-     oklch(0.16 0.02 260 / 0.05) 80%,
-     transparent 100%
-   ), url(${heroBg})`
-   ```
-   Resultado: imagem visível em toda a faixa direita, escurecida progressivamente à esquerda para garantir legibilidade do "Boa tarde, NOME".
+**Por que aconteceu:** o `.env` local hoje já contém `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, mas o build publicado atualmente em produção foi gerado **antes** dessas variáveis serem expostas com prefixo `VITE_`. Como o Vite faz inlining em build-time, o JS publicado ficou com strings vazias para as duas variáveis e dispara o erro no browser.
 
-3. Manter `backgroundSize: "cover"` e `backgroundPosition: "right center"`.
+**Por que o preview funciona, mas o publicado não:** o sandbox de preview usa o `.env` atual (já corrigido). O publicado usa o artefato antigo até ser republicado.
 
-## Fora do escopo
-- Regenerar a imagem.
-- Mexer no segundo bloco ("Nenhuma peça ainda") — já é `glass`, está correto.
-- Mudar tipografia, tamanhos ou layout do hero.
+# Plano
+
+1. **Republicar o app** (ação do usuário no botão Publish → Update). Isso é o suficiente para corrigir o erro imediatamente, porque o novo build vai inlinear `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` corretamente.
+
+2. **Tornar o erro de env mais informativo** em `src/integrations/supabase/client.ts` — apenas a string da mensagem (a lógica permanece). Hoje a mensagem reporta sempre `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` mesmo quando o que faltou foi a variável `VITE_*`, o que confunde o diagnóstico. Vou listar a variável real que faltou (`VITE_SUPABASE_URL` no browser, `SUPABASE_URL` no SSR).
+
+   > Observação: o cabeçalho do arquivo diz "do not edit". Esse comentário se refere às credenciais geradas; a função `createSupabaseClient` é segura para ajustar a mensagem de erro sem alterar contrato. Se preferir não tocar nesse arquivo, posso pular esta etapa — o passo 1 sozinho resolve o problema funcional.
+
+3. **Verificação pós-publish**: abrir `/login` no domínio publicado, conferir console limpo e que o formulário de login renderiza.
+
+# Detalhes técnicos
+
+- Arquivo afetado: `src/integrations/supabase/client.ts` (somente texto da mensagem de erro).
+- Nada muda em rotas, autenticação, RLS, edge functions ou variáveis de ambiente.
+- Nenhuma migração de banco.
+- O `errorComponent` em `__root.tsx` continua igual — ele só estava fazendo seu trabalho ao capturar o throw.
+
+# Fora do escopo
+
+- Não vou alterar `vite.config.ts`, `wrangler.jsonc`, `src/server.ts`, `auth-middleware.ts` nem o fluxo de auth.
+- Não vou mexer em `.env` (gerenciado automaticamente pela plataforma).
