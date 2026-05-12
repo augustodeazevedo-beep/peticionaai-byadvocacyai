@@ -1,98 +1,89 @@
-## Etapa 4 — Persistência de versões Visual Law AI
+## Etapa 5 — Validação Jurídica & Análise de Risco
 
-Objetivo: Persistir as versões geradas pela nova plataforma Visual Law AI em uma tabela própria (`vl_versions`), sem interferir na tabela legada `piece_visual_versions` (que continua dedicada ao PDF atual). Carregamento automático ao abrir a peça e sincronização após cada `finishGeneration`.
+Objetivo: ativar as colunas `validation` e `risk` (já reservadas em `vl_versions`) com geração assistida por IA após cada `finishGeneration`, mais UI dedicada no sidebar do Visual Law AI. Mantém Etapa 4 intacta (persistência) e prepara terreno para Etapa 6 (export).
 
-### Migração (nova tabela isolada)
+### Backend (edge function)
+
+Nova função `supabase/functions/analyze-visual-law/index.ts`:
+
+- Input: `{ content: string, legalMetadata: VLLegalMetadata, direction: VLDirection }`.
+- Usa Lovable AI Gateway (`google/gemini-2.5-flash`, response_format JSON) com prompt jurídico estruturado.
+- Output JSON com dois objetos: `validation: VLLegalValidation` e `risk: VLRiskAnalysis` (mesmas chaves do tipo).
+- `verify_jwt = true` (default). Tratamento de 429/402 → resposta tipada `{ error: "rate_limit"|"credits" }`.
+- Prompts isolados em `prompts.ts` (mesmo padrão de `generate-visual-law`).
+
+Sem nova migração — colunas `validation`/`risk` (jsonb) já existem em `vl_versions`.
+
+### Camada de serviço (frontend)
+
+`src/services/visual-law/analyze.ts` (novo):
+
+- `runAnalysis({ content, legalMetadata, direction })` → `Promise<{ validation: VLLegalValidation; risk: VLRiskAnalysis }>` chamando a edge function via `supabase.functions.invoke`.
+- Trata erros (rate limit/credits) com `toast` + retorna `null` para degrade gracioso.
+
+`src/services/visual-law/versions.ts`:
+
+- Novo `updateVersionAnalysis(versionId, { validation, risk })` → `update vl_versions set validation, risk where id = $1`. Necessário policy de UPDATE (ver migração abaixo).
+
+### Migração complementar
 
 ```sql
-create table public.vl_versions (
-  id uuid primary key default gen_random_uuid(),
-  piece_id uuid not null references public.pieces(id) on delete cascade,
-  user_id  uuid not null references auth.users(id)  on delete cascade,
-  content text not null,
-  config jsonb not null,
-  prompt text not null default '',
-  direction text not null check (direction in ('organizar','explicar','mais_visual')),
-  legal_metadata jsonb not null default '{}'::jsonb,
-  validation jsonb,
-  risk jsonb,
-  created_at timestamptz not null default now()
-);
-
-create index vl_versions_piece_idx on public.vl_versions (piece_id, created_at desc);
-
-alter table public.vl_versions enable row level security;
-
-create policy "vl_versions_select_own" on public.vl_versions
-  for select to authenticated using (auth.uid() = user_id);
-create policy "vl_versions_insert_own" on public.vl_versions
-  for insert to authenticated with check (auth.uid() = user_id);
-create policy "vl_versions_delete_own" on public.vl_versions
-  for delete to authenticated using (auth.uid() = user_id);
+create policy "vl_versions_update_own_analysis" on public.vl_versions
+  for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 ```
 
-Sem update (versões são imutáveis). Sem trigger de updated_at.
+Apenas isso — sem novas colunas. Documentar que update é restrito a campos `validation`/`risk` por convenção (sem trigger restritivo nesta etapa para manter simples).
 
-### Camada de dados (frontend)
+### Store (`src/stores/visualLaw.ts`)
 
-`src/services/visual-law/versions.ts` (novo):
-
-- `loadVersions(pieceId)` → `Promise<VLVersion[]>` lendo `vl_versions` ordenado por `created_at asc`, mapeando colunas → tipo `VLVersion` (id/timestamp/content/config/prompt/direction/legalMetadata/validation/risk).
-- `persistVersion(pieceId, userId, version)` → insere e devolve a row criada (com id/timestamp do servidor).
-- `deleteVersion(versionId)` → opcional para Etapa futura; não usar na UI ainda.
-
-Cliente Supabase: `@/integrations/supabase/client` (RLS aplica `auth.uid() = user_id`).
-
-### Store (ajustes mínimos)
-
-`src/stores/visualLaw.ts`:
-
-- Nova action `hydrateVersions(versions: VLVersion[])` → substitui `versions` e seleciona a última como `selectedVersionId` + `documentContent` (sem mexer em `documentConfig` se já configurado).
-- `finishGeneration` permanece síncrono e in-memory; persistência fica no orquestrador (separation of concerns).
+- Estado adicional: `analysisStatus: Record<versionId, "idle"|"running"|"done"|"error">`.
+- Actions:
+  - `setAnalysisStatus(versionId, status)`.
+  - `setVersionAnalysis(versionId, { validation, risk })` → atualiza `versions[i].validation`/`risk` imutavelmente.
 
 ### Orquestrador
 
 `src/services/visual-law/generate.ts`:
 
-- Após `finishGeneration`, disparar `persistVersion` em background. Se falhar, `toast.error` mas mantém versão local (degrade gracioso).
-- Substituir o `id`/`timestamp` da versão local pelos do servidor quando o insert retornar (via novo helper `replaceLastVersionMeta` no store) — evita divergência entre cliente e BD.
+- Após `finishGeneration` + `persistVersion`, dispara `runAnalysis` em background (não bloqueia UX).
+- Em sucesso → `setVersionAnalysis` + `updateVersionAnalysis` (BD).
+- Em falha → `setAnalysisStatus(versionId, "error")`, log silencioso.
 
-### Hook de hidratação
+### UI nova
 
-`src/hooks/visual-law/useLoadVersions.ts` (novo):
+1. **`src/components/visual-law/legal/LegalAnalysisPanel.tsx`** — card colapsável dentro do `ConfigSidebar` (nova aba "Análise"). Mostra:
+   - Estado: skeleton enquanto `running`, conteúdo quando `done`, mensagem de erro com botão "Tentar novamente" quando `error`.
+   - Seção "Validação Jurídica" com 4 listas: alegações sem prova, teses sem fundamento, pedidos órfãos, placeholders. Cada item com badge de severidade visual (cor de aviso) e ícone (`AlertTriangle`).
+   - Seção "Análise de Risco" com 4 listas: fragilidades probatórias, vícios formais, riscos de improcedência, argumentos adversos. Mesmo padrão visual.
+   - Listas vazias renderizam estado positivo (`CheckCircle2` + "Nenhum apontamento").
 
-- `useEffect` em `VisualLawAIPanel` mount: chama `loadVersions(pieceId)` → `hydrateVersions(rows)`.
-- Se rows.length === 0 → mantém `documentContent` vindo da peça (comportamento atual).
-- Em erro de rede → `toast.error("Falha ao carregar versões salvas")` e segue com store vazio.
+2. **`src/components/visual-law/sidebar/ConfigSidebar.tsx`** — adicionar nova `TabsTrigger` "Análise" entre "Aparência" e "Refinar". Mostra contador de issues no badge da aba (soma `validation` + `risk` arrays length).
 
-### Tipos
+3. **`src/components/visual-law/versions/VersionCard.tsx`** — pequeno indicador (`ShieldAlert` quando há issues, `ShieldCheck` quando análise completa sem issues, sem ícone quando análise pendente).
 
-`src/types/visual-law.ts` já tem `VLVersion`. Adicionar utilitário interno `mapRowToVersion`/`mapVersionToRow` em `versions.ts` (não exportado nos tipos públicos).
+### Hidratação
 
-### UI
-
-- `VersionsTimeline` continua como está; passa a refletir versões persistidas automaticamente.
-- `VersionCard` ganha um pequeno indicador visual (`Cloud` icon) quando `version.id` é UUID do servidor (heurística simples: foi salvo). Opcional — default mantém o card atual.
-- Loading inicial: exibir skeleton minimalista no `VersionsTimeline` enquanto `loadVersions` está em flight (estado local no hook).
+`useLoadVersions.ts`: já carrega `validation`/`risk` (mapeamento adicionado em `versions.ts` na Etapa 4 — verificar e ajustar `mapRowToVersion` para incluir esses campos).
 
 ### Smoke test
 
-1. `bun run build` passa.
-2. Migração aplicada → tabela `vl_versions` existe com RLS.
-3. Abrir peça nova → timeline vazia → gerar 2 versões → recarregar página → timeline mostra as 2 versões em ordem cronológica.
-4. Trocar de usuário → não vê versões alheias (RLS).
-5. `selectVersion`/`rollbackTo` funcionam normalmente sobre os dados hidratados.
-6. Deletar peça → versões somem (cascade).
+1. Gerar nova versão → ver "running" no card de análise → resultado popula listas em ~3-8s.
+2. Recarregar peça → análise persistida volta hidratada.
+3. Versão sem issues → estado positivo renderiza.
+4. Edge function retorna 429 → toast + estado de erro + botão retry funcional.
+5. Build passa, RLS impede update de versões alheias.
 
 ### Fora do escopo
 
-- **Etapa 5**: análise de risco e validação jurídica (`VLLegalValidation`/`VLRiskAnalysis`) — colunas `validation`/`risk` já reservadas e ficam `null` por enquanto.
-- **Etapa 6**: export/import de versões em PDF/DOCX da nova plataforma.
-- Diff entre versões e merge — fora desta etapa.
-- Sincronização realtime entre abas — fora.
+- **Etapa 6**: export PDF/DOCX da nova plataforma.
+- Re-análise manual sob demanda (botão "Reanalisar") — pode entrar como melhoria.
+- Diff de issues entre versões.
+- Notificação push quando análise completa em background.
 
 ### Riscos / mitigação
 
-- **Conflito com tabela legada `piece_visual_versions`**: nome diferente (`vl_versions`) elimina ambiguidade.
-- **Race condition** (insert ainda voando + nova geração): usamos `id` do servidor quando responder; fallback usa o uuid local que já é válido.
-- **Falha de persistência**: versão fica disponível em memória até refresh; toast informa usuário.
+- **Custo de tokens dobrado** (geração + análise): usar `gemini-2.5-flash` (mais barato), análise é fire-and-forget.
+- **Inconsistência se análise falha**: `analysisStatus = "error"` permite retry futuro; versão segue utilizável.
+- **Update RLS**: policy permite update de qualquer coluna; mitigação suficiente nesta etapa, refinar com trigger se Etapa 6 exigir mais escrita.
