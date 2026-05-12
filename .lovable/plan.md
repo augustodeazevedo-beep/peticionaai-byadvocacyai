@@ -1,102 +1,98 @@
-## Etapa 3 — Camada UI Visual Law AI (streaming + versões in-memory)
+## Etapa 4 — Persistência de versões Visual Law AI
 
-Objetivo: Entregar a interface da nova plataforma Visual Law AI consumindo o store Zustand (Etapa 1) e o serviço `streamVisualLaw` / edge function `generate-visual-law` (Etapa 2). Integração **incremental**: o `VisualLawPanel` legado (PDF) continua intocado; adicionamos uma nova aba paralela.
+Objetivo: Persistir as versões geradas pela nova plataforma Visual Law AI em uma tabela própria (`vl_versions`), sem interferir na tabela legada `piece_visual_versions` (que continua dedicada ao PDF atual). Carregamento automático ao abrir a peça e sincronização após cada `finishGeneration`.
 
-### Escopo
+### Migração (nova tabela isolada)
 
-1. **Nova aba "Visual Law AI (beta)"** em `src/routes/_authenticated.pecas.$id.tsx`, ao lado de "Visual Law" (legado). Sem mexer na aba atual nem no fluxo de PDF.
-2. **Componente raiz** `VisualLawAIPanel` que monta o store via `initFromPiece(pieceId, contentText, { pieceType, area })` no mount.
-3. **Layout Split Pane** (`layout/SplitPane.tsx`): coluna esquerda = viewer (flex-1), coluna direita = sidebar fixa (w-[360px]); colapsável em <lg para tabs.
+```sql
+create table public.vl_versions (
+  id uuid primary key default gen_random_uuid(),
+  piece_id uuid not null references public.pieces(id) on delete cascade,
+  user_id  uuid not null references auth.users(id)  on delete cascade,
+  content text not null,
+  config jsonb not null,
+  prompt text not null default '',
+  direction text not null check (direction in ('organizar','explicar','mais_visual')),
+  legal_metadata jsonb not null default '{}'::jsonb,
+  validation jsonb,
+  risk jsonb,
+  created_at timestamptz not null default now()
+);
 
-### Componentes a criar
+create index vl_versions_piece_idx on public.vl_versions (piece_id, created_at desc);
 
-```
-src/components/visual-law/
-  VisualLawAIPanel.tsx              ← orquestrador (store + handlers)
-  layout/SplitPane.tsx              ← grid responsivo
-  viewer/DocumentViewer.tsx         ← render do documentContent + cursor de stream
-  viewer/StreamingCursor.tsx        ← caret pulsante durante isGenerating
-  viewer/MarkdownDocument.tsx       ← parser leve (react-markdown já existe? senão render whitespace-pre-wrap)
-  sidebar/ConfigSidebar.tsx         ← tabs (Direção / Densidade / Aparência / Elementos)
-  sidebar/DirectionPicker.tsx       ← organizar | explicar | mais_visual
-  sidebar/DensityPicker.tsx         ← enxuto | padrao | confortavel
-  sidebar/AppearancePicker.tsx      ← fontFamily + primaryColor
-  sidebar/ElementsToggle.tsx        ← toggles dos 10 VLElementKey
-  sidebar/RefinementPrompt.tsx      ← textarea + botão "Gerar/Regenerar"
-  versions/VersionsTimeline.tsx     ← lista vertical com select/rollback
-  versions/VersionCard.tsx          ← item (timestamp, direction, badges)
-  loading/StreamingIndicator.tsx    ← barra superior com tokens/seg
-  loading/CancelButton.tsx          ← chama cancelGeneration()
-  legal/.gitkeep                    ← placeholders Etapa 5
-```
+alter table public.vl_versions enable row level security;
 
-### Fluxo de geração
-
-1. Usuário ajusta config na sidebar (mutações via `setConfig` / `toggleElement`).
-2. Digita prompt em `RefinementPrompt` e clica "Gerar".
-3. Handler monta `VLGeneratePayload` a partir do estado e chama `runGeneration(payload)` de `services/visual-law/generate.ts` (já existe).
-4. `runGeneration` controla `startGeneration` → `appendToken` (viewer atualiza em tempo real) → `finishGeneration` (cria versão e seleciona).
-5. Erros 429/402 viram `toast.error` legível; cancelamento via `cancelGeneration()`.
-
-### Versões (in-memory nesta etapa)
-
-- Persistência fica para Etapa 4 (nova tabela `vl_versions`). Por ora: array em memória do store.
-- `VersionsTimeline` permite `selectVersion(id)` (read-only) e `rollbackTo(id)` (reaplica config + content).
-- Diff/preview entre versões fica fora do escopo.
-
-### Integração na rota
-
-```tsx
-// _authenticated.pecas.$id.tsx
-<TabsTrigger value="visual-ai">Visual Law AI (beta)</TabsTrigger>
-...
-<TabsContent value="visual-ai">
-  <VisualLawAIPanel
-    pieceId={piece.id}
-    contentText={piece.content_text ?? ""}
-    pieceType={piece.piece_type}
-    area={piece.area}
-    onContentChange={(t) => /* opcional: salvar draft no piece */}
-  />
-</TabsContent>
+create policy "vl_versions_select_own" on public.vl_versions
+  for select to authenticated using (auth.uid() = user_id);
+create policy "vl_versions_insert_own" on public.vl_versions
+  for insert to authenticated with check (auth.uid() = user_id);
+create policy "vl_versions_delete_own" on public.vl_versions
+  for delete to authenticated using (auth.uid() = user_id);
 ```
 
-### Design system
+Sem update (versões são imutáveis). Sem trigger de updated_at.
 
-- Tokens semânticos do `src/styles.css` (`bg-card`, `border-border/50`, `text-gradient-brand`, `bg-gradient-brand`).
-- Tipografia: Inter no chrome; viewer respeita `documentConfig.fontFamily` (Helvetica/Charter/Playfair) via `style={{ fontFamily }}`.
-- `documentConfig.primaryColor` aplicado como CSS var inline no viewer (`--vl-primary`) para títulos e barras laterais.
-- Densidade controla `leading` e `space-y` no viewer.
+### Camada de dados (frontend)
 
-### Acessibilidade
+`src/services/visual-law/versions.ts` (novo):
 
-- Sidebar com `role="complementary"` e `aria-label`.
-- Cancelar geração: tecla `Esc` enquanto `isGenerating`.
-- Streaming respeita `prefers-reduced-motion` (sem cursor pulsante).
-- Botões com `aria-busy`/`aria-live="polite"` para o viewer.
+- `loadVersions(pieceId)` → `Promise<VLVersion[]>` lendo `vl_versions` ordenado por `created_at asc`, mapeando colunas → tipo `VLVersion` (id/timestamp/content/config/prompt/direction/legalMetadata/validation/risk).
+- `persistVersion(pieceId, userId, version)` → insere e devolve a row criada (com id/timestamp do servidor).
+- `deleteVersion(versionId)` → opcional para Etapa futura; não usar na UI ainda.
 
-### Performance
+Cliente Supabase: `@/integrations/supabase/client` (RLS aplica `auth.uid() = user_id`).
 
-- Viewer renderiza `documentContent` com `useMemo` particionado por blocos (split em `\n\n`) para evitar reflow do documento inteiro a cada token.
-- `streamBuffer` não é usado no viewer (já é appended a `documentContent`); fica para `StreamingIndicator` mostrar contagem de tokens.
-- Sidebar memoizada (`memo` + selectors fatiados do Zustand) para não re-renderizar a cada token.
+### Store (ajustes mínimos)
 
-### Fora do escopo (próximas etapas)
+`src/stores/visualLaw.ts`:
 
-- **Etapa 4**: persistência de versões (tabela `vl_versions` + RLS + sync no store).
-- **Etapa 5**: análise de risco e validação jurídica (`VLLegalValidation`, `VLRiskAnalysis`) com painel próprio.
-- **Etapa 6**: export (PDF/DOCX) da nova plataforma — o PDF atual segue na aba legada.
+- Nova action `hydrateVersions(versions: VLVersion[])` → substitui `versions` e seleciona a última como `selectedVersionId` + `documentContent` (sem mexer em `documentConfig` se já configurado).
+- `finishGeneration` permanece síncrono e in-memory; persistência fica no orquestrador (separation of concerns).
+
+### Orquestrador
+
+`src/services/visual-law/generate.ts`:
+
+- Após `finishGeneration`, disparar `persistVersion` em background. Se falhar, `toast.error` mas mantém versão local (degrade gracioso).
+- Substituir o `id`/`timestamp` da versão local pelos do servidor quando o insert retornar (via novo helper `replaceLastVersionMeta` no store) — evita divergência entre cliente e BD.
+
+### Hook de hidratação
+
+`src/hooks/visual-law/useLoadVersions.ts` (novo):
+
+- `useEffect` em `VisualLawAIPanel` mount: chama `loadVersions(pieceId)` → `hydrateVersions(rows)`.
+- Se rows.length === 0 → mantém `documentContent` vindo da peça (comportamento atual).
+- Em erro de rede → `toast.error("Falha ao carregar versões salvas")` e segue com store vazio.
+
+### Tipos
+
+`src/types/visual-law.ts` já tem `VLVersion`. Adicionar utilitário interno `mapRowToVersion`/`mapVersionToRow` em `versions.ts` (não exportado nos tipos públicos).
+
+### UI
+
+- `VersionsTimeline` continua como está; passa a refletir versões persistidas automaticamente.
+- `VersionCard` ganha um pequeno indicador visual (`Cloud` icon) quando `version.id` é UUID do servidor (heurística simples: foi salvo). Opcional — default mantém o card atual.
+- Loading inicial: exibir skeleton minimalista no `VersionsTimeline` enquanto `loadVersions` está em flight (estado local no hook).
 
 ### Smoke test
 
-1. `bun run build` deve passar.
-2. Abrir uma peça → aba "Visual Law AI (beta)" → conteúdo aparece no viewer.
-3. Selecionar direção `mais_visual`, densidade `confortavel`, prompt "Adicione timeline dos fatos" → clicar Gerar → tokens aparecem em streaming.
-4. Cancelar no meio → conteúdo volta à última versão.
-5. Gerar 2x → timeline mostra 2 versões → clicar versão anterior restaura conteúdo + config.
+1. `bun run build` passa.
+2. Migração aplicada → tabela `vl_versions` existe com RLS.
+3. Abrir peça nova → timeline vazia → gerar 2 versões → recarregar página → timeline mostra as 2 versões em ordem cronológica.
+4. Trocar de usuário → não vê versões alheias (RLS).
+5. `selectVersion`/`rollbackTo` funcionam normalmente sobre os dados hidratados.
+6. Deletar peça → versões somem (cascade).
+
+### Fora do escopo
+
+- **Etapa 5**: análise de risco e validação jurídica (`VLLegalValidation`/`VLRiskAnalysis`) — colunas `validation`/`risk` já reservadas e ficam `null` por enquanto.
+- **Etapa 6**: export/import de versões em PDF/DOCX da nova plataforma.
+- Diff entre versões e merge — fora desta etapa.
+- Sincronização realtime entre abas — fora.
 
 ### Riscos / mitigação
 
-- Conflito de nomes com painel legado → namespace `VisualLawAI*`.
-- Edge function exige JWT → cliente já injeta `supabase.auth.getSession()` no `streamVisualLaw` (verificar; ajustar se necessário).
-- `react-markdown` pode não estar instalado → usar `whitespace-pre-wrap` simples nesta etapa.
+- **Conflito com tabela legada `piece_visual_versions`**: nome diferente (`vl_versions`) elimina ambiguidade.
+- **Race condition** (insert ainda voando + nova geração): usamos `id` do servidor quando responder; fallback usa o uuid local que já é válido.
+- **Falha de persistência**: versão fica disponível em memória até refresh; toast informa usuário.
