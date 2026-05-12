@@ -29,7 +29,9 @@ import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
 import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
+import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
+import { Route as AuthenticatedBibliotecaModelosIdRouteImport } from './routes/_authenticated.biblioteca.modelos.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -139,11 +141,23 @@ const AuthenticatedConfiguracoesIaRoute =
     path: '/configuracoes/ia',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedBibliotecaModelosRoute =
+  AuthenticatedBibliotecaModelosRouteImport.update({
+    id: '/biblioteca/modelos',
+    path: '/biblioteca/modelos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminIntegracoesRoute =
   AuthenticatedAdminIntegracoesRouteImport.update({
     id: '/admin/integracoes',
     path: '/admin/integracoes',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBibliotecaModelosIdRoute =
+  AuthenticatedBibliotecaModelosIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedBibliotecaModelosRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -160,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -167,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
   '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
+  '/biblioteca/modelos/$id': typeof AuthenticatedBibliotecaModelosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -182,6 +198,7 @@ export interface FileRoutesByTo {
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -189,6 +206,7 @@ export interface FileRoutesByTo {
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
   '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
+  '/biblioteca/modelos/$id': typeof AuthenticatedBibliotecaModelosIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,6 +224,7 @@ export interface FileRoutesById {
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -213,6 +232,7 @@ export interface FileRoutesById {
   '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
   '/api/public/advoga-process-context': typeof ApiPublicAdvogaProcessContextRoute
   '/api/public/inventaria-process-context': typeof ApiPublicInventariaProcessContextRoute
+  '/_authenticated/biblioteca/modelos/$id': typeof AuthenticatedBibliotecaModelosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -230,6 +250,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/p/$slug'
     | '/admin/integracoes'
+    | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/ferramentas/links'
@@ -237,6 +258,7 @@ export interface FileRouteTypes {
     | '/pecas/nova'
     | '/api/public/advoga-process-context'
     | '/api/public/inventaria-process-context'
+    | '/biblioteca/modelos/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,6 +274,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/p/$slug'
     | '/admin/integracoes'
+    | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/ferramentas/links'
@@ -259,6 +282,7 @@ export interface FileRouteTypes {
     | '/pecas/nova'
     | '/api/public/advoga-process-context'
     | '/api/public/inventaria-process-context'
+    | '/biblioteca/modelos/$id'
   id:
     | '__root__'
     | '/'
@@ -275,6 +299,7 @@ export interface FileRouteTypes {
     | '/_authenticated/workspace'
     | '/p/$slug'
     | '/_authenticated/admin/integracoes'
+    | '/_authenticated/biblioteca/modelos'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/identidade'
     | '/_authenticated/ferramentas/links'
@@ -282,6 +307,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pecas/nova'
     | '/api/public/advoga-process-context'
     | '/api/public/inventaria-process-context'
+    | '/_authenticated/biblioteca/modelos/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -437,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/biblioteca/modelos': {
+      id: '/_authenticated/biblioteca/modelos'
+      path: '/biblioteca/modelos'
+      fullPath: '/biblioteca/modelos'
+      preLoaderRoute: typeof AuthenticatedBibliotecaModelosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/integracoes': {
       id: '/_authenticated/admin/integracoes'
       path: '/admin/integracoes'
@@ -444,8 +477,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIntegracoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/biblioteca/modelos/$id': {
+      id: '/_authenticated/biblioteca/modelos/$id'
+      path: '/$id'
+      fullPath: '/biblioteca/modelos/$id'
+      preLoaderRoute: typeof AuthenticatedBibliotecaModelosIdRouteImport
+      parentRoute: typeof AuthenticatedBibliotecaModelosRoute
+    }
   }
 }
+
+interface AuthenticatedBibliotecaModelosRouteChildren {
+  AuthenticatedBibliotecaModelosIdRoute: typeof AuthenticatedBibliotecaModelosIdRoute
+}
+
+const AuthenticatedBibliotecaModelosRouteChildren: AuthenticatedBibliotecaModelosRouteChildren =
+  {
+    AuthenticatedBibliotecaModelosIdRoute:
+      AuthenticatedBibliotecaModelosIdRoute,
+  }
+
+const AuthenticatedBibliotecaModelosRouteWithChildren =
+  AuthenticatedBibliotecaModelosRoute._addFileChildren(
+    AuthenticatedBibliotecaModelosRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAssistentesRoute: typeof AuthenticatedAssistentesRoute
@@ -456,6 +511,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
+  AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRouteWithChildren
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
   AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
   AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
@@ -472,6 +528,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
+  AuthenticatedBibliotecaModelosRoute:
+    AuthenticatedBibliotecaModelosRouteWithChildren,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
   AuthenticatedConfiguracoesIdentidadeRoute:
     AuthenticatedConfiguracoesIdentidadeRoute,
