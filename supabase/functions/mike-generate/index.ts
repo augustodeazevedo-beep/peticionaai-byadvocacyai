@@ -1,6 +1,16 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import {
+  buildDraftRequest,
+  defaultLovableProvider,
+  pipeDraftStream,
+  sseEvent,
+  stepAdversarial,
+  stepAudit,
+  stepCognitive,
+  type PipelineInput,
+} from "./cognitive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +26,12 @@ const inputSchema = z.object({
   context: z.string().trim().max(8000).optional().nullable(),
   workspace_id: z.string().uuid().optional().nullable(),
   piece_id: z.string().uuid().optional().nullable(),
+  pipeline: z.enum(["legacy", "cognitive"]).optional().default("legacy"),
+  party_position: z.string().trim().max(40).optional().nullable(),
+  tribunal: z.string().trim().max(60).optional().nullable(),
+  instancia: z.string().trim().max(40).optional().nullable(),
+  rito: z.string().trim().max(60).optional().nullable(),
+  fase_processual: z.string().trim().max(60).optional().nullable(),
 });
 
 function jsonError(message: string, status: number) {
