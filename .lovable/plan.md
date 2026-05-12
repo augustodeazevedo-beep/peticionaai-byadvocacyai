@@ -1,111 +1,101 @@
 ## Objetivo
 
-Elevar a qualidade da redação e do output das peças para o padrão "pronto para protocolo", e permitir que cada usuário/escritório aplique sua **Identidade Visual** (logo, cores, papel timbrado, bloco de assinatura) tanto no preview quanto nas exportações DOCX/PDF.
+Criar uma **Biblioteca de Modelos de Peças** organizada por **área** e **tipo de peça**, com CRUD completo, e integrá-la ao fluxo de geração (`/pecas/nova`) e à montagem (assembler / prompts), para que cada nova peça possa partir de um modelo consistente do escritório.
 
-Hoje temos: editor de Markdown cru + export DOCX simples (Arial 12, sem capa, sem cabeçalho/rodapé, sem assinatura, sem logo) e nenhum cadastro de marca do escritório. Vamos cobrir as três frentes: **estrutura da peça**, **identidade visual** e **fidelidade do preview ao output final**.
+## 1. Modelo de dados
 
----
+Nova tabela `piece_templates`:
 
-## 1. Identidade Visual do Escritório (Brand Kit)
+- `id`, `user_id` (RLS por dono)
+- `name` (ex.: "Inicial Cobrança Padrão")
+- `description`
+- `area` (civel, trabalhista, criminal, ...)
+- `piece_type` (peticao_inicial_civel, contestacao, ...)
+- `scope` (`pessoal` | `escritorio`) — futuro multi-user; por ora só `pessoal`
+- `content_md` (corpo do modelo em markdown, com placeholders `{{cliente}}`, `{{juizo}}`, `{{fatos}}`, `{{pedidos}}`)
+- `structure` jsonb — seções fixas (endereçamento, qualificação, fatos, fundamentos, pedidos, valor da causa, fechamento) com flags `included`/`locked`
+- `style_overrides` jsonb — preferências de estilo (numeração, tom, fontes) que sobrescrevem o Brand Kit por modelo
+- `prompt_hints` text — instruções extras enviadas ao pipeline cognitivo
+- `tags` text[]
+- `is_default` bool — modelo padrão por (area, piece_type)
+- `usage_count` int — incrementado a cada uso
+- `last_used_at` timestamptz
+- `created_at` / `updated_at`
 
-Nova área em **Configurações → Identidade do Escritório** (`/configuracoes/identidade`), por usuário (com possibilidade futura de "escritório/equipe").
+Índices: `(user_id, area, piece_type)`, `(user_id, is_default)`. Trigger `set_updated_at`. RLS: `auth.uid() = user_id` para todas as operações.
 
-Campos do Brand Kit:
-- Razão social / Nome do escritório
-- Logo (upload, bucket `office-brand`, público)
-- Cor primária e secundária (color picker, default = brand do app)
-- Fonte preferida (Arial, Times New Roman, Garamond, Calibri)
-- Endereço, telefone, e-mail, site, OAB/sociedade (CNPJ, nº de inscrição na OAB-Seccional)
-- **Papel timbrado**: toggle on/off + escolha de layout (lateral, topo, rodapé)
-- **Bloco de assinatura padrão**: nome, OAB, função, e-mail (multilinhas)
-- **Fechamento padrão** ("Nestes termos, pede deferimento.")
-- **Local padrão** (cidade) — a data é sempre a do protocolo
+Em `pieces`, adicionar coluna `template_id uuid` (nullable) para rastrear de qual modelo a peça nasceu.
 
-Storage: novo bucket público `office-brand` para logos.
+## 2. CRUD — rota `/biblioteca/modelos`
 
-## 2. Estrutura "pronta para protocolo" da peça
+Nova rota `_authenticated.biblioteca.modelos.tsx` (lista) e `_authenticated.biblioteca.modelos.$id.tsx` (editor).
 
-A IA já produz corpo em Markdown. Vamos padronizar a estrutura final montando antes do export, garantindo presença de:
+- **Lista**: cards/tabela agrupados por área, com filtros por `piece_type`, busca por nome, badges de `is_default` e `usage_count`. Ações: Novo, Duplicar, Editar, Excluir, Marcar como padrão.
+- **Editor**: formulário em abas
+  - *Identificação*: nome, descrição, área, tipo, tags
+  - *Estrutura*: toggles por seção (endereçamento, qualificação, fatos, ...) + ordem
+  - *Conteúdo*: editor markdown com painel de placeholders disponíveis e helper para inserir
+  - *Estilo*: overrides de fonte, numeração de parágrafos, fechamento padrão
+  - *Prompt*: `prompt_hints` + preview de como entra no pipeline
+- **Helpers** em `src/lib/pieceTemplates.ts`: `listTemplates`, `getTemplate`, `upsertTemplate`, `deleteTemplate`, `setDefault`, `incrementUsage`, `renderTemplate(content, vars)`.
 
-```text
-[ENDEREÇAMENTO]   (Excelentíssimo Sr. Dr. Juiz...)
-[ESPAÇO]
-[ESPELHO/REFERÊNCIA]   (Autos nº ..., Autor x Réu, classe)
-[QUALIFICAÇÃO DAS PARTES]
-[CORPO]   (I. DOS FATOS / II. DO DIREITO / III. DOS PEDIDOS) - parágrafos numerados
-[VALOR DA CAUSA]
-[FECHAMENTO]   (Nestes termos, ...)
-[LOCAL E DATA]
-[ASSINATURA]   (nome + OAB)
-```
+Adicionar item "Modelos de Peça" no `AppSidebar` (grupo Biblioteca).
 
-Dois pontos de atuação:
+## 3. Seleção no fluxo de criação (`/pecas/nova`)
 
-a) **Pipeline cognitivo** (`mike-generate/prompts.ts`): adicionar instrução explícita de produzir as seções acima e numeração de parágrafos (1., 2., 3...) quando `rito` for processual.
+Nova etapa no formulário, logo após escolher Área + Tipo:
 
-b) **Montador determinístico** (novo `src/lib/pieceAssembler.ts`): no momento do export, envelopa o conteúdo da IA com endereçamento + qualificação + fechamento + assinatura usando o Brand Kit, mesmo que a IA tenha omitido. Idempotente (não duplica se já existir).
+- **TemplatePicker**: lista os modelos do usuário filtrados por `(area, piece_type)`, com opção "Sem modelo (gerar do zero)" e destaque para o `is_default`.
+- Ao escolher um modelo:
+  - Pré-preenche campos do form a partir de `structure` e `style_overrides`
+  - Mostra preview lateral (resumo + primeiras linhas do `content_md`)
+  - Marca `template_id` na peça criada e incrementa `usage_count` / `last_used_at`
+- Botão "Salvar campos atuais como novo modelo" no final do form (atalho para criar modelo a partir do contexto preenchido).
 
-## 3. Export DOCX padrão protocolo
+## 4. Integração com geração e montagem
 
-Reescrever `supabase/functions/export-piece-docx/index.ts`:
-- Página A4, margens ABNT (sup 3cm, esq 3cm, inf 2cm, dir 2cm)
-- Fonte do Brand Kit, corpo 12pt, recuo 1ª linha 2,5cm, justificado, espaço 1,5
-- **Cabeçalho** com logo + nome/contatos do escritório (papel timbrado)
-- **Rodapé** com nome do escritório + paginação ("Página X de Y")
-- Headings com cor primária do Brand Kit
-- Citação longa com recuo 4cm, fonte 10pt, espaço simples (já parcial)
-- **Bloco de assinatura** centralizado: linha + nome + OAB
-- Numeração automática de parágrafos do corpo (opcional por config)
+- `mikeClient.generatePiece` recebe `templateId`. A edge function `mike-generate` busca o template (via service role) e injeta:
+  - `template.content_md` como esqueleto base no prompt do estágio cognitivo
+  - `template.prompt_hints` em `instruction_priority`
+  - `template.structure` como contrato de seções obrigatórias
+- `pieceAssembler.assemblePiece` recebe `template` e usa `structure` para decidir quais wrappers aplicar (sobrepondo defaults) e `style_overrides` para fechamento/numeração.
+- `pieces.brand_overrides` continua tendo prioridade sobre `style_overrides` do modelo, que por sua vez tem prioridade sobre o Brand Kit.
 
-## 4. Novo Export PDF (pronto para protocolo)
+Ordem de precedência final: **brand_overrides da peça > template.style_overrides > Brand Kit > defaults do sistema**.
 
-Adicionar export PDF reaproveitando `@react-pdf/renderer` (já usado em Visual Law). Novo `src/services/pieces/exportPdfProtocolo.tsx` com a mesma diagramação do DOCX (timbrado, margens ABNT, assinatura). Botão extra no editor: "⬇ Exportar PDF (protocolo)".
+## 5. UX no editor de peça (`/pecas/$id`)
 
-## 5. Preview fiel ao output
+- Badge "Gerada a partir de: {template.name}" no header.
+- Ação "Atualizar modelo a partir desta peça" (sobrescreve `content_md` do template com o conteúdo atual — com confirmação).
+- Ação "Salvar como novo modelo" a qualquer momento.
 
-Na aba **Visualização** de `/pecas/$id`, trocar o `prose` genérico por um componente **PageMockup** que renderiza a peça em folha A4 simulada (fundo branco, sombra, margens, timbrado renderizado em cima, assinatura embaixo) usando os mesmos tokens do Brand Kit. Assim o usuário vê exatamente o que vai protocolar antes de exportar.
+## 6. Seed inicial
 
-## 6. Ajustes UX no editor
-
-- Botão "Exportar" vira menu (DOCX / PDF / HTML)
-- Indicação se a Identidade Visual está configurada; se não, CTA para "Configurar agora"
-- Toggle "Aplicar timbrado" por peça (default = on se Brand Kit configurado)
-
----
+Migration de seed (apenas estrutura — sem conteúdo proprietário) cria 4-6 modelos vazios marcados como `is_default = false` por par comum: Petição Inicial Cível, Contestação, Recurso de Apelação, Reclamação Trabalhista, Habeas Corpus, Manifestação. Usuário preenche depois.
 
 ## Detalhes técnicos
 
-**Migração SQL** (uma migration):
-- Tabela `office_brand` (1 linha por user_id)
-  - colunas de domínio: `firm_name`, `logo_url`, `primary_color`, `secondary_color`, `font_family`, `address`, `phone`, `email`, `website`, `oab_registration`, `letterhead_enabled`, `letterhead_layout`, `signature_block`, `closing_text`, `default_city`
-  - RLS: dono lê/edita o próprio registro
-- Bucket público `office-brand` + policies (insert/update/delete só dono pelo path `${user_id}/...`, select público)
-- Coluna `pieces.brand_overrides JSONB` (opcional; permite override por peça) e `pieces.assembly_options JSONB` (numerar parágrafos, incluir capa, etc.)
+**Arquivos novos**
+- `supabase/migrations/<ts>_piece_templates.sql` — tabela, RLS, índices, trigger, coluna `template_id` em `pieces`
+- `src/lib/pieceTemplates.ts` — CRUD + `renderTemplate`
+- `src/routes/_authenticated.biblioteca.modelos.tsx` — lista
+- `src/routes/_authenticated.biblioteca.modelos.$id.tsx` — editor (id = `novo` para criação)
+- `src/components/templates/TemplatePicker.tsx` — usado em `/pecas/nova`
+- `src/components/templates/TemplateForm.tsx` — abas do editor
+- `src/components/templates/PlaceholderHelper.tsx`
 
-**Arquivos a criar:**
-- `src/routes/_authenticated.configuracoes.identidade.tsx`
-- `src/components/brand/BrandKitForm.tsx`, `LogoUploader.tsx`, `SignatureBlockEditor.tsx`
-- `src/lib/officeBrand.ts` (tipos + fetch/save)
-- `src/lib/pieceAssembler.ts` (monta peça final em Markdown estruturado)
-- `src/components/pieces/PageMockup.tsx` (preview A4 com timbrado)
-- `src/services/pieces/exportPdfProtocolo.tsx` (PDF client-side via react-pdf)
-- Nova função edge `export-piece-pdf` (opcional, server-side) — fica para iteração se for pesado no client
+**Arquivos editados**
+- `src/routes/_authenticated.pecas.nova.tsx` — adiciona TemplatePicker + envia `template_id`
+- `src/routes/_authenticated.pecas.$id.tsx` — badge + ações de salvar/atualizar modelo
+- `src/components/AppSidebar.tsx` — item "Modelos de Peça"
+- `src/lib/mikeClient.ts` — propaga `templateId`
+- `supabase/functions/mike-generate/index.ts` e `prompts.ts` — injeção do template no pipeline
+- `src/lib/pieceAssembler.ts` — aplica `structure` e `style_overrides`
 
-**Arquivos a editar:**
-- `supabase/functions/export-piece-docx/index.ts` — timbrado/assinatura/ABNT
-- `supabase/functions/mike-generate/prompts.ts` — exigir estrutura protocolo + numeração
-- `src/routes/_authenticated.pecas.$id.tsx` — menu de export, PageMockup, banner Brand Kit
-- `src/components/AppSidebar.tsx` — link "Identidade do Escritório"
-- `src/lib/mikeClient.ts` — `exportPiecePdf(pieceId)` quando server-side; client-side direto
+**Fora de escopo**
+- Compartilhamento de modelos entre usuários (campo `scope` fica reservado)
+- Versionamento histórico de modelos
+- Marketplace público de modelos
+- Editor WYSIWYG (apenas markdown nesta fase)
 
-**Fora de escopo (próxima iteração):**
-- Múltiplos templates de timbrado prontos (corporativo, minimalista, clássico)
-- Marca por equipe/escritório multiusuário
-- Assinatura digital (ICP-Brasil)
-- Watermark "MINUTA"
-
----
-
-## Entrega esperada
-
-Ao final: usuário abre `/configuracoes/identidade`, sobe logo + dados + assinatura, gera uma peça nova; o preview já mostra a folha A4 com timbrado; clica em **Exportar PDF** ou **DOCX** e recebe um arquivo pronto para protocolo, com cabeçalho/rodapé, fonte/cores do escritório, parágrafos numerados, fechamento, local/data e bloco de assinatura.
+Confirma esse escopo? Se quiser, ajusto: remover seed, simplificar editor para 1 aba, ou priorizar só CRUD agora e deixar integração com pipeline para depois.
