@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { checkIsAdmin } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,14 @@ import { DEFAULT_COGNITIVE_OS } from "@/lib/cognitiveOs";
 
 export const Route = createFileRoute("/_authenticated/admin/integracoes")({
   head: () => ({ meta: [{ title: "Integrações — Admin" }] }),
+  beforeLoad: async () => {
+    try {
+      const { isAdmin } = await checkIsAdmin();
+      if (!isAdmin) throw redirect({ to: "/dashboard" });
+    } catch (e) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: AdminIntegracoes,
 });
 
