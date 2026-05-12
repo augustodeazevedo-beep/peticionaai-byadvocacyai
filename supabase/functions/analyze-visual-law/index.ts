@@ -1,4 +1,5 @@
 import { buildSystemPrompt, buildUserPrompt, type VLAnalyzePayload } from "./prompts.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +59,17 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) return jsonResponse({ error: "LOVABLE_API_KEY não configurada" }, 500);
 
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonResponse({ error: "Unauthorized" }, 401);
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { data: authData, error: authError } = await supabase.auth.getUser(
+    authHeader.replace("Bearer ", ""),
+  );
+  if (authError || !authData.user) return jsonResponse({ error: "Unauthorized" }, 401);
+
   let payload: VLAnalyzePayload;
   try {
     payload = (await req.json()) as VLAnalyzePayload;
@@ -67,6 +79,9 @@ Deno.serve(async (req) => {
 
   if (!payload?.content || typeof payload.content !== "string") {
     return jsonResponse({ error: "Campo content é obrigatório" }, 400);
+  }
+  if (payload.content.length > 50000) {
+    return jsonResponse({ error: "Conteúdo excede o tamanho máximo (50.000 caracteres)." }, 400);
   }
   if (!payload.direction) {
     return jsonResponse({ error: "Campo direction é obrigatório" }, 400);
