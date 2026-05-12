@@ -182,6 +182,7 @@ function PieceEditor() {
             contentText={content}
             pieceType={piece.piece_type}
             area={piece.area}
+            pieceTitle={piece.title}
             onContentChange={setContent}
           />
         </TabsContent>
