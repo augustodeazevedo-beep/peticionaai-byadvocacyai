@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Trash2, Image as ImageIcon } from "lucide-react";
-import { uploadLogo } from "@/lib/officeBrand";
+import { uploadLogo, resolveBrandAssetUrl } from "@/lib/officeBrand";
 import { toast } from "sonner";
 
 export function LogoUploader({
@@ -15,6 +15,17 @@ export function LogoUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveBrandAssetUrl(value).then((u) => {
+      if (!cancelled) setPreviewUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -39,8 +50,8 @@ export function LogoUploader({
   return (
     <div className="flex items-center gap-4">
       <div className="flex h-24 w-24 items-center justify-center rounded-md border border-border/50 bg-background/50 overflow-hidden">
-        {value ? (
-          <img src={value} alt="Logo do escritório" className="max-h-full max-w-full object-contain" />
+        {previewUrl ? (
+          <img src={previewUrl} alt="Logo do escritório" className="max-h-full max-w-full object-contain" />
         ) : (
           <ImageIcon className="h-8 w-8 text-muted-foreground" />
         )}
