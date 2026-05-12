@@ -189,12 +189,18 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
   hydrateVersions: (versions) => {
     if (!versions.length) return;
     const last = versions[versions.length - 1];
+    const analysisStatus: Record<string, "idle" | "running" | "done" | "error"> = {};
+    for (const v of versions) {
+      if (v.validation && v.risk) analysisStatus[v.id] = "done";
+    }
     set({
       versions,
       selectedVersionId: last.id,
       documentContent: last.content,
       legalValidation: last.validation ?? null,
       riskAnalysis: last.risk ?? null,
+      analysisStatus,
+      analysisError: {},
     });
   },
 
