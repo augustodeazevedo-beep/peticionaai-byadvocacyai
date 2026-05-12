@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("export-document error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Erro interno" }),
+      JSON.stringify({ error: "Erro ao gerar o documento." }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

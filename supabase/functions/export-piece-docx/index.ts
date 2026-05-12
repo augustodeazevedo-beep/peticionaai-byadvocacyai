@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Erro ao gerar o documento." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
 
