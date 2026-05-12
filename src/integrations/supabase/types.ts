@@ -321,6 +321,69 @@ export type Database = {
           },
         ]
       }
+      office_brand: {
+        Row: {
+          address: string | null
+          closing_text: string | null
+          created_at: string
+          default_city: string | null
+          email: string | null
+          firm_name: string | null
+          font_family: string | null
+          letterhead_enabled: boolean
+          letterhead_layout: string
+          logo_url: string | null
+          oab_registration: string | null
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          signature_block: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          closing_text?: string | null
+          created_at?: string
+          default_city?: string | null
+          email?: string | null
+          firm_name?: string | null
+          font_family?: string | null
+          letterhead_enabled?: boolean
+          letterhead_layout?: string
+          logo_url?: string | null
+          oab_registration?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          signature_block?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          closing_text?: string | null
+          created_at?: string
+          default_city?: string | null
+          email?: string | null
+          firm_name?: string | null
+          font_family?: string | null
+          letterhead_enabled?: boolean
+          letterhead_layout?: string
+          logo_url?: string | null
+          oab_registration?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          signature_block?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       piece_versions: {
         Row: {
           content_html: string | null
@@ -434,6 +497,8 @@ export type Database = {
       pieces: {
         Row: {
           area: string | null
+          assembly_options: Json
+          brand_overrides: Json
           checklist: Json | null
           content_html: string | null
           content_text: string | null
@@ -453,6 +518,8 @@ export type Database = {
         }
         Insert: {
           area?: string | null
+          assembly_options?: Json
+          brand_overrides?: Json
           checklist?: Json | null
           content_html?: string | null
           content_text?: string | null
@@ -472,6 +539,8 @@ export type Database = {
         }
         Update: {
           area?: string | null
+          assembly_options?: Json
+          brand_overrides?: Json
           checklist?: Json | null
           content_html?: string | null
           content_text?: string | null
