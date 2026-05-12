@@ -1,1 +1,4 @@
 project_id = "xelcsqiixrrbwsegqpmb"
+
+[functions.generate-visual-law]
+verify_jwt = true
