@@ -1,6 +1,4 @@
-import { useVisualLawStore } from "@/stores/visualLaw";
 import type { VLDirection } from "@/types/visual-law";
-import { useState, useEffect } from "react";
 
 const OPTIONS: { id: VLDirection; title: string; desc: string }[] = [
   { id: "organizar", title: "Organizar", desc: "Mantém o texto, melhora estrutura e títulos." },
@@ -32,12 +30,4 @@ export function DirectionPicker({
       ))}
     </div>
   );
-}
-
-// re-export connector for convenience
-export function DirectionPickerConnected() {
-  // local state for direction since it isn't on documentConfig
-  const [direction, setDirection] = useState<VLDirection>("organizar");
-  useEffect(() => void useVisualLawStore.subscribe(() => {}), []);
-  return <DirectionPicker value={direction} onChange={setDirection} />;
 }
