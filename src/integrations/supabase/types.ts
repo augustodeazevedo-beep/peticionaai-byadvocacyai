@@ -759,6 +759,56 @@ export type Database = {
         }
         Relationships: []
       }
+      vl_versions: {
+        Row: {
+          config: Json
+          content: string
+          created_at: string
+          direction: string
+          id: string
+          legal_metadata: Json
+          piece_id: string
+          prompt: string
+          risk: Json | null
+          user_id: string
+          validation: Json | null
+        }
+        Insert: {
+          config: Json
+          content: string
+          created_at?: string
+          direction: string
+          id?: string
+          legal_metadata?: Json
+          piece_id: string
+          prompt?: string
+          risk?: Json | null
+          user_id: string
+          validation?: Json | null
+        }
+        Update: {
+          config?: Json
+          content?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          legal_metadata?: Json
+          piece_id?: string
+          prompt?: string
+          risk?: Json | null
+          user_id?: string
+          validation?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_context_items: {
         Row: {
           created_at: string
