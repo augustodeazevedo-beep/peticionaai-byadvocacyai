@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
-import type { OfficeBrand } from "@/lib/officeBrand";
+import { useEffect, useState } from "react";
+import { resolveBrandAssetUrl, type OfficeBrand } from "@/lib/officeBrand";
 
 /**
  * Simula uma folha A4 com o papel timbrado do escritório, para que o usuário
@@ -16,6 +17,17 @@ export function PageMockup({
   const font = brand?.font_family ?? "Arial";
   const showLetterhead = brand?.letterhead_enabled ?? false;
   const layout = brand?.letterhead_layout ?? "topo";
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveBrandAssetUrl(brand?.logo_url).then((u) => {
+      if (!cancelled) setLogoUrl(u);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [brand?.logo_url]);
 
   return (
     <div className="w-full overflow-x-auto">
@@ -34,8 +46,8 @@ export function PageMockup({
             className="flex items-center gap-4 pb-3 mb-6"
             style={{ borderBottom: `2px solid ${primary}` }}
           >
-            {brand?.logo_url && (
-              <img src={brand.logo_url} alt="" style={{ maxHeight: 60, maxWidth: 120, objectFit: "contain" }} />
+            {logoUrl && (
+              <img src={logoUrl} alt="" style={{ maxHeight: 60, maxWidth: 120, objectFit: "contain" }} />
             )}
             {layout === "topo" && (
               <div className="text-xs leading-tight" style={{ color: primary }}>
@@ -54,8 +66,8 @@ export function PageMockup({
             className="absolute top-[3cm] left-[1cm] text-[10px] leading-tight w-[2cm]"
             style={{ color: primary }}
           >
-            {brand?.logo_url && (
-              <img src={brand.logo_url} alt="" className="mb-2" style={{ maxWidth: "1.8cm", objectFit: "contain" }} />
+            {logoUrl && (
+              <img src={logoUrl} alt="" className="mb-2" style={{ maxWidth: "1.8cm", objectFit: "contain" }} />
             )}
             <div className="font-bold">{brand?.firm_name}</div>
             {brand?.address && <div>{brand.address}</div>}
