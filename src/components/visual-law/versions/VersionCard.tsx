@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, RotateCcw, ShieldAlert, ShieldCheck, Loader2 } from "lucide-react";
+import { Eye, RotateCcw, ShieldAlert, ShieldCheck, Loader2, GitCompare } from "lucide-react";
 import { useVisualLawStore } from "@/stores/visualLaw";
 import type { VLVersion } from "@/types/visual-law";
 
@@ -15,11 +15,15 @@ export function VersionCard({
   isActive,
   onSelect,
   onRollback,
+  onCompare,
+  canCompare,
 }: {
   version: VLVersion;
   isActive: boolean;
   onSelect: () => void;
   onRollback: () => void;
+  onCompare?: () => void;
+  canCompare?: boolean;
 }) {
   const status = useVisualLawStore((s) => s.analysisStatus[version.id]);
   const issueCount =
@@ -58,6 +62,18 @@ export function VersionCard({
         <p className="text-muted-foreground line-clamp-2">{version.prompt}</p>
       )}
       <div className="flex gap-1 justify-end">
+        {onCompare && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={onCompare}
+            disabled={!canCompare}
+            title={canCompare ? "Comparar com a versão ativa" : "Selecione outra versão para comparar"}
+          >
+            <GitCompare className="h-3 w-3" />
+          </Button>
+        )}
         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onSelect} title="Visualizar">
           <Eye className="h-3 w-3" />
         </Button>
