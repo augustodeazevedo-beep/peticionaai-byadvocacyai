@@ -1,6 +1,16 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import {
+  buildDraftRequest,
+  defaultLovableProvider,
+  pipeDraftStream,
+  sseEvent,
+  stepAdversarial,
+  stepAudit,
+  stepCognitive,
+  type PipelineInput,
+} from "./cognitive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +26,12 @@ const inputSchema = z.object({
   context: z.string().trim().max(8000).optional().nullable(),
   workspace_id: z.string().uuid().optional().nullable(),
   piece_id: z.string().uuid().optional().nullable(),
+  pipeline: z.enum(["legacy", "cognitive"]).optional().default("legacy"),
+  party_position: z.string().trim().max(40).optional().nullable(),
+  tribunal: z.string().trim().max(60).optional().nullable(),
+  instancia: z.string().trim().max(40).optional().nullable(),
+  rito: z.string().trim().max(60).optional().nullable(),
+  fase_processual: z.string().trim().max(60).optional().nullable(),
 });
 
 function jsonError(message: string, status: number) {
@@ -52,7 +68,20 @@ Deno.serve(async (req) => {
     if (!parsed.success) {
       return jsonError("Dados de entrada inválidos.", 400);
     }
-    const { piece_type, area, fields, context, workspace_id, piece_id } = parsed.data;
+    const {
+      piece_type,
+      area,
+      fields,
+      context,
+      workspace_id,
+      piece_id,
+      pipeline,
+      party_position,
+      tribunal,
+      instancia,
+      rito,
+      fase_processual,
+    } = parsed.data;
     if (area && !ALLOWED_AREAS.includes(area.toLowerCase() as typeof ALLOWED_AREAS[number])) {
       return jsonError("Área jurídica não suportada.", 400);
     }
@@ -74,6 +103,160 @@ Deno.serve(async (req) => {
     const adminMikeEndpoint = map.get("mike_endpoint") ?? "";
     const fallbackModel = map.get("mike_model") || "google/gemini-2.5-flash";
     const generationMode = (map.get("peticiona_generation_mode") || "mike_with_fallback").trim();
+
+    /* ============== Cognitive pipeline branch ============== */
+    if (pipeline === "cognitive") {
+      const cogRaw = map.get("cognitive_os_config") ?? "";
+      let cfg: Record<string, unknown> = {};
+      try {
+        cfg = cogRaw ? JSON.parse(cogRaw) : {};
+      } catch (e) {
+        console.error("cognitive_os_config inválido:", e);
+        return jsonError("Configuração cognitiva inválida.", 500);
+      }
+      const apiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!apiKey) return jsonError("LOVABLE_API_KEY ausente.", 500);
+      const provider = defaultLovableProvider(apiKey);
+      const pipelineInput: PipelineInput = {
+        piece_type,
+        area: area ?? null,
+        party_position: party_position ?? null,
+        tribunal: tribunal ?? null,
+        instancia: instancia ?? null,
+        rito: rito ?? null,
+        fase_processual: fase_processual ?? null,
+        fields,
+        context: context ?? null,
+      };
+
+      const stream = new TransformStream<Uint8Array, Uint8Array>();
+      const writer = stream.writable.getWriter();
+      const encoder = new TextEncoder();
+
+      // Não awaitar — devolve resposta imediatamente.
+      (async () => {
+        const totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+        const writeEvent = (event: string, data: unknown) =>
+          writer.write(encoder.encode(sseEvent(event, data)));
+        const accUsage = (u: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }) => {
+          totalUsage.prompt_tokens += u.prompt_tokens ?? 0;
+          totalUsage.completion_tokens += u.completion_tokens ?? 0;
+          totalUsage.total_tokens += u.total_tokens ?? 0;
+        };
+        let cognitive: Record<string, unknown> = {};
+        let adversarial: Record<string, unknown> = {};
+        let audit: Record<string, unknown> = {};
+        let draft = "";
+        let draftModel = "";
+        try {
+          await writeEvent("step_start", { step: "cognitive" });
+          try {
+            const c = await stepCognitive(cfg, pipelineInput, provider);
+            cognitive = c.data;
+            accUsage(c.usage);
+            await writeEvent("step_done", { step: "cognitive", data: cognitive });
+          } catch (e) {
+            console.error("E1 falhou:", e);
+            await writeEvent("step_done", { step: "cognitive", data: cognitive, degraded: true });
+          }
+
+          await writeEvent("step_start", { step: "adversarial" });
+          try {
+            const a = await stepAdversarial(cfg, pipelineInput, cognitive, provider);
+            adversarial = a.data;
+            accUsage(a.usage);
+            await writeEvent("step_done", { step: "adversarial", data: adversarial });
+          } catch (e) {
+            console.error("E2 falhou:", e);
+            await writeEvent("step_done", { step: "adversarial", data: adversarial, degraded: true });
+          }
+
+          await writeEvent("step_start", { step: "draft" });
+          const draftReq = buildDraftRequest(cfg, pipelineInput, cognitive, adversarial, true);
+          draftModel = String(draftReq.model);
+          const draftResp = await provider(draftReq, { stream: true });
+          if (!draftResp.ok) {
+            const t = await draftResp.text();
+            console.error("E3 gateway error:", draftResp.status, t);
+            await writeEvent("error", {
+              message:
+                draftResp.status === 429
+                  ? "Limite de requisições atingido."
+                  : draftResp.status === 402
+                  ? "Créditos de IA insuficientes."
+                  : "Falha ao redigir a peça.",
+            });
+            await writer.close();
+            return;
+          }
+          draft = await pipeDraftStream(draftResp, writer, encoder);
+          await writeEvent("step_done", { step: "draft" });
+
+          await writeEvent("step_start", { step: "audit" });
+          try {
+            const au = await stepAudit(cfg, draft, cognitive, provider);
+            audit = au.data;
+            accUsage(au.usage);
+            await writeEvent("step_done", { step: "audit", data: audit });
+          } catch (e) {
+            console.error("E4 falhou:", e);
+            await writeEvent("step_done", { step: "audit", data: audit, degraded: true });
+          }
+
+          await writeEvent("done", {
+            content: draft,
+            model_used: draftModel,
+            intelligence: { cognitive, adversarial, audit },
+            usage: totalUsage,
+          });
+
+          // Persistência best-effort do token_usage
+          try {
+            await supabase.from("token_usage").insert({
+              user_id: userId,
+              piece_id: piece_id ?? null,
+              workspace_id: workspace_id ?? null,
+              provider: "lovable_ai",
+              model: draftModel,
+              prompt_tokens: totalUsage.prompt_tokens,
+              completion_tokens: totalUsage.completion_tokens,
+              total_tokens: totalUsage.total_tokens,
+              purpose: "piece_generation_cognitive",
+            });
+            await supabase.from("integration_logs").insert({
+              user_id: userId,
+              integration: "lovable_ai",
+              endpoint: "ai.gateway.lovable.dev",
+              status_code: 200,
+              ok: true,
+              duration_ms: Date.now() - start,
+              request_summary: `cognitive ${piece_type}/${area ?? "-"}`,
+            });
+          } catch (e) {
+            console.error("token_usage cognitive insert failed:", e);
+          }
+        } catch (e) {
+          console.error("cognitive pipeline fatal:", e);
+          await writeEvent("error", { message: "Erro interno no pipeline cognitivo." });
+        } finally {
+          try {
+            await writer.close();
+          } catch {
+            /* ignore */
+          }
+        }
+      })();
+
+      return new Response(stream.readable, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+    /* ============== End cognitive pipeline ============== */
 
     const { data: userIntegration } = await supabase
       .from("user_integrations")
