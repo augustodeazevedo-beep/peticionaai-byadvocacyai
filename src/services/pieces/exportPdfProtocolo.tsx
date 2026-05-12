@@ -1,4 +1,4 @@
-import type { OfficeBrand } from "@/lib/officeBrand";
+import { resolveBrandAssetUrl, type OfficeBrand } from "@/lib/officeBrand";
 import { parseMarkdownBlocks, type Block, type InlineRun } from "@/services/visual-law/markdown";
 
 const FONT_MAP: Record<string, string> = {
@@ -29,6 +29,8 @@ export async function exportPiecePdfProtocolo(
   const showLetterhead = brand?.letterhead_enabled ?? false;
   const layout = brand?.letterhead_layout ?? "topo";
   const HAS_TOP = showLetterhead && (layout === "topo" || layout === "minimal");
+
+  const logoUrl = await resolveBrandAssetUrl(brand?.logo_url);
 
   // 1cm = 28.346pt
   const MARGIN = { top: 85, right: 57, bottom: 57, left: 85 };
@@ -124,7 +126,7 @@ export async function exportPiecePdfProtocolo(
 
   const headerEl = HAS_TOP
     ? h(View, { style: styles.header, fixed: true },
-        brand?.logo_url ? h(Image, { src: brand.logo_url, style: styles.logo }) : null,
+        logoUrl ? h(Image, { src: logoUrl, style: styles.logo }) : null,
         layout === "topo"
           ? h(View, {},
               brand?.firm_name ? h(Text, { style: styles.headerName }, brand.firm_name) : null,
