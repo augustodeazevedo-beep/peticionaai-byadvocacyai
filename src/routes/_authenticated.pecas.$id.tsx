@@ -11,9 +11,22 @@ import { VisualLawAIPanel } from "@/components/visual-law/VisualLawAIPanel";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { Download, FileDown, Save, RefreshCw, ArrowLeft } from "lucide-react";
+import { Download, FileDown, Save, RefreshCw, ArrowLeft, FileType, ChevronDown, Palette } from "lucide-react";
 import { IntelligencePanel } from "@/components/pieces/IntelligencePanel";
 import { OperatorNotesPanel } from "@/components/pieces/OperatorNotesPanel";
+import { PageMockup } from "@/components/pieces/PageMockup";
+import { useAuth } from "@/lib/auth";
+import { loadOfficeBrand, type OfficeBrand } from "@/lib/officeBrand";
+import { assemblePiece, pieceContextFromInput } from "@/lib/pieceAssembler";
+import { exportPiecePdfProtocolo, downloadBlob } from "@/services/pieces/exportPdfProtocolo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/pecas/$id")({
   head: () => ({ meta: [{ title: "Editor de Peça — Peticiona.AI" }] }),
@@ -36,12 +49,16 @@ type Piece = {
 function PieceEditor() {
   const { id } = useParams({ from: "/_authenticated/pecas/$id" });
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [piece, setPiece] = useState<Piece | null>(null);
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingHtml, setExportingHtml] = useState(false);
   const [regen, setRegen] = useState(false);
+  const [brand, setBrand] = useState<OfficeBrand | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [applyLetterhead, setApplyLetterhead] = useState(true);
 
   useEffect(() => {
     supabase.from("pieces").select("*").eq("id", id).single().then(({ data, error }) => {
@@ -54,6 +71,20 @@ function PieceEditor() {
       setContent((data as Piece).content_text ?? "");
     });
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadOfficeBrand(user.id).then(setBrand).catch(() => setBrand(null));
+  }, [user]);
+
+  const assembledContent = (() => {
+    if (!piece) return content;
+    return assemblePiece(content, applyLetterhead ? brand : null, pieceContextFromInput(piece.input_data), {
+      applyLetterhead,
+      includeClosing: true,
+      includeSignatureBlock: true,
+    });
+  })();
 
   async function save() {
     if (!piece) return;
@@ -87,11 +118,13 @@ function PieceEditor() {
     if (!piece) return;
     setExporting(true);
     try {
-      // Salva antes
-      await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
+      // Salva conteúdo final (já com timbrado/assinatura)
+      await supabase.from("pieces").update({ content_text: assembledContent, content_html: assembledContent }).eq("id", piece.id);
       const r = await exportPieceDocx(piece.id);
       window.open(r.url, "_blank");
       toast.success("Documento .docx gerado");
+      // Recoloca o conteúdo "limpo" no banco para edições futuras
+      await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
     } finally {
@@ -114,6 +147,25 @@ function PieceEditor() {
     }
   }
 
+  async function doExportPdf() {
+    if (!piece) return;
+    setExportingPdf(true);
+    try {
+      const blob = await exportPiecePdfProtocolo(
+        piece.title || "Peça",
+        assembledContent,
+        applyLetterhead ? brand : null,
+      );
+      const safe = (piece.title || "peca").toLowerCase().replace(/[^a-z0-9-]+/g, "-").slice(0, 60);
+      downloadBlob(blob, `${safe}.pdf`);
+      toast.success("PDF gerado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   if (!piece) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -127,6 +179,12 @@ function PieceEditor() {
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline">{piece.status}</Badge>
             <span className="text-xs text-muted-foreground">Modelo: {piece.model_used ?? "—"}</span>
+            {brand?.firm_name ? (
+              <label className="ml-2 flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                <input type="checkbox" checked={applyLetterhead} onChange={(e) => setApplyLetterhead(e.target.checked)} className="accent-primary" />
+                Aplicar timbrado de <span className="font-medium text-foreground">{brand.firm_name}</span>
+              </label>
+            ) : null}
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -136,19 +194,47 @@ function PieceEditor() {
           <Button variant="outline" onClick={save} disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> Salvar
           </Button>
-          <Button variant="outline" onClick={doExportHtml} disabled={exportingHtml}>
-            <FileDown className="mr-2 h-4 w-4" /> {exportingHtml ? "Exportando..." : "⬇ Exportar HTML"}
-          </Button>
-          <Button onClick={doExport} disabled={exporting} className="bg-gradient-brand text-primary-foreground">
-            <Download className="mr-2 h-4 w-4" /> {exporting ? "Gerando..." : "Exportar .docx"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="bg-gradient-brand text-primary-foreground" disabled={exporting || exportingPdf || exportingHtml}>
+                <Download className="mr-2 h-4 w-4" />
+                {exporting || exportingPdf || exportingHtml ? "Exportando..." : "Exportar"}
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={doExportPdf}>
+                <FileType className="mr-2 h-4 w-4" /> PDF (pronto para protocolo)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={doExport}>
+                <Download className="mr-2 h-4 w-4" /> DOCX
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={doExportHtml}>
+                <FileDown className="mr-2 h-4 w-4" /> HTML
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {!brand?.firm_name && (
+        <Card className="glass border-border/50 p-3 flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-accent" />
+            Configure a <strong>Identidade do Escritório</strong> (logo, cores, assinatura) para gerar peças com papel timbrado.
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/configuracoes/identidade">Configurar agora</Link>
+          </Button>
+        </Card>
+      )}
 
       <Tabs defaultValue="edit">
         <TabsList>
           <TabsTrigger value="edit">Editor</TabsTrigger>
-          <TabsTrigger value="preview">Visualização</TabsTrigger>
+          <TabsTrigger value="preview">Pré-visualização (A4)</TabsTrigger>
+          <TabsTrigger value="markdown">Markdown</TabsTrigger>
           <TabsTrigger value="intel">Inteligência</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="visual">Visual Law</TabsTrigger>
@@ -165,6 +251,11 @@ function PieceEditor() {
           </Card>
         </TabsContent>
         <TabsContent value="preview">
+          <Card className="glass border-border/50 p-4">
+            <PageMockup content={assembledContent} brand={applyLetterhead ? brand : null} />
+          </Card>
+        </TabsContent>
+        <TabsContent value="markdown">
           <Card className="glass border-border/50 p-8">
             <article className="prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-foreground prose-li:text-foreground/90">
               <ReactMarkdown>{content}</ReactMarkdown>
