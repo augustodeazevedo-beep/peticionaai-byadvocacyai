@@ -49,7 +49,7 @@ export function GenerationOverlay() {
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke="hsl(var(--muted))"
+              stroke="var(--muted)"
               strokeWidth={stroke}
               fill="none"
               opacity={0.3}
@@ -58,7 +58,7 @@ export function GenerationOverlay() {
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke="hsl(var(--primary))"
+              stroke="var(--primary)"
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={`${dash} ${circ}`}
