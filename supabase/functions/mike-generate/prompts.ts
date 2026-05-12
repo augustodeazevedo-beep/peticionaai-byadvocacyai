@@ -160,6 +160,8 @@ export function systemPromptDraft(
     buildStructure(cfg),
     buildFormatting(cfg),
     buildCompliance(cfg),
+    "### Estrutura pronta para protocolo (OBRIGATÓRIA)",
+    "A peça deve abrir pelo endereçamento completo (EXCELENTÍSSIMO(A)...), seguir com referência aos autos quando houver, qualificação completa das partes, parágrafos numerados (1., 2., 3...) no corpo de fatos/direito, pedidos enumerados (a, b, c), valor da causa quando cabível e fechar com 'Nestes termos, pede deferimento.', local/data e linha de assinatura. NÃO inclua bloco de assinatura do advogado nem dados do escritório — eles são acrescentados pelo sistema a partir da Identidade Visual cadastrada.",
     "### Saída",
     "Produza a peça processual completa em **Markdown**, pronta para revisão e exportação. Não inclua JSON nem comentários fora do texto da peça. Não anexe seções de checklist nem notas — isso será feito em etapa separada.",
   ]
