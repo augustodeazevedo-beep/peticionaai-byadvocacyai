@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useVisualLawStore } from "@/stores/visualLaw";
+import { persistVersion } from "@/services/visual-law/versions";
 import type {
   VLGeneratePayload,
   VLLegalValidation,
@@ -124,7 +125,10 @@ export async function streamVisualLaw(
  * Orquestrador alto-nível: conecta o stream à store Zustand.
  * UI da Etapa 3 só precisa montar o payload e chamar runGeneration().
  */
-export async function runGeneration(payload: VLGeneratePayload): Promise<void> {
+export async function runGeneration(
+  payload: VLGeneratePayload,
+  opts?: { pieceId?: string; userId?: string },
+): Promise<void> {
   const controller = new AbortController();
   const store = useVisualLawStore.getState();
   // Garante que o conteúdo base esteja sincronizado antes do append
@@ -151,6 +155,19 @@ export async function runGeneration(payload: VLGeneratePayload): Promise<void> {
           validation,
           risk,
         });
+        // Background persistence — não bloqueia a UI
+        if (opts?.pieceId && opts?.userId) {
+          const last = useVisualLawStore.getState().versions.slice(-1)[0];
+          if (last) {
+            void persistVersion(opts.pieceId, opts.userId, last)
+              .then((saved) => {
+                useVisualLawStore.getState().replaceLastVersionMeta(saved.id, saved.timestamp);
+              })
+              .catch(() => {
+                // versão local segue válida; UI mostra erro se quiser via toast no caller
+              });
+          }
+        }
       },
       onError: (err) => useVisualLawStore.getState().failGeneration(err.message),
     },
