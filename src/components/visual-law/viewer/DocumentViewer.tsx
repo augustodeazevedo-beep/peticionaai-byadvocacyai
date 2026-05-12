@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { useVisualLawStore } from "@/stores/visualLaw";
 import { Card } from "@/components/ui/card";
 import { StreamingCursor } from "./StreamingCursor";
+import type { VLDocumentConfig } from "@/types/visual-law";
 
 const DENSITY_CLASS: Record<string, string> = {
   enxuto: "leading-snug space-y-2 text-[14px]",
@@ -10,10 +11,18 @@ const DENSITY_CLASS: Record<string, string> = {
   confortavel: "leading-loose space-y-4 text-[16px]",
 };
 
-export function DocumentViewer() {
-  const content = useVisualLawStore((s) => s.documentContent);
-  const config = useVisualLawStore((s) => s.documentConfig);
-  const isStreaming = useVisualLawStore((s) => s.isGenerating);
+export function DocumentViewer({
+  readOnlyContent,
+  readOnlyConfig,
+}: {
+  readOnlyContent?: string;
+  readOnlyConfig?: VLDocumentConfig;
+} = {}) {
+  const storeContent = useVisualLawStore((s) => s.documentContent);
+  const storeConfig = useVisualLawStore((s) => s.documentConfig);
+  const isStreaming = useVisualLawStore((s) => s.isGenerating) && !readOnlyContent;
+  const content = readOnlyContent ?? storeContent;
+  const config = readOnlyConfig ?? storeConfig;
 
   const blocks = useMemo(() => content.split(/\n\n+/), [content]);
   const densityClass = DENSITY_CLASS[config.density] ?? DENSITY_CLASS.padrao;

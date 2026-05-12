@@ -6,6 +6,8 @@ import { ConfigSidebar } from "./sidebar/ConfigSidebar";
 import { StreamingIndicator } from "./loading/StreamingIndicator";
 import { GenerationOverlay } from "./loading/GenerationOverlay";
 import { ExportButton } from "./export/ExportButton";
+import { ExportHistoryDialog } from "./export/ExportHistoryDialog";
+import { ShareVersionDialog } from "./share/ShareVersionDialog";
 import { useVisualLawStore } from "@/stores/visualLaw";
 import { runGeneration } from "@/services/visual-law/generate";
 import type { VLDirection, VLGeneratePayload } from "@/types/visual-law";
@@ -80,7 +82,11 @@ export function VisualLawAIPanel(props: Props) {
       <GenerationOverlay />
       <div className="flex items-center justify-between gap-2">
         <StreamingIndicator />
-        <ExportButton pieceId={props.pieceId} pieceTitle={props.pieceTitle ?? props.pieceType} />
+        <div className="flex items-center gap-2">
+          <ExportHistoryDialog pieceId={props.pieceId} />
+          <ShareVersionDialog pieceId={props.pieceId} />
+          <ExportButton pieceId={props.pieceId} pieceTitle={props.pieceTitle ?? props.pieceType} />
+        </div>
       </div>
       <SplitPane
         left={<DocumentViewer />}
