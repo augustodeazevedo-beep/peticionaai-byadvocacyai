@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   DEFAULT_VL_CONFIG,
   type VLDocumentConfig,
@@ -13,6 +14,7 @@ export interface VisualLawState {
   pieceId: string | null;
   documentContent: string;
   documentConfig: VLDocumentConfig;
+  configByPiece: Record<string, VLDocumentConfig>;
   versions: VLVersion[];
   selectedVersionId: string | null;
   isGenerating: boolean;
@@ -23,6 +25,7 @@ export interface VisualLawState {
   abortRef: AbortController | null;
   analysisStatus: Record<string, "idle" | "running" | "done" | "error">;
   analysisError: Record<string, string | undefined>;
+  compareTargetId: string | null;
 
   initFromPiece: (
     pieceId: string,
@@ -47,15 +50,19 @@ export interface VisualLawState {
     versionId: string,
     payload: { validation: VLLegalValidation; risk: VLRiskAnalysis },
   ) => void;
+  setCompareTarget: (id: string | null) => void;
   reset: () => void;
 }
 
 const initialMetadata: VLLegalMetadata = {};
 
-export const useVisualLawStore = create<VisualLawState>((set, get) => ({
+export const useVisualLawStore = create<VisualLawState>()(
+  persist(
+    (set, get) => ({
   pieceId: null,
   documentContent: "",
   documentConfig: DEFAULT_VL_CONFIG,
+  configByPiece: {},
   versions: [],
   selectedVersionId: null,
   isGenerating: false,
@@ -66,14 +73,16 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
   abortRef: null,
   analysisStatus: {},
   analysisError: {},
+  compareTargetId: null,
 
   initFromPiece: (pieceId, content, metadata = initialMetadata) => {
     const existing = get();
     if (existing.pieceId === pieceId && existing.versions.length > 0) return;
+    const cachedConfig = existing.configByPiece[pieceId];
     set({
       pieceId,
       documentContent: content,
-      documentConfig: DEFAULT_VL_CONFIG,
+      documentConfig: cachedConfig ?? DEFAULT_VL_CONFIG,
       versions: [],
       selectedVersionId: null,
       isGenerating: false,
@@ -84,21 +93,30 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       abortRef: null,
       analysisStatus: {},
       analysisError: {},
+      compareTargetId: null,
     });
     void metadata;
   },
 
   setConfig: (patch) =>
-    set((s) => ({ documentConfig: { ...s.documentConfig, ...patch } })),
+    set((s) => {
+      const documentConfig = { ...s.documentConfig, ...patch };
+      const configByPiece = s.pieceId
+        ? { ...s.configByPiece, [s.pieceId]: documentConfig }
+        : s.configByPiece;
+      return { documentConfig, configByPiece };
+    }),
 
   toggleElement: (key) =>
     set((s) => {
       const hidden = s.documentConfig.hiddenElements.includes(key)
         ? s.documentConfig.hiddenElements.filter((k) => k !== key)
         : [...s.documentConfig.hiddenElements, key];
-      return {
-        documentConfig: { ...s.documentConfig, hiddenElements: hidden },
-      };
+      const documentConfig = { ...s.documentConfig, hiddenElements: hidden };
+      const configByPiece = s.pieceId
+        ? { ...s.configByPiece, [s.pieceId]: documentConfig }
+        : s.configByPiece;
+      return { documentConfig, configByPiece };
     }),
 
   startGeneration: (controller) =>
@@ -250,6 +268,8 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       };
     }),
 
+  setCompareTarget: (id) => set({ compareTargetId: id }),
+
   reset: () =>
     set({
       pieceId: null,
@@ -265,8 +285,17 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       abortRef: null,
       analysisStatus: {},
       analysisError: {},
+      compareTargetId: null,
     }),
-}));
+    }),
+    {
+      name: "visual-law-store",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (s) => ({ configByPiece: s.configByPiece }),
+    },
+  ),
+);
 
 export const selectActiveVersion = (s: VisualLawState): VLVersion | null =>
   s.versions.find((v) => v.id === s.selectedVersionId) ?? null;
