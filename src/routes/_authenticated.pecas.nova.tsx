@@ -195,7 +195,7 @@ function NovaPeca() {
           content_text: result.content,
           content_html: contentHtml,
           model_used: result.model_used,
-          checklist: result.intelligence as unknown as Record<string, unknown>,
+          checklist: JSON.parse(JSON.stringify(result.intelligence ?? {})),
           observations: auditNotes.join("\n"),
         })
         .eq("id", piece.id);
