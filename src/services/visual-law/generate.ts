@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useVisualLawStore } from "@/stores/visualLaw";
-import { persistVersion } from "@/services/visual-law/versions";
+import { persistVersion, updateVersionAnalysis } from "@/services/visual-law/versions";
+import { runAnalysis } from "@/services/visual-law/analyze";
 import type {
   VLGeneratePayload,
   VLLegalValidation,
@@ -125,6 +126,25 @@ export async function streamVisualLaw(
  * Orquestrador alto-nível: conecta o stream à store Zustand.
  * UI da Etapa 3 só precisa montar o payload e chamar runGeneration().
  */
+async function triggerAnalysis(versionId: string, payload: VLGeneratePayload, content: string) {
+  const store = useVisualLawStore.getState();
+  store.setAnalysisStatus(versionId, "running");
+  const result = await runAnalysis({
+    content,
+    direction: payload.direction,
+    legalMetadata: payload.legalMetadata,
+  });
+  if (!result.ok) {
+    useVisualLawStore.getState().setAnalysisStatus(versionId, "error", result.message);
+    return;
+  }
+  useVisualLawStore.getState().setVersionAnalysis(versionId, result.data);
+  // Persistir análise no banco (best-effort)
+  void updateVersionAnalysis(versionId, result.data).catch((e) => {
+    console.warn("updateVersionAnalysis failed", e);
+  });
+}
+
 export async function runGeneration(
   payload: VLGeneratePayload,
   opts?: { pieceId?: string; userId?: string },
@@ -162,10 +182,19 @@ export async function runGeneration(
             void persistVersion(opts.pieceId, opts.userId, last)
               .then((saved) => {
                 useVisualLawStore.getState().replaceLastVersionMeta(saved.id, saved.timestamp);
+                // Dispara análise após persistência (usa id do servidor)
+                void triggerAnalysis(saved.id, payload, finalContent);
               })
               .catch(() => {
-                // versão local segue válida; UI mostra erro se quiser via toast no caller
+                // versão local segue válida; ainda assim roda análise sobre id local
+                void triggerAnalysis(last.id, payload, finalContent);
               });
+          }
+        } else {
+          // Sem persistência: roda análise sobre versão local (in-memory)
+          const last = useVisualLawStore.getState().versions.slice(-1)[0];
+          if (last) {
+            void triggerAnalysis(last.id, payload, finalContent);
           }
         }
       },

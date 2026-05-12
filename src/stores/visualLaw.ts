@@ -21,6 +21,8 @@ export interface VisualLawState {
   legalValidation: VLLegalValidation | null;
   riskAnalysis: VLRiskAnalysis | null;
   abortRef: AbortController | null;
+  analysisStatus: Record<string, "idle" | "running" | "done" | "error">;
+  analysisError: Record<string, string | undefined>;
 
   initFromPiece: (
     pieceId: string,
@@ -40,6 +42,11 @@ export interface VisualLawState {
   rollbackTo: (id: string) => void;
   hydrateVersions: (versions: VLVersion[]) => void;
   replaceLastVersionMeta: (newId: string, newTimestamp: string) => void;
+  setAnalysisStatus: (versionId: string, status: "idle" | "running" | "done" | "error", message?: string) => void;
+  setVersionAnalysis: (
+    versionId: string,
+    payload: { validation: VLLegalValidation; risk: VLRiskAnalysis },
+  ) => void;
   reset: () => void;
 }
 
@@ -57,6 +64,8 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
   legalValidation: null,
   riskAnalysis: null,
   abortRef: null,
+  analysisStatus: {},
+  analysisError: {},
 
   initFromPiece: (pieceId, content, metadata = initialMetadata) => {
     const existing = get();
@@ -73,6 +82,8 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       legalValidation: null,
       riskAnalysis: null,
       abortRef: null,
+      analysisStatus: {},
+      analysisError: {},
     });
     void metadata;
   },
@@ -178,12 +189,18 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
   hydrateVersions: (versions) => {
     if (!versions.length) return;
     const last = versions[versions.length - 1];
+    const analysisStatus: Record<string, "idle" | "running" | "done" | "error"> = {};
+    for (const v of versions) {
+      if (v.validation && v.risk) analysisStatus[v.id] = "done";
+    }
     set({
       versions,
       selectedVersionId: last.id,
       documentContent: last.content,
       legalValidation: last.validation ?? null,
       riskAnalysis: last.risk ?? null,
+      analysisStatus,
+      analysisError: {},
     });
   },
 
@@ -193,12 +210,45 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       const versions = [...s.versions];
       const last = versions[versions.length - 1];
       versions[versions.length - 1] = { ...last, id: newId, timestamp: newTimestamp };
+      const analysisStatus = { ...s.analysisStatus };
+      const analysisError = { ...s.analysisError };
+      if (analysisStatus[last.id] !== undefined) {
+        analysisStatus[newId] = analysisStatus[last.id];
+        delete analysisStatus[last.id];
+      }
+      if (analysisError[last.id] !== undefined) {
+        analysisError[newId] = analysisError[last.id];
+        delete analysisError[last.id];
+      }
       return {
         versions,
         selectedVersionId: s.selectedVersionId === last.id ? newId : s.selectedVersionId,
+        analysisStatus,
+        analysisError,
       };
     });
   },
+
+  setAnalysisStatus: (versionId, status, message) =>
+    set((s) => ({
+      analysisStatus: { ...s.analysisStatus, [versionId]: status },
+      analysisError: { ...s.analysisError, [versionId]: status === "error" ? (message ?? "Falha na análise") : undefined },
+    })),
+
+  setVersionAnalysis: (versionId, payload) =>
+    set((s) => {
+      const versions = s.versions.map((v) =>
+        v.id === versionId ? { ...v, validation: payload.validation, risk: payload.risk } : v,
+      );
+      const isActive = s.selectedVersionId === versionId;
+      return {
+        versions,
+        legalValidation: isActive ? payload.validation : s.legalValidation,
+        riskAnalysis: isActive ? payload.risk : s.riskAnalysis,
+        analysisStatus: { ...s.analysisStatus, [versionId]: "done" },
+        analysisError: { ...s.analysisError, [versionId]: undefined },
+      };
+    }),
 
   reset: () =>
     set({
@@ -213,6 +263,8 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       legalValidation: null,
       riskAnalysis: null,
       abortRef: null,
+      analysisStatus: {},
+      analysisError: {},
     }),
 }));
 
