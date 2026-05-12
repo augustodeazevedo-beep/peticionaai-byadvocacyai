@@ -27,6 +27,7 @@ import { Route as ApiPublicAdvogaProcessContextRouteImport } from './routes/api/
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
+import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 
@@ -126,6 +127,12 @@ const AuthenticatedFerramentasLinksRoute =
     path: '/ferramentas/links',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedConfiguracoesIdentidadeRoute =
+  AuthenticatedConfiguracoesIdentidadeRouteImport.update({
+    id: '/configuracoes/identidade',
+    path: '/configuracoes/identidade',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedConfiguracoesIaRoute =
   AuthenticatedConfiguracoesIaRouteImport.update({
     id: '/configuracoes/ia',
@@ -154,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
+  '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
+  '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -198,6 +207,7 @@ export interface FileRoutesById {
   '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
+  '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
+    | '/configuracoes/identidade'
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/admin/integracoes'
     | '/configuracoes/ia'
+    | '/configuracoes/identidade'
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
@@ -264,6 +276,7 @@ export interface FileRouteTypes {
     | '/p/$slug'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/configuracoes/ia'
+    | '/_authenticated/configuracoes/identidade'
     | '/_authenticated/ferramentas/links'
     | '/_authenticated/pecas/$id'
     | '/_authenticated/pecas/nova'
@@ -410,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFerramentasLinksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracoes/identidade': {
+      id: '/_authenticated/configuracoes/identidade'
+      path: '/configuracoes/identidade'
+      fullPath: '/configuracoes/identidade'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesIdentidadeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/configuracoes/ia': {
       id: '/_authenticated/configuracoes/ia'
       path: '/configuracoes/ia'
@@ -437,6 +457,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
+  AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
   AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
   AuthenticatedPecasIdRoute: typeof AuthenticatedPecasIdRoute
   AuthenticatedPecasNovaRoute: typeof AuthenticatedPecasNovaRoute
@@ -452,6 +473,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
+  AuthenticatedConfiguracoesIdentidadeRoute:
+    AuthenticatedConfiguracoesIdentidadeRoute,
   AuthenticatedFerramentasLinksRoute: AuthenticatedFerramentasLinksRoute,
   AuthenticatedPecasIdRoute: AuthenticatedPecasIdRoute,
   AuthenticatedPecasNovaRoute: AuthenticatedPecasNovaRoute,
