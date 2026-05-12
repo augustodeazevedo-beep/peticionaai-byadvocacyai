@@ -72,8 +72,29 @@ export async function uploadLogo(userId: string, file: File): Promise<string> {
     .from("office-brand")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw error;
-  const { data } = supabase.storage.from("office-brand").getPublicUrl(path);
-  return data.publicUrl;
+  // Bucket é privado: armazenamos o path; URL assinada é gerada sob demanda.
+  return path;
+}
+
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
+/**
+ * Resolve um valor de logo_url para uma URL utilizável.
+ * - Se já for http(s), retorna como está (compatibilidade com URLs públicas antigas).
+ * - Se for um path do bucket office-brand, gera uma URL assinada (cache 50min).
+ */
+export async function resolveBrandAssetUrl(value: string | null | undefined): Promise<string | null> {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  const now = Date.now();
+  const cached = signedUrlCache.get(value);
+  if (cached && cached.expiresAt > now) return cached.url;
+  const { data, error } = await supabase.storage
+    .from("office-brand")
+    .createSignedUrl(value, 3600);
+  if (error || !data?.signedUrl) return null;
+  signedUrlCache.set(value, { url: data.signedUrl, expiresAt: now + 50 * 60 * 1000 });
+  return data.signedUrl;
 }
 
 export function brandWithDefaults(b: OfficeBrand | null): OfficeBrand {
