@@ -4,6 +4,7 @@ import { SplitPane } from "./layout/SplitPane";
 import { DocumentViewer } from "./viewer/DocumentViewer";
 import { ConfigSidebar } from "./sidebar/ConfigSidebar";
 import { StreamingIndicator } from "./loading/StreamingIndicator";
+import { ExportButton } from "./export/ExportButton";
 import { useVisualLawStore } from "@/stores/visualLaw";
 import { runGeneration } from "@/services/visual-law/generate";
 import type { VLDirection, VLGeneratePayload } from "@/types/visual-law";
@@ -15,6 +16,7 @@ type Props = {
   contentText: string;
   pieceType?: string;
   area?: string | null;
+  pieceTitle?: string;
   onContentChange?: (text: string) => void;
 };
 
@@ -74,7 +76,10 @@ export function VisualLawAIPanel(props: Props) {
 
   return (
     <div className="space-y-3">
-      <StreamingIndicator />
+      <div className="flex items-center justify-between gap-2">
+        <StreamingIndicator />
+        <ExportButton pieceId={props.pieceId} pieceTitle={props.pieceTitle ?? props.pieceType} />
+      </div>
       <SplitPane
         left={<DocumentViewer />}
         right={
