@@ -29,6 +29,7 @@ import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
 import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
+import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 
 const SignupRoute = SignupRouteImport.update({
@@ -139,6 +140,12 @@ const AuthenticatedConfiguracoesIaRoute =
     path: '/configuracoes/ia',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedBibliotecaModelosRoute =
+  AuthenticatedBibliotecaModelosRouteImport.update({
+    id: '/biblioteca/modelos',
+    path: '/biblioteca/modelos',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminIntegracoesRoute =
   AuthenticatedAdminIntegracoesRouteImport.update({
     id: '/admin/integracoes',
@@ -160,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -182,6 +190,7 @@ export interface FileRoutesByTo {
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -206,6 +215,7 @@ export interface FileRoutesById {
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
+  '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/p/$slug'
     | '/admin/integracoes'
+    | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/ferramentas/links'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/p/$slug'
     | '/admin/integracoes'
+    | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/ferramentas/links'
@@ -275,6 +287,7 @@ export interface FileRouteTypes {
     | '/_authenticated/workspace'
     | '/p/$slug'
     | '/_authenticated/admin/integracoes'
+    | '/_authenticated/biblioteca/modelos'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/identidade'
     | '/_authenticated/ferramentas/links'
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/biblioteca/modelos': {
+      id: '/_authenticated/biblioteca/modelos'
+      path: '/biblioteca/modelos'
+      fullPath: '/biblioteca/modelos'
+      preLoaderRoute: typeof AuthenticatedBibliotecaModelosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/integracoes': {
       id: '/_authenticated/admin/integracoes'
       path: '/admin/integracoes'
@@ -456,6 +476,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
+  AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
   AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
   AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
@@ -472,6 +493,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
+  AuthenticatedBibliotecaModelosRoute: AuthenticatedBibliotecaModelosRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
   AuthenticatedConfiguracoesIdentidadeRoute:
     AuthenticatedConfiguracoesIdentidadeRoute,
@@ -498,3 +520,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
