@@ -40,10 +40,8 @@ function PublicPiece() {
           .eq("piece_id", pieceRow.id)
           .maybeSingle();
         if (!cancelled && v) {
-          setVlVersion({
-            content: (v as { content: string }).content,
-            config: (v as { config: VLDocumentConfig }).config,
-          });
+          const row = v as unknown as { content: string; config: VLDocumentConfig };
+          setVlVersion({ content: row.content, config: row.config });
         }
       }
         setLoading(false);
