@@ -33,6 +33,7 @@ import {
   FilePlus,
   Sparkles,
   FolderKanban,
+  Palette,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,6 +43,7 @@ const MAIN = [
   { title: "Nova Peça", url: "/pecas/nova", icon: FilePlus },
   { title: "Assistentes", url: "/assistentes", icon: SparklesIcon },
   { title: "Bibliotecários", url: "/bibliotecarios", icon: Users },
+  { title: "Identidade do Escritório", url: "/configuracoes/identidade", icon: Palette },
   { title: "Configurações de IA", url: "/configuracoes/ia", icon: Cpu },
 ] as const;
 
