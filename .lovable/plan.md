@@ -1,191 +1,177 @@
-# Fundação Visual Law — Etapa 1 (incremental, sem breaking changes)
+# Etapa 2 — Edge Function `generate-visual-law` com Streaming SSE
 
-Objetivo desta entrega: criar **somente a base arquitetural** (tipos, store Zustand, estrutura de pastas e contratos) que sustentará as próximas etapas (Edge Function streaming, novo layout Split Pane, sistema de versões/rollback). Nada de UI nova, nada de remoção do `VisualLawPanel` atual nem do PDF `@react-pdf/renderer`.
+Objetivo: implementar a geração/refinamento Visual Law via **Lovable AI Gateway** (`google/gemini-2.5-flash`), com streaming SSE token a token, e plugar na store já criada na Etapa 1. Continua sem alterar o `VisualLawPanel` atual nem o PDF — a integração na UI vem na Etapa 3.
 
-## Princípios
+## Por que Edge Function (e não `createServerFn`)
 
-- Reutilizar tudo que já existe: `supabase` client, design system (`src/styles.css`, shadcn), `BrandMark`, padrão `*.functions.ts` / `*.server.ts`, e o `VisualLawPanel` atual continua funcionando intacto.
-- Zero dependências novas (Zustand já está no projeto — store `src/stores/workspace.ts`).
-- Tipagem estrita, sem `any`; selectors prontos para evitar re-renders.
-- Cache-first by design: estado de versões e `documentContent` viverão na store; rollback será leitura local, jamais nova chamada de IA.
+O projeto já adota Supabase Edge Functions para LLM (`mike-generate`) e exports (`export-piece-docx`, `export-document`). Para **SSE token-a-token**, o caminho mais robusto e consistente com o que já existe é uma edge function Deno que faz proxy do stream do Lovable AI Gateway. Mantém o padrão da codebase, evita conflitos com o runtime SSR do Worker da TanStack Start e é o pattern documentado em `connecting-to-ai-models`.
 
-## Estrutura de pastas a criar
+## Arquivos criados / modificados
 
 ```text
+supabase/
+├── config.toml                                 # adiciona bloco da função (verify_jwt = true)
+└── functions/
+    └── generate-visual-law/
+        ├── index.ts                            # SSE proxy + system prompt jurídico
+        └── prompts.ts                          # builders de system/user prompts
+
 src/
-├── stores/
-│   └── visualLaw.ts                  # Zustand store (state + actions + selectors)
-├── types/
-│   └── visual-law.ts                 # Tipos compartilhados (Version, Config, Direction, etc.)
-├── services/
-│   └── visual-law/
-│       └── generate.ts               # Cliente SSE (stub tipado, sem fetch ainda)
-├── hooks/
-│   └── visual-law/
-│       ├── useVisualLawStore.ts      # Selectors memoizados
-│       └── useVisualLawVersions.ts   # Helpers de versão/rollback
-├── lib/
-│   └── visual-law/
-│       ├── client.ts                 # (já existe — não tocar)
-│       ├── document.tsx              # (já existe — não tocar)
-│       ├── parser.ts                 # (já existe — não tocar)
-│       └── types.ts                  # (já existe — não tocar)
-└── components/
+└── services/
     └── visual-law/
-        ├── VisualLawPanel.tsx        # (já existe — não tocar)
-        ├── layout/                   # (vazio, .gitkeep) — futuro Split Pane
-        ├── viewer/                   # (vazio, .gitkeep) — futuro Document Viewer
-        ├── sidebar/                  # (vazio, .gitkeep) — futuras tabs
-        ├── versions/                 # (vazio, .gitkeep) — painel de versões
-        ├── legal/                    # (vazio, .gitkeep) — blocos jurídicos
-        └── loading/                  # (vazio, .gitkeep) — overlay premium
+        └── generate.ts                         # implementa streamVisualLaw (substitui stub)
 ```
 
-Nenhum arquivo existente é modificado nesta etapa.
+Nenhum outro arquivo é tocado.
 
-## Tipos (`src/types/visual-law.ts`)
+## Edge Function — `supabase/functions/generate-visual-law/index.ts`
+
+Responsabilidades:
+1. Validar `Authorization` (verify_jwt = true → exige usuário logado).
+2. Aceitar `POST` JSON com `VLGeneratePayload` (mesmo shape dos types da Etapa 1).
+3. Montar `messages` chamando `buildSystemPrompt(payload)` + `buildUserPrompt(payload)` (em `prompts.ts`).
+4. Chamar `https://ai.gateway.lovable.dev/v1/chat/completions` com:
+   - `model: "google/gemini-2.5-flash"`
+   - `stream: true`
+   - `messages: [...]`
+5. Repassar o `response.body` diretamente ao cliente como `text/event-stream`.
+6. Tratar `429` (rate limit) e `402` (créditos) devolvendo JSON com mensagem amigável.
+7. CORS completo (mesmo padrão das funções existentes).
+
+Pseudo-shape:
 
 ```ts
-export type VLDirection = "organizar" | "explicar" | "mais_visual";
-export type VLDensity = "enxuto" | "padrao" | "confortavel";
-export type VLFontFamily = "Helvetica" | "Charter" | "Playfair";
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
-export interface VLDocumentConfig {
-  fontFamily: VLFontFamily;
-  primaryColor: string;          // hex; default #283753
-  density: VLDensity;
-  hiddenElements: VLElementKey[];
-}
+  const payload = await req.json() as VLGeneratePayload;
+  const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      stream: true,
+      messages: [
+        { role: "system", content: buildSystemPrompt(payload) },
+        { role: "user",   content: buildUserPrompt(payload) },
+      ],
+    }),
+  });
 
-export type VLElementKey =
-  | "timeline" | "quadro_probatorio" | "sintese_executiva"
-  | "blocos_jurisprudenciais" | "fluxograma" | "quadro_comparativo"
-  | "card_argumentativo" | "destaque_normativo"
-  | "matriz_controversias" | "pedidos_vinculados";
+  if (upstream.status === 429) return json({ error: "Rate limit excedido. Tente novamente em instantes." }, 429);
+  if (upstream.status === 402) return json({ error: "Créditos do Lovable AI esgotados. Adicione créditos no Workspace." }, 402);
+  if (!upstream.ok)            return json({ error: "Falha no gateway de IA." }, 500);
 
-export interface VLLegalMetadata {
-  pieceType?: string;
-  area?: string | null;
-  citations?: { source: string; locator?: string }[];
-}
-
-export interface VLRiskAnalysis {
-  fragilidadesProbatorias: string[];
-  viciosFormais: string[];
-  riscosImprocedencia: string[];
-  argumentosAdversos: string[];
-}
-
-export interface VLLegalValidation {
-  alegacoesSemProva: string[];
-  tesesSemFundamento: string[];
-  pedidosOrfaos: string[];
-  placeholders: string[];
-}
-
-export interface VLVersion {
-  id: string;
-  timestamp: string;             // ISO
-  content: string;
-  config: VLDocumentConfig;
-  prompt: string;                // refinement prompt; "" para base
-  direction: VLDirection;
-  legalMetadata: VLLegalMetadata;
-  validation?: VLLegalValidation;
-  risk?: VLRiskAnalysis;
-}
-
-export interface VLGeneratePayload {
-  currentContent: string;
-  density: VLDensity;
-  direction: VLDirection;
-  refinementPrompt: string;
-  config: VLDocumentConfig;
-  legalMetadata: VLLegalMetadata;
-  hiddenElements: VLElementKey[];
-}
+  return new Response(upstream.body, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+});
 ```
 
-## Store Zustand (`src/stores/visualLaw.ts`)
+## `prompts.ts` — System prompt jurídico (anti-alucinação)
 
-State:
-- `pieceId: string | null`
-- `documentContent: string`
-- `documentConfig: VLDocumentConfig`
-- `versions: VLVersion[]`
-- `selectedVersionId: string | null`
-- `isGenerating: boolean`
-- `streamBuffer: string`
-- `generationError: string | null`
-- `legalValidation: VLLegalValidation | null`
-- `riskAnalysis: VLRiskAnalysis | null`
-- `abortRef: AbortController | null` (não persistido)
+Implementa um system prompt fiel ao spec do usuário. Cobre:
+- Persona (acadêmica, técnica, persuasiva, didática).
+- Sequência de raciocínio: **fatos → provas → análise → fundamento → pedido**.
+- Anti-alucinação: nunca inventar jurisprudência/datas/fatos; usar formatos `Evento X – arquivo Y` / `Documento X – fls. Y`; quando faltar prova: `"não há prova nos autos sobre este ponto."`; conflitos devem ser destacados, nunca harmonizados.
+- Preservação: provas, lógica processual, hierarquia argumentativa, pedidos e teses críticas **não podem ser resumidos**.
+- Visual Law deve **apenas reorganizar/clarificar**, nunca alterar sentido jurídico.
+- Formatação Word/PDF: Arial 12, 1.5, justificado, recuo 2,5 cm, citação longa recuo 4 cm fonte 10, hierarquia `I. / I.1. / I.1.a.`, sem markdown residual.
+- Estrutura petitória completa quando aplicável (Endereçamento → Assinatura).
+- ABNT NBR 10520:2023 para citações.
+- Pós-documento `OBSERVAÇÕES AO OPERADOR` listando arquivos usados, placeholders, documentos faltantes, dependências, encerrando com a pergunta padrão.
 
-Actions:
-- `initFromPiece(pieceId, content, metadata)`
-- `setConfig(patch)`
-- `toggleElement(key)`
-- `startGeneration(controller)` / `appendToken(chunk)` / `finishGeneration(versionPayload)` / `failGeneration(message)` / `cancelGeneration()`
-- `selectVersion(id)` — **lê do array local, jamais chama IA**
-- `rollbackTo(id)` — promove versão a "current" sem nova request
-- `reset()`
+`buildUserPrompt(payload)` injeta:
+- `payload.direction` traduzido em instrução ("apenas reorganizar" | "explicar mais" | "intensificar Visual Law").
+- `payload.density` ("enxuto" | "padrão" | "confortável").
+- `payload.config` (fonte, cor primária — orienta apenas tonalidade textual; cor real é aplicada no viewer).
+- `payload.hiddenElements` ("não inclua: timeline, quadro_probatorio, …").
+- `payload.refinementPrompt` quando houver (instrução adicional do usuário).
+- `payload.legalMetadata` (tipo da peça, área, citações conhecidas).
+- `payload.currentContent` como base a ser refinada.
 
-Selectors exportados (evitar re-render):
-- `selectActiveVersion`
-- `selectVersionsTimeline`
-- `selectIsStreaming`
-- `selectVisibleElements`
+## `supabase/config.toml`
 
-Persistência: opcional via `persist` middleware com chave `visual-law:${pieceId}` (ativável depois — nesta etapa o middleware fica plugado mas com `skipHydration` e habilitação por flag).
+Adicionar (sem alterar `project_id` nem outras funções):
 
-## Cliente SSE stub (`src/services/visual-law/generate.ts`)
+```toml
+[functions.generate-visual-law]
+verify_jwt = true
+```
 
-Apenas a **interface tipada** e o esqueleto (sem fetch real ainda):
+## Cliente — `src/services/visual-law/generate.ts` (substitui o stub)
+
+Implementação real do `streamVisualLaw`:
+
+- Usa `fetch` direto a `${VITE_SUPABASE_URL}/functions/v1/generate-visual-law` (não `supabase.functions.invoke`, que não streamia bem).
+- Header `Authorization: Bearer <session.access_token>` obtido via `supabase.auth.getSession()`; `apikey: VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Parser SSE **linha-a-linha** seguindo o pitfall checklist (sem split em `\n\n`, lida com CRLF, comentários `:`, JSON parcial entre chunks, `[DONE]`, flush final).
+- Para cada `delta.content`, chama `handlers.onToken(chunk)`.
+- Ao concluir, agrega o conteúdo total e chama `handlers.onDone({ content })`. (Validation/risk virão na Etapa 5; nesta etapa retornam undefined.)
+- Erros 429/402/500 → mensagem amigável via `handlers.onError(new Error(...))`.
+- Suporta `AbortSignal` (passado pelo store) para cancelamento limpo.
+
+## Integração com a store (Etapa 1) — sem novos componentes
+
+A store já expõe `startGeneration / appendToken / finishGeneration / failGeneration / cancelGeneration`. Esta etapa **apenas implementa o serviço** que será chamado pela UI da Etapa 3. Para validação, será incluída uma função utilitária `runGeneration(payload)` que orquestra:
 
 ```ts
-export interface StreamHandlers {
-  onToken: (chunk: string) => void;
-  onDone: (final: { content: string; validation?: VLLegalValidation; risk?: VLRiskAnalysis }) => void;
-  onError: (err: Error) => void;
+// src/services/visual-law/generate.ts (export adicional)
+export async function runGeneration(payload: VLGeneratePayload) {
+  const controller = new AbortController();
+  const store = useVisualLawStore.getState();
+  store.startGeneration(controller);
+  let aggregated = "";
+  await streamVisualLaw(
+    payload,
+    {
+      onToken: (chunk) => { aggregated += chunk; store.appendToken(chunk); },
+      onDone: ({ content }) => store.finishGeneration({
+        content: content || aggregated,
+        config: payload.config,
+        prompt: payload.refinementPrompt,
+        direction: payload.direction,
+        legalMetadata: payload.legalMetadata,
+      }),
+      onError: (err) => store.failGeneration(err.message),
+    },
+    controller.signal,
+  );
 }
-export async function streamVisualLaw(
-  payload: VLGeneratePayload,
-  handlers: StreamHandlers,
-  signal: AbortSignal,
-): Promise<void> { /* TODO etapa 2 */ }
 ```
 
-Isso garante que a Etapa 2 (Edge Function) plugue sem refator.
+> Importante: para evitar a regra do `tss-serverfn-split`, o cliente é apenas frontend (não é `.functions.ts`); pode coexistir com helpers no mesmo arquivo sem riscos.
 
-## Hooks (`src/hooks/visual-law/*`)
+## Configuração / secrets
 
-- `useVisualLawStore` re-exporta selectors com `shallow` para componentes futuros.
-- `useVisualLawVersions` expõe `{ versions, active, select, rollback }`.
+- `LOVABLE_API_KEY` já está provisionado no projeto (visto em `<secrets>`). **Sem nada para o usuário fazer.**
+- `verify_jwt = true` exige usuário autenticado — coerente com o uso atual (`/pecas/$id` está sob `_authenticated`).
 
-Nenhum hook é consumido nesta etapa (só preparação).
+## Testes / validação
 
-## Modelo LLM definido para Etapa 2
+1. `bun run build` passa.
+2. Deploy da edge function (automático).
+3. Smoke test via `supabase--curl_edge_functions` em `POST /generate-visual-law` com payload mínimo, validando:
+   - Status `200`.
+   - Resposta `text/event-stream`.
+   - Linhas `data: { ... }` chegando incrementalmente; encerramento com `data: [DONE]`.
+4. Teste 401 sem auth; 429/402 simulados via inspeção de logs (`supabase--edge_function_logs`).
 
-`google/gemini-2.5-flash` via Lovable AI Gateway (LOVABLE_API_KEY já provisionado). Sem novos secrets.
+## O que **não** entra nesta etapa
 
-## O que **não** é feito agora
+- Qualquer mudança de UI (Split Pane, sidebar tabs, loading overlay) → Etapa 3.
+- Persistência de versões em tabela Supabase → Etapa 4 (hoje permanecem na store/local).
+- Validação anti-alucinação automatizada (`legalValidation`) e shadow cabinet (`riskAnalysis`) extraídos via tool calling estruturado → Etapa 5.
 
-- Edge function `generate-visual-law` (Etapa 2)
-- Novo layout Split Pane / loading overlay / sidebar tabs (Etapa 3)
-- Migration de tabela para versões persistidas no servidor (Etapa 4 — hoje cabe na store/localStorage)
-- Qualquer alteração no `VisualLawPanel.tsx`, `lib/visual-law/*`, rotas ou PDF atual
+## Checklist de aceitação
 
-## Checklist de aceitação desta etapa
-
-- [ ] `bun run build` passa sem erros
-- [ ] Nenhum arquivo existente foi modificado
-- [ ] Store importável: `import { useVisualLawStore } from "@/stores/visualLaw"` compila
-- [ ] Tipos exportados de `@/types/visual-law` cobrem todo o spec
-- [ ] App segue funcionando idêntico (login, /pecas/$id, aba Visual Law atual)
-
-## Roadmap das próximas etapas (para alinhamento)
-
-1. **Etapa 2** — Edge function `generate-visual-law` com SSE + integração no `streamVisualLaw`.
-2. **Etapa 3** — Novo layout Split Pane (Viewer 70% / Sidebar 30%) atrás de feature flag, coexistindo com o painel atual.
-3. **Etapa 4** — Loading overlay premium, painel de versões com rollback, persistência opcional.
-4. **Etapa 5** — Camada legal (validação anti-alucinação, shadow cabinet, checklist final) e exports adicionais.
+- [ ] `supabase/functions/generate-visual-law/{index.ts,prompts.ts}` criados e deployados.
+- [ ] `supabase/config.toml` com bloco `[functions.generate-visual-law] verify_jwt = true`.
+- [ ] `src/services/visual-law/generate.ts` implementa `streamVisualLaw` real + `runGeneration` orquestrador.
+- [ ] `bun run build` passa.
+- [ ] Smoke test SSE retorna tokens incrementais.
+- [ ] `VisualLawPanel`, rotas e PDF atuais permanecem inalterados.
