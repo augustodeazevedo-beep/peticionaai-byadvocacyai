@@ -142,6 +142,18 @@ function NovaPeca() {
   const [form, setForm] = useState<PieceFormData>(INITIAL);
   const [steps, setSteps] = useState<Record<CognitiveStep, StepState>>(STEP_INITIAL);
   const [draftPreview, setDraftPreview] = useState("");
+  const [template, setTemplate] = useState<PieceTemplate | null>(null);
+
+  function onSelectTemplate(t: PieceTemplate | null) {
+    setTemplate(t);
+    if (!t) return;
+    // Pré-preenche o título quando vazio
+    setForm((f) => ({
+      ...f,
+      title: f.title || t.name,
+    }));
+    toast.success(`Modelo "${t.name}" selecionado`);
+  }
 
   async function onGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -163,6 +175,7 @@ function NovaPeca() {
           area: form.area,
           status: "generating",
           input_data: form,
+          template_id: template?.id ?? null,
         })
         .select()
         .single();
@@ -172,7 +185,24 @@ function NovaPeca() {
         piece_type: form.piece_type,
         area: form.area,
         fields: form,
-        context: form.contexto,
+        context: [
+          form.contexto || "",
+          template?.prompt_hints ? `\n\n[INSTRUÇÕES DO MODELO "${template.name}"]\n${template.prompt_hints}` : "",
+          template?.content_md
+            ? `\n\n[ESQUELETO BASE DO MODELO]\n${renderTemplate(template.content_md, {
+                cliente: form.autor,
+                cliente_qualificacao: form.autor_qualificacao,
+                reu: form.reu,
+                reu_qualificacao: form.reu_qualificacao,
+                juizo: form.juizo,
+                tribunal: form.tribunal,
+                fatos: form.fatos,
+                fundamentos: form.fundamentos,
+                pedidos: form.pedidos,
+                valor_causa: form.valor_causa,
+              })}`
+            : "",
+        ].filter(Boolean).join(""),
         party_position: form.party_position,
         tribunal: form.tribunal || undefined,
         instancia: form.instancia || undefined,
@@ -202,6 +232,10 @@ function NovaPeca() {
         })
         .eq("id", piece.id);
 
+      if (template) {
+        await incrementUsage(template.id).catch(() => {});
+      }
+
       toast.success("Peça gerada com sucesso!");
       navigate({ to: "/pecas/$id", params: { id: piece.id } });
     } catch (e) {
@@ -229,6 +263,12 @@ function NovaPeca() {
       </div>
 
       <form onSubmit={onGenerate} className="space-y-6">
+        <TemplatePicker
+          area={form.area}
+          pieceType={form.piece_type}
+          selectedId={template?.id ?? null}
+          onSelect={onSelectTemplate}
+        />
         <PieceFormSections
           form={form}
           onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
