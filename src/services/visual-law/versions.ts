@@ -62,3 +62,17 @@ export async function persistVersion(
   if (error) throw error;
   return rowToVersion(data as unknown as Row);
 }
+
+export async function updateVersionAnalysis(
+  versionId: string,
+  payload: { validation: VLLegalValidation; risk: VLRiskAnalysis },
+): Promise<void> {
+  const { error } = await supabase
+    .from("vl_versions" as never)
+    .update({
+      validation: payload.validation,
+      risk: payload.risk,
+    } as never)
+    .eq("id", versionId);
+  if (error) throw error;
+}
