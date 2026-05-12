@@ -12,6 +12,8 @@ import {
   type StepState,
 } from "@/components/pieces/PieceGenerationOverlay";
 import type { PieceFormData } from "@/lib/cognitiveOs";
+import { TemplatePicker } from "@/components/templates/TemplatePicker";
+import { incrementUsage, renderTemplate, type PieceTemplate } from "@/lib/pieceTemplates";
 
 /**
  * Converte Markdown simples para HTML.
