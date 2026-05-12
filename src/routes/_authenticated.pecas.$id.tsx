@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Download, FileDown, Save, RefreshCw, ArrowLeft } from "lucide-react";
+import { IntelligencePanel } from "@/components/pieces/IntelligencePanel";
+import { OperatorNotesPanel } from "@/components/pieces/OperatorNotesPanel";
 
 export const Route = createFileRoute("/_authenticated/pecas/$id")({
   head: () => ({ meta: [{ title: "Editor de Peça — Peticiona.AI" }] }),
@@ -27,6 +29,8 @@ type Piece = {
   content_text: string | null;
   input_data: Record<string, unknown>;
   model_used: string | null;
+  checklist: unknown;
+  observations: string | null;
 };
 
 function PieceEditor() {
@@ -145,6 +149,8 @@ function PieceEditor() {
         <TabsList>
           <TabsTrigger value="edit">Editor</TabsTrigger>
           <TabsTrigger value="preview">Visualização</TabsTrigger>
+          <TabsTrigger value="intel">Inteligência</TabsTrigger>
+          <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="visual">Visual Law</TabsTrigger>
           <TabsTrigger value="visual-ai">Visual Law AI (beta)</TabsTrigger>
         </TabsList>
@@ -164,6 +170,12 @@ function PieceEditor() {
               <ReactMarkdown>{content}</ReactMarkdown>
             </article>
           </Card>
+        </TabsContent>
+        <TabsContent value="intel">
+          <IntelligencePanel intelligence={piece.checklist} />
+        </TabsContent>
+        <TabsContent value="notes">
+          <OperatorNotesPanel notes={piece.observations} />
         </TabsContent>
         <TabsContent value="visual">
           <VisualLawPanel
