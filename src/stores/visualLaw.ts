@@ -38,6 +38,8 @@ export interface VisualLawState {
   cancelGeneration: () => void;
   selectVersion: (id: string) => void;
   rollbackTo: (id: string) => void;
+  hydrateVersions: (versions: VLVersion[]) => void;
+  replaceLastVersionMeta: (newId: string, newTimestamp: string) => void;
   reset: () => void;
 }
 
