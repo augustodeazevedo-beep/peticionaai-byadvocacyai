@@ -384,6 +384,66 @@ export type Database = {
         }
         Relationships: []
       }
+      piece_templates: {
+        Row: {
+          area: string
+          content_md: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          last_used_at: string | null
+          name: string
+          piece_type: string
+          prompt_hints: string | null
+          scope: string
+          structure: Json
+          style_overrides: Json
+          tags: string[]
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          area: string
+          content_md?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          last_used_at?: string | null
+          name: string
+          piece_type: string
+          prompt_hints?: string | null
+          scope?: string
+          structure?: Json
+          style_overrides?: Json
+          tags?: string[]
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          area?: string
+          content_md?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          last_used_at?: string | null
+          name?: string
+          piece_type?: string
+          prompt_hints?: string | null
+          scope?: string
+          structure?: Json
+          style_overrides?: Json
+          tags?: string[]
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       piece_versions: {
         Row: {
           content_html: string | null
@@ -512,6 +572,7 @@ export type Database = {
           project_id: string | null
           public_slug: string | null
           status: Database["public"]["Enums"]["piece_status"]
+          template_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -533,6 +594,7 @@ export type Database = {
           project_id?: string | null
           public_slug?: string | null
           status?: Database["public"]["Enums"]["piece_status"]
+          template_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -554,6 +616,7 @@ export type Database = {
           project_id?: string | null
           public_slug?: string | null
           status?: Database["public"]["Enums"]["piece_status"]
+          template_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
