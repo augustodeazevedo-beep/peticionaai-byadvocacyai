@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { loadOfficeBrand, type OfficeBrand } from "@/lib/officeBrand";
 import { assemblePiece, pieceContextFromInput } from "@/lib/pieceAssembler";
 import { exportPiecePdfProtocolo, downloadBlob } from "@/services/pieces/exportPdfProtocolo";
+import { markdownToHtml } from "@/lib/markdown";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,7 +90,7 @@ function PieceEditor() {
   async function save() {
     if (!piece) return;
     setSaving(true);
-    const { error } = await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
+    const { error } = await supabase.from("pieces").update({ content_text: content, content_html: markdownToHtml(content) }).eq("id", piece.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Salvo");
@@ -105,7 +106,7 @@ function PieceEditor() {
         fields: piece.input_data ?? {},
       });
       setContent(result.content);
-      await supabase.from("pieces").update({ content_text: result.content, content_html: result.content, model_used: result.model_used }).eq("id", piece.id);
+      await supabase.from("pieces").update({ content_text: result.content, content_html: markdownToHtml(result.content), model_used: result.model_used }).eq("id", piece.id);
       toast.success("Peça regenerada");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
@@ -119,12 +120,12 @@ function PieceEditor() {
     setExporting(true);
     try {
       // Salva conteúdo final (já com timbrado/assinatura)
-      await supabase.from("pieces").update({ content_text: assembledContent, content_html: assembledContent }).eq("id", piece.id);
+      await supabase.from("pieces").update({ content_text: assembledContent, content_html: markdownToHtml(assembledContent) }).eq("id", piece.id);
       const r = await exportPieceDocx(piece.id);
       window.open(r.url, "_blank");
       toast.success("Documento .docx gerado");
       // Recoloca o conteúdo "limpo" no banco para edições futuras
-      await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
+      await supabase.from("pieces").update({ content_text: content, content_html: markdownToHtml(content) }).eq("id", piece.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
     } finally {
@@ -137,7 +138,7 @@ function PieceEditor() {
     setExportingHtml(true);
     try {
       // Salva antes para garantir que o HTML reflete o conteúdo atual
-      await supabase.from("pieces").update({ content_text: content, content_html: content }).eq("id", piece.id);
+      await supabase.from("pieces").update({ content_text: content, content_html: markdownToHtml(content) }).eq("id", piece.id);
       await exportPieceHtml(piece.id);
       toast.success("Documento HTML baixado com sucesso");
     } catch (e) {
