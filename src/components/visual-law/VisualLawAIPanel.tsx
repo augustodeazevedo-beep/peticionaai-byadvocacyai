@@ -7,6 +7,8 @@ import { StreamingIndicator } from "./loading/StreamingIndicator";
 import { useVisualLawStore } from "@/stores/visualLaw";
 import { runGeneration } from "@/services/visual-law/generate";
 import type { VLDirection, VLGeneratePayload } from "@/types/visual-law";
+import { useLoadVersions } from "@/hooks/visual-law/useLoadVersions";
+import { useAuth } from "@/lib/auth";
 
 type Props = {
   pieceId: string;
@@ -22,6 +24,8 @@ export function VisualLawAIPanel(props: Props) {
   const cancel = useVisualLawStore((s) => s.cancelGeneration);
   const documentContent = useVisualLawStore((s) => s.documentContent);
   const config = useVisualLawStore((s) => s.documentConfig);
+  const { user } = useAuth();
+  useLoadVersions(props.pieceId);
 
   const [direction, setDirection] = useState<VLDirection>("organizar");
   const [prompt, setPrompt] = useState("");
@@ -63,7 +67,7 @@ export function VisualLawAIPanel(props: Props) {
       },
       hiddenElements: config.hiddenElements,
     };
-    runGeneration(payload).catch((e) =>
+    runGeneration(payload, user?.id ? { pieceId: props.pieceId, userId: user.id } : undefined).catch((e) =>
       toast.error(e instanceof Error ? e.message : "Falha na geração"),
     );
   }

@@ -38,6 +38,8 @@ export interface VisualLawState {
   cancelGeneration: () => void;
   selectVersion: (id: string) => void;
   rollbackTo: (id: string) => void;
+  hydrateVersions: (versions: VLVersion[]) => void;
+  replaceLastVersionMeta: (newId: string, newTimestamp: string) => void;
   reset: () => void;
 }
 
@@ -170,6 +172,31 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       documentConfig: v.config,
       legalValidation: v.validation ?? null,
       riskAnalysis: v.risk ?? null,
+    });
+  },
+
+  hydrateVersions: (versions) => {
+    if (!versions.length) return;
+    const last = versions[versions.length - 1];
+    set({
+      versions,
+      selectedVersionId: last.id,
+      documentContent: last.content,
+      legalValidation: last.validation ?? null,
+      riskAnalysis: last.risk ?? null,
+    });
+  },
+
+  replaceLastVersionMeta: (newId, newTimestamp) => {
+    set((s) => {
+      if (!s.versions.length) return {} as Partial<VisualLawState>;
+      const versions = [...s.versions];
+      const last = versions[versions.length - 1];
+      versions[versions.length - 1] = { ...last, id: newId, timestamp: newTimestamp };
+      return {
+        versions,
+        selectedVersionId: s.selectedVersionId === last.id ? newId : s.selectedVersionId,
+      };
     });
   },
 
