@@ -82,6 +82,8 @@ export const useVisualLawStore = create<VisualLawState>((set, get) => ({
       legalValidation: null,
       riskAnalysis: null,
       abortRef: null,
+      analysisStatus: {},
+      analysisError: {},
     });
     void metadata;
   },
