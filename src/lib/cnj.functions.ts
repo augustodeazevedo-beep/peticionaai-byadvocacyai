@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const CNJ_RE = /^(\d{7})-?(\d{2})\.?(\d{4})\.?(\d)\.?(\d{2})\.?(\d{4})$/;
 
@@ -25,6 +26,7 @@ const TRIBUNAIS: Record<string, string[]> = {
 };
 
 export const lookupCnjMetadata = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ numero: z.string().min(15).max(30) }).parse)
   .handler(async ({ data }) => {
     const clean = data.numero.replace(/\D/g, "");
@@ -38,12 +40,16 @@ export const lookupCnjMetadata = createServerFn({ method: "POST" })
     }
     const formatted = `${clean.slice(0,7)}-${clean.slice(7,9)}.${clean.slice(9,13)}.${clean.slice(13,14)}.${clean.slice(14,16)}.${clean.slice(16,20)}`;
     const body = JSON.stringify({ query: { match: { numeroProcesso: formatted } } });
+    const apiKey = process.env.DATAJUD_API_KEY;
+    if (!apiKey) {
+      return { ok: false as const, error: "Integração CNJ não configurada (DATAJUD_API_KEY ausente)." };
+    }
 
     for (const trib of candidates) {
       try {
         const res = await fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${trib}/_search`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "APIKey cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw==" },
+          headers: { "Content-Type": "application/json", "Authorization": `APIKey ${apiKey}` },
           body,
         });
         if (!res.ok) continue;
