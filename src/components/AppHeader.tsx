@@ -23,6 +23,7 @@ export function AppHeader() {
               <Button
                 variant="ghost"
                 size="sm"
+                aria-label="Sair"
                 onClick={async () => {
                   await signOut();
                   navigate({ to: "/" });

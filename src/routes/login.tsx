@@ -11,7 +11,16 @@ import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Entrar — Peticiona.AI" }] }),
+  head: () => ({
+    meta: [
+      { title: "Entrar — Peticiona.AI" },
+      { name: "description", content: "Acesse sua conta Peticiona.AI para redigir e gerenciar peças jurídicas com IA." },
+      { property: "og:title", content: "Entrar — Peticiona.AI" },
+      { property: "og:description", content: "Acesse sua conta Peticiona.AI para redigir e gerenciar peças jurídicas com IA." },
+      { property: "og:url", content: "https://peticionaai-byadvocacyai.lovable.app/login" },
+    ],
+    links: [{ rel: "canonical", href: "https://peticionaai-byadvocacyai.lovable.app/login" }],
+  }),
   component: LoginPage,
 });
 
@@ -46,7 +55,8 @@ function LoginPage() {
       <Card className="glass w-full max-w-md p-8 border-border/50">
         <div className="flex flex-col items-center mb-6">
           <BrandLockup size="lg" variant="stacked" glow />
-          <p className="mt-4 text-sm text-muted-foreground">Bem-vindo(a) de volta</p>
+          <h1 className="mt-4 text-2xl font-semibold">Entrar</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Bem-vindo(a) de volta</p>
         </div>
         <Button variant="outline" className="w-full" onClick={googleSignIn}>
           Continuar com Google
