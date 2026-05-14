@@ -77,6 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Peticiona.AI" },
       { name: "description", content: "Peticiona.AI — plataforma AI-Native para advogados brasileiros." },
       { name: "author", content: "Advocacy.AI" },
+      { name: "google-site-verification", content: "-kgr6SQw6Z1lOMGfNQHptU0Wt3t4BN9Nu4E7a33fx0A" },
       { property: "og:site_name", content: "Peticiona.AI" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
