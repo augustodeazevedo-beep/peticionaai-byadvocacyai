@@ -9,7 +9,16 @@ import { BrandLockup } from "@/components/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Recuperar senha — Peticiona.AI" }] }),
+  head: () => ({
+    meta: [
+      { title: "Recuperar senha — Peticiona.AI" },
+      { name: "description", content: "Redefina a senha da sua conta Peticiona.AI por e-mail." },
+      { property: "og:title", content: "Recuperar senha — Peticiona.AI" },
+      { property: "og:description", content: "Redefina a senha da sua conta Peticiona.AI por e-mail." },
+      { property: "og:url", content: "https://peticionaai-byadvocacyai.lovable.app/reset-password" },
+    ],
+    links: [{ rel: "canonical", href: "https://peticionaai-byadvocacyai.lovable.app/reset-password" }],
+  }),
   component: ResetPage,
 });
 

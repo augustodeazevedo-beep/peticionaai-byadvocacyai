@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
@@ -33,6 +34,11 @@ import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 import { Route as AuthenticatedBibliotecaModelosIdRouteImport } from './routes/_authenticated.biblioteca.modelos.$id'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/assistentes': typeof AuthenticatedAssistentesRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/assistentes': typeof AuthenticatedAssistentesRoute
   '/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/cnj': typeof AuthenticatedCnjRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/assistentes': typeof AuthenticatedAssistentesRoute
   '/_authenticated/bibliotecarios': typeof AuthenticatedBibliotecariosRoute
   '/_authenticated/cnj': typeof AuthenticatedCnjRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/sitemap.xml'
     | '/assistentes'
     | '/bibliotecarios'
     | '/cnj'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/sitemap.xml'
     | '/assistentes'
     | '/bibliotecarios'
     | '/cnj'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/sitemap.xml'
     | '/_authenticated/assistentes'
     | '/_authenticated/bibliotecarios'
     | '/_authenticated/cnj'
@@ -316,6 +328,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PSlugRoute: typeof PSlugRoute
   ApiPublicAdvogaProcessContextRoute: typeof ApiPublicAdvogaProcessContextRoute
   ApiPublicInventariaProcessContextRoute: typeof ApiPublicInventariaProcessContextRoute
@@ -323,6 +336,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -548,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   PSlugRoute: PSlugRoute,
   ApiPublicAdvogaProcessContextRoute: ApiPublicAdvogaProcessContextRoute,
   ApiPublicInventariaProcessContextRoute:

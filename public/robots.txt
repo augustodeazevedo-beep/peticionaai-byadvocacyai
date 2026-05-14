@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /workspace
+Disallow: /admin
+Disallow: /pecas
+Disallow: /biblioteca
+Disallow: /configuracoes
+Disallow: /assistentes
+Disallow: /bibliotecarios
+Disallow: /cnj
+Disallow: /compartilhamentos
+Disallow: /ferramentas
+Disallow: /historico-lote
+Disallow: /api/
+
+Sitemap: https://peticionaai-byadvocacyai.lovable.app/sitemap.xml

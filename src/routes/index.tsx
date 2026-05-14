@@ -14,8 +14,33 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Plataforma AI-Native para redação técnica de petições, com fundamentação, anti-alucinação e exportação ABNT. Por Advocacy.AI." },
       { property: "og:title", content: "Peticiona.AI — Redação assistida de peças jurídicas" },
       { property: "og:description", content: "Wizard guiado, persona jurídica sênior e exportação .docx em padrão ABNT." },
+      { property: "og:url", content: "https://peticionaai-byadvocacyai.lovable.app/" },
+      { name: "twitter:title", content: "Peticiona.AI — Redação assistida de peças jurídicas" },
+      { name: "twitter:description", content: "Wizard guiado, persona jurídica sênior e exportação .docx em padrão ABNT." },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://peticionaai-byadvocacyai.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Peticiona.AI",
+              url: "https://peticionaai-byadvocacyai.lovable.app/",
+              logo: "https://peticionaai-byadvocacyai.lovable.app/favicon.png",
+              parentOrganization: { "@type": "Organization", name: "Advocacy.AI" },
+            },
+            {
+              "@type": "WebSite",
+              name: "Peticiona.AI",
+              url: "https://peticionaai-byadvocacyai.lovable.app/",
+            },
+          ],
+        }),
+      },
+    ],
   }),
   component: Landing,
 });
