@@ -1,0 +1,12 @@
+# Peticiona.AI
+
+> Plataforma AI-Native para redação técnica de petições e peças jurídicas no Brasil, parte do ecossistema Advocacy.AI.
+
+Peticiona.AI guia o advogado por um wizard estruturado, gera peças com persona jurídica sênior, aplica regras anti-alucinação e exporta em padrão ABNT (.docx).
+
+## Pages
+
+- [Início](/): Visão geral, como funciona e diferenciais da plataforma.
+- [Entrar](/login): Acesso à conta.
+- [Criar conta](/signup): Cadastro de nova conta.
+- [Recuperar senha](/reset-password): Redefinição de senha por e-mail.
