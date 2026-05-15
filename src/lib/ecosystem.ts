@@ -1,8 +1,9 @@
-import { Briefcase, FileText, GraduationCap, Scale, Target, Wallet, type LucideIcon } from "lucide-react";
+import { Briefcase, FileText, GraduationCap, Landmark, Scale, Wallet, type LucideIcon } from "lucide-react";
 
 export type EcosystemApp = {
-  id: "prospect" | "inventaria" | "peticione" | "advoga" | "fin" | "study";
+  id: "advocase" | "advoga" | "peticione" | "inventaria" | "fin" | "study";
   name: string;
+  category: string;
   tagline: string;
   url: string;
   icon: LucideIcon;
@@ -11,46 +12,52 @@ export type EcosystemApp = {
 
 export const ECOSYSTEM_APPS: EcosystemApp[] = [
   {
-    id: "prospect",
-    name: "Prospect.AI",
-    tagline: "Captação inteligente de clientes",
-    url: "https://prospectai-byadvocacyai.lovable.app",
-    icon: Target,
+    id: "advocase",
+    name: "Advocase.AI",
+    category: "CRM · SDR",
+    tagline: "Capte, qualifique e converta clientes com inteligência preditiva.",
+    url: "https://advocaseai-byadvocacyai.lovable.app",
+    icon: Briefcase,
   },
   {
-    id: "inventaria",
-    name: "Inventaria.AI",
-    tagline: "Planejamento patrimonial e sucessório",
-    url: "https://inventariaai.lovable.app",
+    id: "advoga",
+    name: "Advoga.AI",
+    category: "Gestão",
+    tagline: "Processos, prazos e escritório operando em fluxo contínuo.",
+    url: "https://advogaai-byadvocacyai.lovable.app",
     icon: Scale,
   },
   {
     id: "peticione",
     name: "Peticiona.AI",
-    tagline: "Petições, minutas e contratos",
+    category: "Documental",
+    tagline: "Petições, minutas e contratos gerados em minutos, sob seu padrão.",
     url: "https://peticionaai-byadvocacyai.lovable.app",
     icon: FileText,
     current: true,
   },
   {
-    id: "advoga",
-    name: "Advoga.AI",
-    tagline: "Gestão de processos e escritório",
-    url: "https://advogaai-byadvocacy.lovable.app",
-    icon: Briefcase,
+    id: "inventaria",
+    name: "Inventaria.AI",
+    category: "Patrimonial",
+    tagline: "Planejamento sucessório e patrimonial guiado por dados.",
+    url: "https://inventariaai-byadvocacyai.lovable.app",
+    icon: Landmark,
   },
   {
     id: "fin",
     name: "Fin.AI",
-    tagline: "Gestão financeira do escritório",
-    url: "https://finai-byadvocacyia.lovable.app",
+    category: "Financeiro",
+    tagline: "Conciliação, honorários e fluxo de caixa em tempo real.",
+    url: "https://finai-byadvocacyai.lovable.app",
     icon: Wallet,
   },
   {
     id: "study",
     name: "Study.AI",
-    tagline: "Estudo e formação jurídica com IA",
-    url: "https://studyai-plataforma.lovable.app",
+    category: "Educação",
+    tagline: "Estudos jurídicos personalizados com IA adaptativa.",
+    url: "https://studyai-byadvocacyai.lovable.app",
     icon: GraduationCap,
   },
 ];

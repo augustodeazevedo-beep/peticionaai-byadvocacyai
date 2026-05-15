@@ -4,8 +4,9 @@ import { AppFooter } from "@/components/AppFooter";
 import { BrandLockup } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Sparkles, FileText, ShieldCheck, Workflow, BookOpen, Brain } from "lucide-react";
+import { ArrowRight, Sparkles, FileText, ShieldCheck, Workflow, BookOpen, Brain, ExternalLink } from "lucide-react";
 import heroBg from "@/assets/hero-background.jpg";
+import { ECOSYSTEM_APPS } from "@/lib/ecosystem";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -122,7 +123,7 @@ function Landing() {
             {[
               { icon: ShieldCheck, title: "Anti-alucinação", desc: "Não inventa jurisprudência nem assume fatos. Sinaliza pendências para revisão." },
               { icon: BookOpen, title: "Padrão ABNT", desc: "Formatação Arial 12, espaçamento 1,5, citações conforme NBR 10520:2023." },
-              { icon: Sparkles, title: "Ecossistema Advocacy.AI", desc: "Conversa com Prospect.AI, Advoga.AI e Fin.AI — do prospect ao financeiro." },
+              { icon: Sparkles, title: "Ecossistema Advocacy.AI", desc: "Conversa com Advocase.AI, Advoga.AI, Inventaria.AI, Fin.AI e Study.AI — da captação ao financeiro." },
             ].map((s) => (
               <Card key={s.title} className="glass p-6 border-border/50">
                 <s.icon className="h-8 w-8 text-accent mb-4" />
@@ -135,23 +136,57 @@ function Landing() {
 
         {/* Ecossistema */}
         <section className="container mx-auto px-4 py-20">
-          <h2 className="text-center text-3xl font-bold mb-3">O ecossistema Advocacy.AI</h2>
-          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-            Quatro plataformas que se conversam para cobrir todo o ciclo do escritório moderno.
+          <div className="flex justify-center mb-6">
+            <span className="inline-flex items-center rounded-full border border-primary/40 px-4 py-1 text-[10px] uppercase tracking-[0.25em] text-primary font-mono">
+              Ecossistema Advocacy<span className="text-gradient-brand">.AI</span>
+            </span>
+          </div>
+          <h2 className="text-center text-4xl md:text-5xl font-bold mb-6 tracking-tight">
+            Uma marca. Seis cérebros.<br />Um só ecossistema.
+          </h2>
+          <p className="text-center text-muted-foreground max-w-3xl mx-auto mb-12">
+            A <strong className="text-foreground">Advocacy.AI</strong> é o Legal AI Lab que projeta, opera e evolui uma suíte AI-Native de produtos jurídicos — cada um especializado em um eixo crítico da advocacia moderna: <strong className="text-foreground">captação, gestão, documentos, patrimônio, finanças e estudo</strong>. Diferentes funções, mesma identidade visual e mesma inteligência conectada.
           </p>
-          <div className="grid gap-4 md:grid-cols-4">
-            {[
-              { name: "Prospect.AI", desc: "Captação inteligente de clientes." },
-              { name: "Advoga.AI", desc: "Gestão completa do escritório." },
-              { name: "Peticiona.AI", desc: "Redação assistida de peças.", current: true },
-              { name: "Fin.AI", desc: "Financeiro e cobrança." },
-            ].map((p) => (
-              <Card key={p.name} className={`p-5 ${p.current ? "border-primary/50 bg-primary/5" : "glass border-border/50"}`}>
-                <div className="text-sm font-mono text-gradient-brand">{p.name}</div>
-                <p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
-                {p.current && <div className="mt-3 text-xs text-primary">Você está aqui</div>}
-              </Card>
-            ))}
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {ECOSYSTEM_APPS.map((app) => {
+              const Icon = app.icon;
+              const inner = (
+                <Card
+                  className={`relative h-full p-6 transition-all ${
+                    app.current
+                      ? "border-primary/60 bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary)/0.4),0_0_40px_-10px_hsl(var(--primary)/0.5)]"
+                      : "glass border-border/50 hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-md bg-secondary/60 border border-border/50">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-primary font-mono">
+                      {app.category}
+                      {!app.current && <ExternalLink className="h-2.5 w-2.5" />}
+                    </span>
+                  </div>
+                  <div className="text-xl font-semibold tracking-tight">
+                    {app.name.replace(/\.AI$/, "")}
+                    <span className="font-mono text-gradient-brand">.AI</span>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">{app.tagline}</p>
+                  {app.current && (
+                    <span className="mt-5 inline-flex items-center rounded-full border border-primary/40 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-primary font-mono">
+                      Você está aqui
+                    </span>
+                  )}
+                </Card>
+              );
+              return app.current ? (
+                <div key={app.id}>{inner}</div>
+              ) : (
+                <a key={app.id} href={app.url} target="_blank" rel="noopener noreferrer" className="block">
+                  {inner}
+                </a>
+              );
+            })}
           </div>
         </section>
 
