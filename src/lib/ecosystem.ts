@@ -12,7 +12,6 @@ export type EcosystemApp = {
 
 export const ECOSYSTEM_APPS: EcosystemApp[] = [
   {
-  {
     id: "advocase",
     name: "Advocase.AI",
     category: "CRM · SDR",
