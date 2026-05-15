@@ -2,7 +2,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { BrandLockup } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { LogOut } from "lucide-react";
+import { LogOut, LayoutGrid, Check, ExternalLink } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ECOSYSTEM_APPS } from "@/lib/ecosystem";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
@@ -15,6 +21,7 @@ export function AppHeader() {
           <BrandLockup size="md" variant="horizontal" />
         </Link>
         <div className="flex items-center gap-2">
+          <AppsMenu />
           {user ? (
             <>
               <Button size="sm" className="bg-gradient-brand text-primary-foreground" asChild>
