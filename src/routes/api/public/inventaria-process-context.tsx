@@ -36,6 +36,29 @@ const PayloadSchema = z.object({
   attachments: z.array(Attachment).max(20).optional().default([]),
 });
 
+function isAllowedAttachmentUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    // Permitir apenas HTTPS
+    if (parsed.protocol !== "https:") return false;
+    // Bloquear IPs privados e link-local
+    const hostname = parsed.hostname;
+    if (
+      hostname === "localhost" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname === "169.254.169.254" || // AWS metadata
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    ) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
@@ -65,6 +88,10 @@ async function downloadAttachment(
   pieceId: string,
 ): Promise<{ storage_path: string; size: number; mime: string } | null> {
   try {
+    if (!isAllowedAttachmentUrl(att.url)) {
+      console.warn("Blocked SSRF attempt for URL:", att.url);
+      return null;
+    }
     const res = await fetch(att.url, { redirect: "follow" });
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
@@ -124,12 +151,15 @@ export const Route = createFileRoute("/api/public/inventaria-process-context")({
           await logIntegration({
             integration: "inventaria_inbound",
             endpoint: "/api/public/inventaria-process-context",
-            status_code: 404,
+            status_code: 202,
             ok: false,
             duration_ms: Date.now() - started,
-            request_summary: `owner_email=${payload.owner_email}`,
+            request_summary: `owner_email=<redacted>`,
           });
-          return jsonResponse({ error: "Owner not found" }, 404);
+          return new Response(JSON.stringify({ message: "Request received" }), {
+            status: 202,
+            headers: { "Content-Type": "application/json", ...CORS },
+          });
         }
 
         // Dedup by external_id within user
