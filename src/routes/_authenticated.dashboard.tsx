@@ -9,6 +9,8 @@ import { FilePlus, FileText } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import heroBg from "@/assets/dashboard-hero-bg.jpg";
+import { KpiCards } from "@/components/dashboard/KpiCards";
+import { ProductionChart } from "@/components/dashboard/ProductionChart";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Peticiona.AI" }] }),
@@ -53,6 +55,8 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <DashboardHero name={fullName} />
+      <KpiCards />
+      <ProductionChart />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Minhas peças</h1>
