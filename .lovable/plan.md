@@ -1,96 +1,87 @@
-## Auditoria completa — achados e plano de correção
+# Plano: 4 Novas Features (1A–1D)
 
-Varredura cobriu: linter Supabase, security scanner (Supabase + TanStack), edge functions, server functions, RLS, fluxo de geração e renderização de peças, autenticação e logs. Linter sem alertas; scanner reportou **8 achados** e a leitura manual revelou **3 bugs adicionais** (incluindo um que degrada qualidade do output).
-
----
-
-### 🔴 Críticos (segurança)
-
-**C1. `lookupCnjMetadata` sem autenticação + chave DataJud hardcoded** — `src/lib/cnj.functions.ts`
-- Server function exposta sem `requireSupabaseAuth`. Qualquer um pode invocar via RPC.
-- Chave `APIKey cDZHYzlZa0JadVREZDJCendQbXY...` literal no código (já vazada no histórico).
-- **Correção:** adicionar middleware `requireSupabaseAuth`; mover chave para `process.env.DATAJUD_API_KEY` (secret); usar a chave pública do CNJ se for o caso e documentar; rotacionar chave atual.
-
-**C2. `analyze-visual-law` e `generate-visual-law` — checagem dupla de auth** — `supabase/functions/{analyze,generate}-visual-law/index.ts`
-- `verify_jwt = true` no `config.toml` já barra anônimos no gateway, mas o handler não revalida nem extrai `userId` para logging/quota. Sem cap no `currentContent`.
-- **Correção:** acrescentar verificação de bearer + `supabase.auth.getUser` (espelhar `mike-generate`); validar payload com Zod (`currentContent` máx. 50 000 chars; `direction`, `density` whitelisted); registrar usage em `token_usage`.
+Implementação sequencial dos 4 prompts, todos em frontend + 1 migração leve para persistir preferências de IA.
 
 ---
 
-### 🟠 Altos (segurança / privacidade)
+## 1A — Skills Jurídicas (Comandos Rápidos) em `/pecas/nova`
 
-**A1. Bucket `office-brand` público** — qualquer URL adivinhável expõe logos/assinatura.
-- **Correção:** tornar privado e gerar **signed URLs** no `LogoUploader` e no PageMockup, ou adicionar policy SELECT em `storage.objects` restrita ao dono do path. (Logos costumam ser públicos por design — confirmar se é desejado; se sim, ignorar com justificativa em `security_memory`.)
+**Novo componente:** `src/components/pieces/QuickCommandsPanel.tsx`
+- Painel lateral (sticky à direita em `lg:`, accordion no mobile) com lista de 5 skills.
+- Cada skill: `slug` (ex: `/contestacao-clt`), `label`, `description` (tooltip), `area`, `piece_type`, `prompt_hints`, `defaults` (campos a injetar no form).
+- Campo de busca (`Input` + filtro client-side por slug/label/description).
+- `Tooltip` do shadcn ao hover.
 
-**A2. Compartilhamento público vaza `input_data` e `observations`** — RLS `pieces public read by slug`.
-- Política libera **todas** colunas. `input_data` contém fatos do cliente; `observations` traz auditoria interna; `model_used` revela vendor.
-- **Correção:** criar **view** `public.pieces_public` apenas com `id, title, content_html, updated_at, public_slug` e dar SELECT a `anon`/`authenticated`. Trocar policy da tabela para apenas `is_shared = true` em colunas seguras via view; client público (`p.$slug.tsx`) passa a ler da view.
+**Arquivo de dados:** `src/lib/quickCommands.ts`
+- Array tipado com as 5 skills mapeando para `piece_type`/`area` existentes em `cognitiveOs.ts`.
+- Para itens sem `piece_type` exato (cálculo, resumo de audiência, prazo), usar tipo genérico mais próximo (ex: `peticao_diversa`) + injetar `contexto` e `teses_principais`.
 
-**A3. `vl_versions` expõe `prompt`, `risk`, `validation`, `legal_metadata` em links públicos.**
-- **Correção:** mesma abordagem A2 — view `vl_versions_public` com `content, direction, created_at` apenas.
-
-**A4. Admin guard apenas client-side** — `_authenticated.admin.integracoes.tsx`
-- Protegido só por `useEffect`. Hoje a tabela `system_settings` tem RLS `has_role(admin)`, então leitura/escrita já é segura no backend. O risco é vazamento da estrutura da UI.
-- **Correção:** adicionar `beforeLoad` na rota chamando server fn `requireAdmin()` que valida via `has_role` no servidor e `throw redirect`. Manter RLS atual.
-
----
-
-### 🟡 Médios (qualidade / robustez)
-
-**M1. Verbosidade de erros** — `export-document/index.ts:213` e `export-piece-docx/index.ts:208` retornam `e.message` ao cliente.
-- **Correção:** logar `console.error(e)` e retornar `"Erro ao gerar o documento."` genérico.
-
-**M2. Persona/persona prompts em `system_settings` legíveis por todo usuário autenticado** — policy `system_settings read non-secret`. Hoje vários prompts ficam com `is_secret = false`.
-- **Correção:** marcar `peticiona_persona`, `peticiona_shadow_cabinet`, `cognitive_os_config` como `is_secret = true` e ajustar leitura para edge functions (já usam service role).
+**Integração:** `src/routes/_authenticated.pecas.nova.tsx`
+- Layout vira `grid lg:grid-cols-[1fr_280px]` com `QuickCommandsPanel` à direita.
+- `onSelectCommand(cmd)` → `setForm(f => ({ ...f, area: cmd.area, piece_type: cmd.piece_type, title: f.title || cmd.label, contexto: cmd.promptSeed, ...cmd.defaults }))` + `toast.success("Comando aplicado")`.
 
 ---
 
-### 🐛 Bugs funcionais (qualidade do output)
+## 1B — Segurança e Governança em `/configuracoes/ia`
 
-**B1. `content_html` salvo como markdown bruto em `_authenticated.pecas.$id.tsx`** (linhas 92, 108, 122, 127, 140)
-- Após edição/regeneração/remontagem o `update` grava `content_html: content` (texto markdown), enquanto a criação inicial em `pecas.nova.tsx` converte com `markdownToHtml`. Resultado: link público (`/p/$slug`) e o painel HTML passam a exibir asteriscos e `#` em texto puro a partir da primeira edição.
-- **Correção:** extrair `markdownToHtml` para `src/lib/markdown.ts` (ou usar `marked` que já está no projeto via `services/visual-law/markdown.ts`) e aplicá-lo em todas as 5 chamadas de update; sanitizar com DOMPurify antes de exibir.
+**Migração:** adicionar colunas em `profiles` (ou nova tabela `ai_governance_prefs` por user_id) — `defensive_mode bool`, `human_in_loop bool`, `temporary_chats bool`, `ai_disclosure_enabled bool`, `ai_disclosure_text text`. Default ligado para defensive_mode e disclosure.
 
-**B2. Streaming SSE pode não fechar em desconexão do cliente** — `mike-generate/index.ts` linha 137 (IIFE não-awaitada)
-- Se o usuário aborta, `writer.close()` ainda roda e o callback de persistência de `token_usage` executa, mas `await writeEvent("done", ...)` pode falhar silenciosamente. Não bloqueante hoje, mas vale checar `req.signal` no loop e abortar `provider(...)`.
-- **Correção:** propagar `req.signal` para `provider` e `pipeDraftStream`; encerrar pipeline cedo quando `aborted`.
+**UI:** seção "Segurança e Governança" em `_authenticated.configuracoes.ia.tsx` com 4 `Switch` + textarea editável para a frase de disclosure. Persistência via supabase.
 
-**B3. `markdownToHtml` artesanal incompleto** — `pecas.nova.tsx:26-95`
-- Não trata blockquotes, links, escapes; e na linha 64 fecha lista escolhendo `</ul>` ou `</ol>` por inspeção do HTML — quebra com listas aninhadas.
-- **Correção:** consolidar com `marked` (já dependência) + DOMPurify, e remover a função artesanal.
+**Hook global:** `src/lib/aiGovernance.ts` (`useAIGovernance()`) que carrega as prefs do user e expõe:
+- `defensiveSystemPrompt` (string injetada em todas chamadas a `generatePieceCognitive`/visual-law quando ligado).
+- `appendDisclosure(content)` helper aplicado em `pieceAssembler.ts` e `exportPdfProtocolo.tsx` antes do export.
+- `requireHumanReview` flag consumido pelo `Pecas/$id` (modal antes de exportar/compartilhar).
+- `skipPersistence` consumido em `_authenticated.workspace.tsx` e `pecas.nova.tsx` (não chama `supabase.from("pieces").insert`).
+
+**Ícone de status:** em `AppHeader.tsx`, badge `Shield` (verde/vermelho) com tooltip quando defensive_mode on/off, link para `/configuracoes/ia`.
+
+**Aviso:** "Modo Defensivo" e "Disclosure" são auxílios de governança — devem ser apresentados como mitigação, não garantia absoluta contra prompt injection.
 
 ---
 
-### Plano de execução (ordem proposta)
+## 1C — Otimizador de Tokens em `/workspace`
 
-1. **C1 + DataJud secret** — middleware `requireSupabaseAuth` em `lookupCnjMetadata`, mover chave para `DATAJUD_API_KEY`, pedir secret e rotacionar.
-2. **C2** — auth + Zod + caps nas duas funções visual-law; registrar `token_usage`.
-3. **B1 + B3** — criar `src/lib/markdown.ts` com `marked` + `DOMPurify`; substituir nas 5 chamadas de update e na criação.
-4. **A2 + A3** — migration: views públicas `pieces_public` e `vl_versions_public`; trocar policies; ajustar `p.$slug.tsx`.
-5. **A4** — server fn `requireAdmin` + `beforeLoad` em rotas admin.
-6. **M1** — erros genéricos nas duas edge functions de export.
-7. **M2** — `is_secret = true` nos prompts sensíveis.
-8. **A1** — decisão sobre `office-brand` (privado + signed URLs OU manter público com justificativa em security memory).
-9. **B2** — propagar `AbortSignal` no pipeline cognitivo.
+**Novo componente:** `src/components/workspace/UsagePanel.tsx`
+- **Contador circular** de tokens (SVG, baseado em `(messages.length * avgTokens)` estimado via `lib/tokenEstimate.ts` simples — `text.length / 4`). Limite default 128k configurável.
+- **Botão "Novo Chat"** sempre visível; `useEffect` dispara `toast` quando `messages.length > 20` (uma vez por sessão via ref).
+- **Botão "Converter PDF→Markdown"**: input file aceitando `.pdf`, usa `pdfjs-dist` (já não instalado? — adicionar) ou fallback `unpdf` (Worker-friendly, ESM). Extrai texto, formata como markdown e insere no `ContextComposer` em vez do PDF original.
+- **MCPs ativos**: lista mock dos integrações ativas (`user_integrations` table) com toggle. Reusa `useIntegrationsStore` se existir; caso contrário, leitura simples + update no Supabase.
 
-### Detalhes técnicos
+**Integração:** `_authenticated.workspace.tsx` ganha coluna lateral `lg:grid-cols-[1fr_300px]` ou panel colapsável no topo.
 
-**Arquivos a editar/criar**
-- `src/lib/cnj.functions.ts` — middleware + env
-- `src/lib/markdown.ts` (novo) — `markdownToHtml(md)` com `marked` + `DOMPurify`
-- `src/routes/_authenticated.pecas.{nova,$id}.tsx` — usar markdown lib
-- `supabase/functions/{analyze,generate}-visual-law/index.ts` — auth + Zod
-- `supabase/functions/{export-document,export-piece-docx}/index.ts` — erro genérico
-- `src/routes/p.$slug.tsx` — ler de view pública
-- `src/lib/admin.functions.ts` (novo) — `requireAdmin` server fn; `_authenticated.admin.integracoes.tsx` — `beforeLoad`
-- Migrations: views `pieces_public`, `vl_versions_public`; policies revisadas; storage policy `office-brand` (se privado); `system_settings is_secret`
+**Lib:** `src/lib/tokenEstimate.ts` exporta `estimateTokens(text)` e `TOKEN_LIMIT`.
 
-**Pacote novo**
-- `bun add isomorphic-dompurify` (DOMPurify Worker-safe)
+---
 
-**Fora de escopo**
-- Reescrever pipeline cognitivo
-- Migrar autenticação para SSR completo
-- Auditoria de dependências npm (cobrir em loop separado)
+## 1D — Dashboard com KPIs em `/dashboard`
 
-Confirma esse escopo? Posso priorizar somente os críticos (C1, C2, B1) se preferir entregar em ondas menores.
+**Novo componente:** `src/components/dashboard/KpiCards.tsx` + `ProductionChart.tsx`
+- Queries Supabase (executadas em paralelo via `useQueries`):
+  - **Hoje vs ontem:** `count(*) from pieces where user_id=? and created_at >= today` e `between yesterday and today`. Calcula delta e seta `↑`/`↓` com cor.
+  - **Tempo médio:** `avg(updated_at - created_at)` em segundos para peças com `status='ready'` nos últimos 30d.
+  - **Top 3 templates:** `group by template_id, count(*) order by desc limit 3` (join com `piece_templates.name`).
+  - **Peças compartilhadas:** `count from p_slug ... where is_public=true` (verificar tabela existente — provavelmente `pieces.share_slug is not null`; checar schema antes da query final).
+  - **Histórico em lote:** últimas 5 de uma tabela `batch_runs` se existir, senão usar `integration_logs` filtrado por `kind='batch'`. Se nada disponível, mostrar estado vazio + nota.
+
+- **Gráfico de linha (7 dias):** usar `recharts` (verificar se já instalado nos charts shadcn — sim, `src/components/ui/chart.tsx`). `LineChart` com `date_trunc('day', created_at)`. Cores: `hsl(var(--accent))` (cyan) e fundo `hsl(var(--primary))` (azul escuro) para alinhar com o gradiente da marca.
+
+**Integração:** `_authenticated.dashboard.tsx` insere grid de KPIs acima da lista de peças (mantém hero atual).
+
+---
+
+## Sequência de execução
+
+1. Confirmar schema (`pieces.share_slug`? tabela `batch_runs`?) — uma query rápida ao começar build.
+2. Migração de `ai_governance_prefs`.
+3. 1B (base de governança + hook global) — necessária para os outros consumirem `appendDisclosure`/`skipPersistence`.
+4. 1A (Quick Commands) — isolado, frontend puro.
+5. 1C (Usage Panel + PDF→MD) — instalar `unpdf`.
+6. 1D (KPIs + chart) — frontend + queries.
+
+## Pontos a confirmar
+
+- **Limite de tokens default** para o medidor circular: 128k? configurável por usuário?
+- **PDF→MD:** ok adicionar dependência `unpdf` (~150kb, Worker-friendly)? Alternativa é uma server function que faz parsing — mais robusto mas mais lento.
+- **Disclosure no PDF:** rodapé em todas as páginas ou só na última?
+- **Cores do gráfico:** manter gradiente cyan→violeta da marca (atual) ou trocar para "verde + azul escuro" como descrito no prompt 1D (que diverge da identidade atual)?
