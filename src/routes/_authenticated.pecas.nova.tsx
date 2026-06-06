@@ -15,6 +15,9 @@ import type { PieceFormData } from "@/lib/cognitiveOs";
 import { TemplatePicker } from "@/components/templates/TemplatePicker";
 import { incrementUsage, renderTemplate, type PieceTemplate } from "@/lib/pieceTemplates";
 import { markdownToHtml } from "@/lib/markdown";
+import { QuickCommandsPanel } from "@/components/pieces/QuickCommandsPanel";
+import type { QuickCommand } from "@/lib/quickCommands";
+import { useAIGovernance, DEFENSIVE_SYSTEM_PROMPT } from "@/lib/aiGovernance";
 
 export const Route = createFileRoute("/_authenticated/pecas/nova")({
   head: () => ({ meta: [{ title: "Nova Peça — Peticiona.AI" }] }),
@@ -64,6 +67,12 @@ function NovaPeca() {
   const [steps, setSteps] = useState<Record<CognitiveStep, StepState>>(STEP_INITIAL);
   const [draftPreview, setDraftPreview] = useState("");
   const [template, setTemplate] = useState<PieceTemplate | null>(null);
+  const { prefs, appendDisclosure } = useAIGovernance();
+
+  function applyQuickCommand(cmd: QuickCommand) {
+    setForm((f) => ({ ...f, ...cmd.defaults, title: f.title || cmd.defaults.title || cmd.label }));
+    toast.success(`Comando ${cmd.slug} aplicado`);
+  }
 
   function onSelectTemplate(t: PieceTemplate | null) {
     setTemplate(t);
@@ -87,6 +96,7 @@ function NovaPeca() {
     setSteps({ ...STEP_INITIAL });
     setDraftPreview("");
     try {
+      const skipPersist = prefs.temporary_chats;
       const { data: piece, error: insErr } = await supabase
         .from("pieces")
         .insert({
@@ -107,6 +117,7 @@ function NovaPeca() {
         area: form.area,
         fields: form,
         context: [
+          prefs.defensive_mode ? `\n\n${DEFENSIVE_SYSTEM_PROMPT}\n\n` : "",
           form.contexto || "",
           template?.prompt_hints ? `\n\n[INSTRUÇÕES DO MODELO "${template.name}"]\n${template.prompt_hints}` : "",
           template?.content_md
@@ -137,7 +148,8 @@ function NovaPeca() {
         onDelta: (t) => setDraftPreview((prev) => prev + t),
       });
 
-      const contentHtml = markdownToHtml(result.content);
+      const finalContent = appendDisclosure(result.content);
+      const contentHtml = markdownToHtml(finalContent);
       const auditNotes =
         (result.intelligence?.audit as { operator_notes?: string[] } | undefined)?.operator_notes ?? [];
 
@@ -145,7 +157,7 @@ function NovaPeca() {
         .from("pieces")
         .update({
           status: "ready",
-          content_text: result.content,
+          content_text: finalContent,
           content_html: contentHtml,
           model_used: result.model_used,
           checklist: JSON.parse(JSON.stringify(result.intelligence ?? {})),
@@ -153,12 +165,31 @@ function NovaPeca() {
         })
         .eq("id", piece.id);
 
+      if (skipPersist) {
+        // Chats temporários: remover a peça após a geração
+        await supabase.from("pieces").delete().eq("id", piece.id);
+      }
+
       if (template) {
         await incrementUsage(template.id).catch(() => {});
       }
 
+      if (prefs.human_in_loop) {
+        const ok = window.confirm(
+          "Human-in-the-Loop ativo: confirme a revisão humana antes de visualizar a peça gerada.",
+        );
+        if (!ok) {
+          toast.warning("Revisão pendente — peça mantida em rascunho.");
+          return;
+        }
+      }
       toast.success("Peça gerada com sucesso!");
-      navigate({ to: "/pecas/$id", params: { id: piece.id } });
+      if (!skipPersist) {
+        navigate({ to: "/pecas/$id", params: { id: piece.id } });
+      } else {
+        toast.info("Modo Chat Temporário: a peça não foi salva no histórico.");
+        navigate({ to: "/dashboard" });
+      }
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Erro ao gerar peça");
@@ -175,7 +206,7 @@ function NovaPeca() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="mx-auto max-w-6xl">
       <div>
         <h1 className="text-3xl font-bold">Nova Peça</h1>
         <p className="text-muted-foreground">
@@ -183,25 +214,30 @@ function NovaPeca() {
         </p>
       </div>
 
-      <form onSubmit={onGenerate} className="space-y-6">
-        <TemplatePicker
-          area={form.area}
-          pieceType={form.piece_type}
-          selectedId={template?.id ?? null}
-          onSelect={onSelectTemplate}
-        />
-        <PieceFormSections
-          form={form}
-          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
-        />
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+        <form onSubmit={onGenerate} className="space-y-6">
+          <TemplatePicker
+            area={form.area}
+            pieceType={form.piece_type}
+            selectedId={template?.id ?? null}
+            onSelect={onSelectTemplate}
+          />
+          <PieceFormSections
+            form={form}
+            onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+          />
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Cancelar</Button>
-          <Button type="submit" disabled={loading} className="bg-gradient-brand text-primary-foreground">
-            <Sparkles className="mr-2 h-4 w-4" /> {loading ? "Gerando peça..." : "Gerar peça com IA"}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Cancelar</Button>
+            <Button type="submit" disabled={loading} className="bg-gradient-brand text-primary-foreground">
+              <Sparkles className="mr-2 h-4 w-4" /> {loading ? "Gerando peça..." : "Gerar peça com IA"}
+            </Button>
+          </div>
+        </form>
+        <aside className="hidden lg:block">
+          <QuickCommandsPanel onSelect={applyQuickCommand} />
+        </aside>
+      </div>
 
       <PieceGenerationOverlay open={loading} steps={steps} draftPreview={draftPreview} />
     </div>
