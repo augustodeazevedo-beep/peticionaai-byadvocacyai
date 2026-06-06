@@ -25,16 +25,15 @@ function PublicPiece() {
     let cancelled = false;
     (async () => {
       const { data: pieceRow } = await supabase
-      .from("pieces")
+        .from("public_shared_pieces" as any)
         .select("id,title,content_text,content_html,updated_at")
-      .eq("public_slug", slug)
-      .eq("is_shared", true)
+        .eq("public_slug", slug)
         .maybeSingle();
       if (cancelled) return;
       setPiece(pieceRow);
       if (pieceRow && vlVersionId) {
         const { data: v } = await supabase
-          .from("vl_versions")
+          .from("public_shared_vl_versions" as any)
           .select("content,config")
           .eq("id", vlVersionId)
           .eq("piece_id", pieceRow.id)
