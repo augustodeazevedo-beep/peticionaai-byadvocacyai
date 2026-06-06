@@ -24,6 +24,27 @@ const Attachment = z.object({
   mime_type: z.string().min(1).max(120).optional(),
 });
 
+function isAllowedAttachmentUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    const hostname = parsed.hostname;
+    if (
+      hostname === "localhost" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname === "169.254.169.254" ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    ) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const PayloadSchema = z.object({
   external_id: z.string().min(1).max(255),
   numero_cnj: z.string().max(64).optional().nullable(),
@@ -72,6 +93,10 @@ async function downloadAttachment(
   pieceId: string,
 ): Promise<{ storage_path: string; size: number; mime: string } | null> {
   try {
+    if (!isAllowedAttachmentUrl(att.url)) {
+      console.warn("[advoga] Blocked SSRF attempt for attachment url", att.url);
+      return null;
+    }
     const res = await fetch(att.url, { redirect: "follow" });
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();

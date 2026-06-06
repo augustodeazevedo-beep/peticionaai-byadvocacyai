@@ -31,6 +31,24 @@ function hexClean(c: string | null | undefined, fallback = "283753") {
 async function fetchLogoBuffer(url: string | null | undefined): Promise<{ buf: Uint8Array; ext: "png" | "jpg" } | null> {
   if (!url) return null;
   try {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return null;
+    }
+    if (parsed.protocol !== "https:") return null;
+    const hostname = parsed.hostname;
+    if (
+      hostname === "localhost" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname === "169.254.169.254" ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    ) return null;
     const r = await fetch(url);
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "";
