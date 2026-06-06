@@ -87,7 +87,10 @@ export const verifyEncryptionPassphrase = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) return { ok: false, reason: "not_configured" as const };
 
-    const verifierSalt = Buffer.from(row.verifier_salt as unknown as string, "base64");
+    const raw = row.verifier_salt as unknown as string;
+    const verifierSalt = raw.startsWith("\\x")
+      ? Buffer.from(raw.slice(2), "hex")
+      : Buffer.from(raw, "base64");
     const ok = verifyPassphrase(data.passphrase, verifierSalt, row.verifier_hash, row.kdf_iterations);
     return { ok, reason: ok ? null : ("invalid" as const) };
   });
