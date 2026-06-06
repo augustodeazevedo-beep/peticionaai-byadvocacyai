@@ -97,6 +97,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "case_files_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "case_files_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -525,6 +532,13 @@ export type Database = {
             columns: ["piece_id"]
             isOneToOne: false
             referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piece_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
             referencedColumns: ["id"]
           },
         ]
@@ -993,6 +1007,13 @@ export type Database = {
             referencedRelation: "pieces_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       workspace_context_items: {
@@ -1113,6 +1134,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workspaces_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workspaces_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1150,6 +1178,72 @@ export type Database = {
         }
         Relationships: []
       }
+      public_shared_pieces: {
+        Row: {
+          area: string | null
+          content_html: string | null
+          content_text: string | null
+          id: string | null
+          piece_type: string | null
+          public_slug: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          id?: string | null
+          piece_type?: string | null
+          public_slug?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          id?: string | null
+          piece_type?: string | null
+          public_slug?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      public_shared_vl_versions: {
+        Row: {
+          config: Json | null
+          content: string | null
+          created_at: string | null
+          direction: string | null
+          id: string | null
+          piece_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vl_versions_public: {
         Row: {
           content: string | null
@@ -1171,6 +1265,13 @@ export type Database = {
             columns: ["piece_id"]
             isOneToOne: false
             referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vl_versions_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
             referencedColumns: ["id"]
           },
         ]
