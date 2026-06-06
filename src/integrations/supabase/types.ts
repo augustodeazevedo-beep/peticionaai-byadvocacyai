@@ -1049,6 +1049,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_encryption_keys: {
+        Row: {
+          created_at: string
+          hint: string | null
+          kdf_iterations: number
+          salt: string
+          updated_at: string
+          user_id: string
+          verifier_hash: string
+          verifier_salt: string
+        }
+        Insert: {
+          created_at?: string
+          hint?: string | null
+          kdf_iterations?: number
+          salt: string
+          updated_at?: string
+          user_id: string
+          verifier_hash: string
+          verifier_salt: string
+        }
+        Update: {
+          created_at?: string
+          hint?: string | null
+          kdf_iterations?: number
+          salt?: string
+          updated_at?: string
+          user_id?: string
+          verifier_hash?: string
+          verifier_salt?: string
+        }
+        Relationships: []
+      }
       user_integrations: {
         Row: {
           api_key_encrypted: string | null
