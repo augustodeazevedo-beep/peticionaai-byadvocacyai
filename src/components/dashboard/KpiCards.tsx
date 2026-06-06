@@ -21,7 +21,7 @@ type Kpis = {
   avgGenSec: number | null;
   topTemplates: { name: string; count: number }[];
   sharedCount: number;
-  recentBatches: { id: string; status: string | null; created_at: string; provider: string | null }[];
+  recentBatches: { id: string; ok: boolean | null; created_at: string; integration: string | null }[];
 };
 
 function startOfDay(d = new Date()) {
@@ -62,7 +62,7 @@ export function KpiCards() {
           .limit(50),
         supabase
           .from("pieces")
-          .select("template_id, piece_templates(name)")
+          .select("template_id")
           .eq("user_id", user.id)
           .not("template_id", "is", null)
           .limit(500),
@@ -73,8 +73,7 @@ export function KpiCards() {
           .eq("is_shared", true),
         supabase
           .from("integration_logs")
-          .select("id, status, created_at, provider")
-          .eq("user_id", user.id)
+          .select("id, ok, created_at, integration")
           .order("created_at", { ascending: false })
           .limit(5),
       ]);
@@ -91,20 +90,26 @@ export function KpiCards() {
         ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
         : null;
 
-      const counts = new Map<string, { name: string; count: number }>();
-      for (const row of (templatesAgg.data ?? []) as Array<{
-        template_id: string;
-        piece_templates: { name: string } | { name: string }[] | null;
-      }>) {
-        const pt = Array.isArray(row.piece_templates) ? row.piece_templates[0] : row.piece_templates;
-        const name = pt?.name ?? "Sem nome";
-        const cur = counts.get(row.template_id);
-        if (cur) cur.count += 1;
-        else counts.set(row.template_id, { name, count: 1 });
+      const counts = new Map<string, number>();
+      for (const row of (templatesAgg.data ?? []) as Array<{ template_id: string | null }>) {
+        if (!row.template_id) continue;
+        counts.set(row.template_id, (counts.get(row.template_id) ?? 0) + 1);
       }
-      const topTemplates = Array.from(counts.values())
-        .sort((a, b) => b.count - a.count)
+      const topIds = Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
+      let topTemplates: { name: string; count: number }[] = [];
+      if (topIds.length > 0) {
+        const { data: tplRows } = await supabase
+          .from("piece_templates")
+          .select("id, name")
+          .in("id", topIds.map(([id]) => id));
+        const nameById = new Map((tplRows ?? []).map((t: { id: string; name: string }) => [t.id, t.name]));
+        topTemplates = topIds.map(([id, count]) => ({
+          name: nameById.get(id) ?? "Sem nome",
+          count,
+        }));
+      }
 
       setK({
         today: todayRes.count ?? 0,
@@ -187,18 +192,18 @@ export function KpiCards() {
           <div className="divide-y divide-border/40 text-sm">
             {k.recentBatches.map((b) => (
               <div key={b.id} className="flex items-center justify-between py-1.5">
-                <span className="truncate text-xs">{b.provider ?? "—"}</span>
+                <span className="truncate text-xs">{b.integration ?? "—"}</span>
                 <span
                   className={
                     "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase " +
-                    (b.status === "success" || b.status === "ok"
+                    (b.ok === true
                       ? "bg-emerald-500/10 text-emerald-300"
-                      : b.status === "error" || b.status === "failed"
+                      : b.ok === false
                         ? "bg-red-500/10 text-red-300"
                         : "bg-muted text-muted-foreground")
                   }
                 >
-                  {b.status ?? "—"}
+                  {b.ok === true ? "OK" : b.ok === false ? "Erro" : "—"}
                 </span>
                 <span className="w-32 text-right text-[11px] text-muted-foreground">
                   {formatDistanceToNow(new Date(b.created_at), { addSuffix: true, locale: ptBR })}
