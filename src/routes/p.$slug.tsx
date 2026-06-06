@@ -24,11 +24,12 @@ function PublicPiece() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: pieceRow } = await supabase
+      const { data: pieceRowRaw } = await supabase
         .from("public_shared_pieces" as any)
         .select("id,title,content_text,content_html,updated_at")
         .eq("public_slug", slug)
         .maybeSingle();
+      const pieceRow = pieceRowRaw as { id: string; title: string; content_text: string | null; content_html: string | null; updated_at: string } | null;
       if (cancelled) return;
       setPiece(pieceRow);
       if (pieceRow && vlVersionId) {
