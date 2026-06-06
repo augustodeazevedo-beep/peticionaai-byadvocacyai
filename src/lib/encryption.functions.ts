@@ -60,8 +60,8 @@ export const setEncryptionPassphrase = createServerFn({ method: "POST" })
       .from("user_encryption_keys")
       .upsert({
         user_id: userId,
-        salt,
-        verifier_salt: verifierSalt,
+        salt: salt as unknown as string,
+        verifier_salt: verifierSalt as unknown as string,
         verifier_hash,
         kdf_iterations: KDF_ITERATIONS,
         hint: data.hint ?? null,
