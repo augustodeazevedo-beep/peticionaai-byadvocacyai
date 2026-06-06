@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_governance_prefs: {
+        Row: {
+          ai_disclosure_enabled: boolean
+          ai_disclosure_text: string
+          created_at: string
+          defensive_mode: boolean
+          human_in_loop: boolean
+          temporary_chats: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_disclosure_enabled?: boolean
+          ai_disclosure_text?: string
+          created_at?: string
+          defensive_mode?: boolean
+          human_in_loop?: boolean
+          temporary_chats?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_disclosure_enabled?: boolean
+          ai_disclosure_text?: string
+          created_at?: string
+          defensive_mode?: boolean
+          human_in_loop?: boolean
+          temporary_chats?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       case_files: {
         Row: {
           created_at: string
