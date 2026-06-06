@@ -1,87 +1,113 @@
-# Plano: 4 Novas Features (1A–1D)
+## Objetivo da v1
 
-Implementação sequencial dos 4 prompts, todos em frontend + 1 migração leve para persistir preferências de IA.
+Entregar um fluxo "Protocolar peça" que, a partir de uma peça já salva no app, produz um **pacote pronto-para-protocolo** (PDF/A assinado + anexos organizados + checklist) e leva o advogado direto ao sistema do tribunal correto. Sem chamadas de API de tribunal nesta fase — todas as APIs públicas (PJe/MNI 2.0, Codex/CNJ, e-Proc) entram como módulo de "protocolo automático" na Fase 2, atrás de feature flag.
 
----
+## Escopo v1 (do que entrega)
 
-## 1A — Skills Jurídicas (Comandos Rápidos) em `/pecas/nova`
+1. **Cadastro de certificado A1** por usuário (.pfx/.p12 + senha), criptografado.
+2. **Assinatura PAdES** do PDF da peça no servidor, com carimbo visível opcional (nome, OAB, data, hash).
+3. **Composição de anexos** a partir de 3 fontes:
+   - Biblioteca / `case_files` / `library_items` já no app
+   - Google Drive e OneDrive (via connectors existentes)
+   - Pasta local do PC do escritório, usando **File System Access API** (Chromium-based; fallback "arrastar arquivos" em outros navegadores)
+4. **Pacote final**: PDF da peça assinado + anexos renomeados conforme convenção do tribunal + `checklist.pdf` com índice e instruções.
+5. **Catálogo de tribunais** (PJe, e-SAJ, Projudi, eproc, PJe-TST, TRFs) com URL de protocolo, sistema, observações de credenciamento e dicas por tribunal. Botão **"Abrir tribunal e iniciar protocolo"** em nova aba, copiando a numeração/dados necessários para o clipboard.
+6. **Histórico de protocolos** por peça (status: rascunho → assinado → empacotado → protocolado manualmente → confirmado), com upload do comprovante de protocolo emitido pelo tribunal.
 
-**Novo componente:** `src/components/pieces/QuickCommandsPanel.tsx`
-- Painel lateral (sticky à direita em `lg:`, accordion no mobile) com lista de 5 skills.
-- Cada skill: `slug` (ex: `/contestacao-clt`), `label`, `description` (tooltip), `area`, `piece_type`, `prompt_hints`, `defaults` (campos a injetar no form).
-- Campo de busca (`Input` + filtro client-side por slug/label/description).
-- `Tooltip` do shadcn ao hover.
+## Fora do escopo v1 (registrar como Fase 2/3)
 
-**Arquivo de dados:** `src/lib/quickCommands.ts`
-- Array tipado com as 5 skills mapeando para `piece_type`/`area` existentes em `cognitiveOs.ts`.
-- Para itens sem `piece_type` exato (cálculo, resumo de audiência, prazo), usar tipo genérico mais próximo (ex: `peticao_diversa`) + injetar `contexto` e `teses_principais`.
+- Protocolo automático via API (PJe/MNI, Codex, eproc) — exige credenciamento por tribunal.
+- Assinatura A3/token e certificado em nuvem (Bird ID/Vidaas/SafeID) — requer **Lacuna Web PKI** (licença comercial a contratar).
+- Sincronização real de pasta local (exigiria agente desktop Electron).
+- RPA para e-SAJ/Projudi (sem API pública).
 
-**Integração:** `src/routes/_authenticated.pecas.nova.tsx`
-- Layout vira `grid lg:grid-cols-[1fr_280px]` com `QuickCommandsPanel` à direita.
-- `onSelectCommand(cmd)` → `setForm(f => ({ ...f, area: cmd.area, piece_type: cmd.piece_type, title: f.title || cmd.label, contexto: cmd.promptSeed, ...cmd.defaults }))` + `toast.success("Comando aplicado")`.
+## Arquitetura técnica
 
----
+```text
+src/
+├── routes/
+│   ├── _authenticated.protocolo.tsx                    # Lista de protocolos / fila
+│   ├── _authenticated.pecas.$id.protocolar.tsx         # Wizard de protocolo
+│   └── _authenticated.configuracoes.certificados.tsx   # Cadastro de A1
+├── components/protocolo/
+│   ├── ProtocoloWizard.tsx     # 4 passos: revisão → anexos → assinatura → empacotar
+│   ├── AttachmentPicker.tsx    # Biblioteca | Drive | OneDrive | Pasta local | Upload
+│   ├── LocalFolderPicker.tsx   # File System Access API + fallback drag-drop
+│   ├── TribunalPicker.tsx      # Seleção tribunal/órgão/vara
+│   └── ProtocolHistoryCard.tsx
+├── lib/
+│   ├── tribunais.ts            # Catálogo estático de tribunais, URLs, regras
+│   └── protocolo.functions.ts  # server fns: sign, package, downloadBundle
+└── services/protocolo/
+    ├── pades-sign.server.ts    # Assinatura PAdES com node-signpdf + node-forge
+    ├── pdfa-convert.server.ts  # PDF → PDF/A-2b via pdf-lib/ghostscript-wasm
+    └── bundle.server.ts        # Monta ZIP final
+```
 
-## 1B — Segurança e Governança em `/configuracoes/ia`
+### Banco de dados (novas tabelas)
 
-**Migração:** adicionar colunas em `profiles` (ou nova tabela `ai_governance_prefs` por user_id) — `defensive_mode bool`, `human_in_loop bool`, `temporary_chats bool`, `ai_disclosure_enabled bool`, `ai_disclosure_text text`. Default ligado para defensive_mode e disclosure.
+- `user_certificates` — id, user_id, label, pfx_encrypted (bytea), cipher_iv, fingerprint, valid_from, valid_to. Senha do certificado **nunca** é guardada; é solicitada a cada uso e mantida só na memória do server fn.
+- `tribunais` — seed estático em código (`src/lib/tribunais.ts`); não vai ao DB para evitar overhead.
+- `protocolos` — id, user_id, piece_id, tribunal_code, orgao, numero_processo, status, bundle_path (Storage), signed_pdf_path, comprovante_path, protocolado_at, observacoes.
+- `protocolo_attachments` — id, protocolo_id, source (`library|drive|onedrive|local|upload`), source_ref, filename, size, sha256, ordem.
+- Bucket Storage privado `protocolo-bundles` com RLS por `user_id`.
 
-**UI:** seção "Segurança e Governança" em `_authenticated.configuracoes.ia.tsx` com 4 `Switch` + textarea editável para a frase de disclosure. Persistência via supabase.
+### Servidor (TanStack `createServerFn`)
 
-**Hook global:** `src/lib/aiGovernance.ts` (`useAIGovernance()`) que carrega as prefs do user e expõe:
-- `defensiveSystemPrompt` (string injetada em todas chamadas a `generatePieceCognitive`/visual-law quando ligado).
-- `appendDisclosure(content)` helper aplicado em `pieceAssembler.ts` e `exportPdfProtocolo.tsx` antes do export.
-- `requireHumanReview` flag consumido pelo `Pecas/$id` (modal antes de exportar/compartilhar).
-- `skipPersistence` consumido em `_authenticated.workspace.tsx` e `pecas.nova.tsx` (não chama `supabase.from("pieces").insert`).
+- `uploadCertificate({ pfx, label })` — criptografa com AES-GCM usando chave derivada de `process.env.CERT_ENCRYPTION_KEY` (novo secret) + valida cadeia ICP-Brasil.
+- `signPiecePades({ piece_id, certificate_id, pfx_password, visible_stamp })` — descriptografa em memória, assina com `node-signpdf`, gera carimbo visível, salva em Storage, retorna URL temporária.
+- `buildBundle({ protocolo_id })` — baixa peça assinada + anexos, normaliza nomes, gera `checklist.pdf` (reportlab equivalente em JS: `pdf-lib`), zipa e devolve URL.
+- `getDriveFile({ file_id, provider })` — usa connectors Google Drive / OneDrive já listados em `useful-context`.
 
-**Ícone de status:** em `AppHeader.tsx`, badge `Shield` (verde/vermelho) com tooltip quando defensive_mode on/off, link para `/configuracoes/ia`.
+### Frontend — File System Access API
 
-**Aviso:** "Modo Defensivo" e "Disclosure" são auxílios de governança — devem ser apresentados como mitigação, não garantia absoluta contra prompt injection.
+`LocalFolderPicker.tsx` usa `window.showDirectoryPicker()` para listar arquivos da pasta escolhida sob demanda; nada é sincronizado. Browsers sem suporte (Firefox/Safari) caem em `<input type="file" multiple webkitdirectory>` + drag-drop. Deixar claro na UI que é "leitura no momento do protocolo", não sync.
 
----
+### Assinatura A1 — segurança
 
-## 1C — Otimizador de Tokens em `/workspace`
+- `.pfx` criptografado em repouso (AES-256-GCM) com chave do server.
+- Senha sempre digitada no momento do uso, transmitida via HTTPS para a server fn, descartada após assinatura.
+- Log de uso em `integration_logs` (cert_id, piece_id, fingerprint, sucesso/erro).
+- Nunca expor `pfx_encrypted` ao cliente; servir só metadados (label, validade, thumbprint).
 
-**Novo componente:** `src/components/workspace/UsagePanel.tsx`
-- **Contador circular** de tokens (SVG, baseado em `(messages.length * avgTokens)` estimado via `lib/tokenEstimate.ts` simples — `text.length / 4`). Limite default 128k configurável.
-- **Botão "Novo Chat"** sempre visível; `useEffect` dispara `toast` quando `messages.length > 20` (uma vez por sessão via ref).
-- **Botão "Converter PDF→Markdown"**: input file aceitando `.pdf`, usa `pdfjs-dist` (já não instalado? — adicionar) ou fallback `unpdf` (Worker-friendly, ESM). Extrai texto, formata como markdown e insere no `ContextComposer` em vez do PDF original.
-- **MCPs ativos**: lista mock dos integrações ativas (`user_integrations` table) com toggle. Reusa `useIntegrationsStore` se existir; caso contrário, leitura simples + update no Supabase.
+### Catálogo de tribunais (v1)
 
-**Integração:** `_authenticated.workspace.tsx` ganha coluna lateral `lg:grid-cols-[1fr_300px]` ou panel colapsável no topo.
+`src/lib/tribunais.ts` com entradas como:
+```ts
+{ code: "TJSP", nome: "Tribunal de Justiça de SP", sistema: "esaj",
+  url_protocolo: "https://esaj.tjsp.jus.br/...", aceita_pdf_a: true,
+  tamanho_max_mb: 10, observacoes: "Anexos devem vir como PDF separados" }
+```
+Cobertura inicial: TJSP, TJRJ, TJMG, TJRS, TJPR, TRF1–6, TRT2/15/3, TST, STJ, STF, CNJ. Resto entra incrementalmente.
 
-**Lib:** `src/lib/tokenEstimate.ts` exporta `estimateTokens(text)` e `TOKEN_LIMIT`.
+## UX do wizard
 
----
+1. **Revisar peça** — preview do PDF gerado a partir do conteúdo Markdown salvo; opção de regenerar com `exportPiecePdfProtocolo` já existente em `src/services/pieces/exportPdfProtocolo.tsx`.
+2. **Tribunal & processo** — escolhe tribunal, informa número CNJ (validação já existe em `src/lib/cnj.functions.ts`), órgão, classe, partes.
+3. **Anexos** — abas Biblioteca / Drive / OneDrive / Pasta local / Upload. Drag-drop para reordenar. Mostra tamanho total vs limite do tribunal.
+4. **Assinar & empacotar** — escolhe certificado A1, digita senha, configura carimbo visível, clica "Assinar e empacotar". Mostra progresso (assinando peça → assinando anexos → zipando).
+5. **Protocolar** — tela final com: botão "Baixar pacote (.zip)", botão "Abrir tribunal" (nova aba para `url_protocolo`), checklist com itens "número do processo copiado", "PDF assinado baixado", etc., e botão "Marcar como protocolado" + upload do comprovante.
 
-## 1D — Dashboard com KPIs em `/dashboard`
+## Dependências e secrets novos
 
-**Novo componente:** `src/components/dashboard/KpiCards.tsx` + `ProductionChart.tsx`
-- Queries Supabase (executadas em paralelo via `useQueries`):
-  - **Hoje vs ontem:** `count(*) from pieces where user_id=? and created_at >= today` e `between yesterday and today`. Calcula delta e seta `↑`/`↓` com cor.
-  - **Tempo médio:** `avg(updated_at - created_at)` em segundos para peças com `status='ready'` nos últimos 30d.
-  - **Top 3 templates:** `group by template_id, count(*) order by desc limit 3` (join com `piece_templates.name`).
-  - **Peças compartilhadas:** `count from p_slug ... where is_public=true` (verificar tabela existente — provavelmente `pieces.share_slug is not null`; checar schema antes da query final).
-  - **Histórico em lote:** últimas 5 de uma tabela `batch_runs` se existir, senão usar `integration_logs` filtrado por `kind='batch'`. Se nada disponível, mostrar estado vazio + nota.
+- npm: `node-signpdf`, `node-forge`, `pdf-lib` (já presente), `archiver` (zip server-side), `@pdf-lib/fontkit`.
+- Secret: `CERT_ENCRYPTION_KEY` (32 bytes hex) — vou solicitar via `add_secret` na fase de build.
+- Bucket Storage novo: `protocolo-bundles` (privado).
 
-- **Gráfico de linha (7 dias):** usar `recharts` (verificar se já instalado nos charts shadcn — sim, `src/components/ui/chart.tsx`). `LineChart` com `date_trunc('day', created_at)`. Cores: `hsl(var(--accent))` (cyan) e fundo `hsl(var(--primary))` (azul escuro) para alinhar com o gradiente da marca.
+## Roadmap pós-v1 (documentar, não construir)
 
-**Integração:** `_authenticated.dashboard.tsx` insere grid de KPIs acima da lista de peças (mantém hero atual).
+- **Fase 2.A** — Lacuna Web PKI: assinatura A3/token/nuvem no navegador, sem expor `.pfx` ao server.
+- **Fase 2.B** — Integração PJe via MNI 2.0 / Codex CNJ para 1–2 tribunais piloto (credenciamento manual).
+- **Fase 3** — Agente desktop Electron para sync real de pasta + assinatura local com token físico.
+- **Fase 3.B** — RPA para e-SAJ/Projudi (Playwright server-side; precisa avaliar TOS).
 
----
+## Riscos e decisões abertas
 
-## Sequência de execução
+- **Validação de cadeia ICP-Brasil** no upload do A1: v1 valida apenas validade temporal e algoritmo; validação completa de cadeia AC raiz fica para Fase 2.
+- **Carimbo visível**: posicionamento padrão (rodapé direito); customização por usuário em Fase 2.
+- **Pasta local em Firefox/Safari**: experiência inferior; documentar no onboarding.
+- **Tamanho do pacote**: limite de 100 MB por protocolo na v1 (alguns tribunais aceitam mais via múltiplos envios — fora do escopo).
 
-1. Confirmar schema (`pieces.share_slug`? tabela `batch_runs`?) — uma query rápida ao começar build.
-2. Migração de `ai_governance_prefs`.
-3. 1B (base de governança + hook global) — necessária para os outros consumirem `appendDisclosure`/`skipPersistence`.
-4. 1A (Quick Commands) — isolado, frontend puro.
-5. 1C (Usage Panel + PDF→MD) — instalar `unpdf`.
-6. 1D (KPIs + chart) — frontend + queries.
+## Critério de pronto
 
-## Pontos a confirmar
-
-- **Limite de tokens default** para o medidor circular: 128k? configurável por usuário?
-- **PDF→MD:** ok adicionar dependência `unpdf` (~150kb, Worker-friendly)? Alternativa é uma server function que faz parsing — mais robusto mas mais lento.
-- **Disclosure no PDF:** rodapé em todas as páginas ou só na última?
-- **Cores do gráfico:** manter gradiente cyan→violeta da marca (atual) ou trocar para "verde + azul escuro" como descrito no prompt 1D (que diverge da identidade atual)?
+- Usuário consegue, em ≤ 6 cliques a partir da peça pronta, baixar um `.zip` com PDF/A assinado + anexos + checklist, e ser redirecionado para o sistema do tribunal correto com o número do processo no clipboard.

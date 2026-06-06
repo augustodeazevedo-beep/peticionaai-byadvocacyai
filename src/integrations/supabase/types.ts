@@ -761,6 +761,141 @@ export type Database = {
         }
         Relationships: []
       }
+      protocolo_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          ordem: number
+          protocolo_id: string
+          sha256: string | null
+          size_bytes: number | null
+          source: string
+          source_ref: string | null
+          storage_path: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          ordem?: number
+          protocolo_id: string
+          sha256?: string | null
+          size_bytes?: number | null
+          source: string
+          source_ref?: string | null
+          storage_path?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          ordem?: number
+          protocolo_id?: string
+          sha256?: string | null
+          size_bytes?: number | null
+          source?: string
+          source_ref?: string | null
+          storage_path?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolo_attachments_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolos: {
+        Row: {
+          bundle_path: string | null
+          classe: string | null
+          comprovante_path: string | null
+          created_at: string
+          id: string
+          numero_processo: string | null
+          observacoes: string | null
+          orgao: string | null
+          partes: Json | null
+          piece_id: string | null
+          protocolado_at: string | null
+          signed_pdf_path: string | null
+          sistema: string | null
+          status: Database["public"]["Enums"]["protocolo_status"]
+          tribunal_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bundle_path?: string | null
+          classe?: string | null
+          comprovante_path?: string | null
+          created_at?: string
+          id?: string
+          numero_processo?: string | null
+          observacoes?: string | null
+          orgao?: string | null
+          partes?: Json | null
+          piece_id?: string | null
+          protocolado_at?: string | null
+          signed_pdf_path?: string | null
+          sistema?: string | null
+          status?: Database["public"]["Enums"]["protocolo_status"]
+          tribunal_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bundle_path?: string | null
+          classe?: string | null
+          comprovante_path?: string | null
+          created_at?: string
+          id?: string
+          numero_processo?: string | null
+          observacoes?: string | null
+          orgao?: string | null
+          partes?: Json | null
+          piece_id?: string | null
+          protocolado_at?: string | null
+          signed_pdf_path?: string | null
+          sistema?: string | null
+          status?: Database["public"]["Enums"]["protocolo_status"]
+          tribunal_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolos_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolos_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolos_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           description: string | null
@@ -863,6 +998,54 @@ export type Database = {
           is_active?: boolean
           title?: string
           url?: string
+        }
+        Relationships: []
+      }
+      user_certificates: {
+        Row: {
+          cipher_iv: string
+          cipher_tag: string
+          created_at: string
+          fingerprint: string | null
+          id: string
+          issuer_cn: string | null
+          label: string
+          pfx_encrypted: string
+          subject_cn: string | null
+          updated_at: string
+          user_id: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          cipher_iv: string
+          cipher_tag: string
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          issuer_cn?: string | null
+          label: string
+          pfx_encrypted: string
+          subject_cn?: string | null
+          updated_at?: string
+          user_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          cipher_iv?: string
+          cipher_tag?: string
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          issuer_cn?: string | null
+          label?: string
+          pfx_encrypted?: string
+          subject_cn?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
         }
         Relationships: []
       }
@@ -1311,6 +1494,13 @@ export type Database = {
         | "diagrama"
         | "referencia_web"
       piece_status: "draft" | "generating" | "ready" | "exported" | "archived"
+      protocolo_status:
+        | "rascunho"
+        | "assinado"
+        | "empacotado"
+        | "protocolado"
+        | "confirmado"
+        | "erro"
       template_strictness: "flexivel" | "rigoroso" | "molde"
       thinking_level: "baixo" | "medio" | "alto"
       visual_law_density: "enxuto" | "padrao" | "confortavel"
@@ -1469,6 +1659,14 @@ export const Constants = {
         "referencia_web",
       ],
       piece_status: ["draft", "generating", "ready", "exported", "archived"],
+      protocolo_status: [
+        "rascunho",
+        "assinado",
+        "empacotado",
+        "protocolado",
+        "confirmado",
+        "erro",
+      ],
       template_strictness: ["flexivel", "rigoroso", "molde"],
       thinking_level: ["baixo", "medio", "alto"],
       visual_law_density: ["enxuto", "padrao", "confortavel"],
