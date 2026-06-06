@@ -2,13 +2,20 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { BrandLockup } from "./Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { LogOut, LayoutGrid, Check, ExternalLink } from "lucide-react";
+import { LogOut, LayoutGrid, Check, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ECOSYSTEM_APPS } from "@/lib/ecosystem";
+import { useAIGovernance } from "@/lib/aiGovernance";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
@@ -21,6 +28,7 @@ export function AppHeader() {
           <BrandLockup size="md" variant="horizontal" />
         </Link>
         <div className="flex items-center gap-2">
+          {user && <DefensiveModeBadge />}
           <AppsMenu />
           {user ? (
             <>
@@ -53,6 +61,34 @@ export function AppHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function DefensiveModeBadge() {
+  const { prefs } = useAIGovernance();
+  const on = prefs.defensive_mode;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            to="/configuracoes/ia"
+            aria-label={on ? "Modo Defensivo ativo" : "Modo Defensivo inativo"}
+            className={
+              "inline-flex h-8 w-8 items-center justify-center rounded-md border transition " +
+              (on
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                : "border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20")
+            }
+          >
+            {on ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {on ? "Modo Defensivo ativo" : "Modo Defensivo INATIVO — clique para ativar"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

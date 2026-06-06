@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Cpu, KeyRound, ExternalLink } from "lucide-react";
+import { Cpu, KeyRound, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
 import { AdvogaIntegrationCard } from "@/components/integrations/AdvogaIntegrationCard";
 import { InventariaIntegrationCard } from "@/components/integrations/InventariaIntegrationCard";
+import { useAIGovernance } from "@/lib/aiGovernance";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/ia")({
   head: () => ({ meta: [{ title: "Configurações de IA — Peticiona.AI" }] }),
@@ -27,6 +29,7 @@ type Integration = {
 
 function ConfiguracoesIA() {
   const { user, isAdmin } = useAuth();
+  const { prefs, save: saveGov } = useAIGovernance();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasKey, setHasKey] = useState(false);
@@ -224,6 +227,87 @@ function ConfiguracoesIA() {
 
       {isAdmin && <AdvogaIntegrationCard />}
       {isAdmin && <InventariaIntegrationCard />}
+
+      <Card className="glass border-border/50 p-5">
+        <div className="mb-4 flex items-center gap-3">
+          {prefs.defensive_mode ? (
+            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+          ) : (
+            <ShieldAlert className="h-5 w-5 text-red-400" />
+          )}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-accent">Segurança e Governança</p>
+            <h2 className="font-semibold">Proteções e supervisão de IA</h2>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <GovToggle
+            label="Modo Defensivo"
+            description="Injeta instrução para a IA ignorar comandos ocultos em documentos enviados (mitigação de prompt injection — Nota Técnica 19/2026 CIJMG)."
+            checked={prefs.defensive_mode}
+            onChange={(v) => saveGov({ defensive_mode: v })}
+          />
+          <GovToggle
+            label="Human-in-the-Loop"
+            description="Exibe confirmação obrigatória de revisão humana antes de finalizar peças geradas por IA."
+            checked={prefs.human_in_loop}
+            onChange={(v) => saveGov({ human_in_loop: v })}
+          />
+          <GovToggle
+            label="Chats Temporários"
+            description="Não persiste o histórico da geração no banco (uso recomendado para informações sensíveis de clientes)."
+            checked={prefs.temporary_chats}
+            onChange={(v) => saveGov({ temporary_chats: v })}
+          />
+          <GovToggle
+            label="Declaração de Uso de IA"
+            description="Adiciona automaticamente ao rodapé de cada peça gerada uma frase declarando o uso de IA."
+            checked={prefs.ai_disclosure_enabled}
+            onChange={(v) => saveGov({ ai_disclosure_enabled: v })}
+          />
+
+          {prefs.ai_disclosure_enabled && (
+            <div>
+              <Label className="text-xs">Texto da declaração</Label>
+              <Textarea
+                value={prefs.ai_disclosure_text}
+                onChange={(e) => saveGov({ ai_disclosure_text: e.target.value })}
+                className="mt-1 min-h-[72px] text-sm"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Salvo automaticamente. Aparece como rodapé em peças exportadas.
+              </p>
+            </div>
+          )}
+
+          <p className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
+            ⚠️ Modo Defensivo e Declaração são <strong>mitigações</strong> de risco. Não substituem a revisão técnica do advogado responsável.
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function GovToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-lg border border-border/40 p-3">
+      <div className="flex-1">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }
