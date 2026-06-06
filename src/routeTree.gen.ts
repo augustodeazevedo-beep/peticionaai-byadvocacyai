@@ -28,6 +28,7 @@ import { Route as ApiPublicAdvogaProcessContextRouteImport } from './routes/api/
 import { Route as AuthenticatedPecasNovaRouteImport } from './routes/_authenticated.pecas.nova'
 import { Route as AuthenticatedPecasIdRouteImport } from './routes/_authenticated.pecas.$id'
 import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_authenticated.ferramentas.links'
+import { Route as AuthenticatedConfiguracoesSegurancaRouteImport } from './routes/_authenticated.configuracoes.seguranca'
 import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
 import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
@@ -135,6 +136,12 @@ const AuthenticatedFerramentasLinksRoute =
     path: '/ferramentas/links',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedConfiguracoesSegurancaRoute =
+  AuthenticatedConfiguracoesSegurancaRouteImport.update({
+    id: '/configuracoes/seguranca',
+    path: '/configuracoes/seguranca',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedConfiguracoesIdentidadeRoute =
   AuthenticatedConfiguracoesIdentidadeRouteImport.update({
     id: '/configuracoes/identidade',
@@ -184,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
+  '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -209,6 +217,7 @@ export interface FileRoutesByTo {
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
+  '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
   '/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -236,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
+  '/_authenticated/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
   '/_authenticated/ferramentas/links': typeof AuthenticatedFerramentasLinksRoute
   '/_authenticated/pecas/$id': typeof AuthenticatedPecasIdRoute
   '/_authenticated/pecas/nova': typeof AuthenticatedPecasNovaRoute
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
+    | '/configuracoes/seguranca'
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/biblioteca/modelos'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
+    | '/configuracoes/seguranca'
     | '/ferramentas/links'
     | '/pecas/$id'
     | '/pecas/nova'
@@ -314,6 +326,7 @@ export interface FileRouteTypes {
     | '/_authenticated/biblioteca/modelos'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/identidade'
+    | '/_authenticated/configuracoes/seguranca'
     | '/_authenticated/ferramentas/links'
     | '/_authenticated/pecas/$id'
     | '/_authenticated/pecas/nova'
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFerramentasLinksRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracoes/seguranca': {
+      id: '/_authenticated/configuracoes/seguranca'
+      path: '/configuracoes/seguranca'
+      fullPath: '/configuracoes/seguranca'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesSegurancaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/configuracoes/identidade': {
       id: '/_authenticated/configuracoes/identidade'
       path: '/configuracoes/identidade'
@@ -534,6 +554,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRouteWithChildren
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
   AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
+  AuthenticatedConfiguracoesSegurancaRoute: typeof AuthenticatedConfiguracoesSegurancaRoute
   AuthenticatedFerramentasLinksRoute: typeof AuthenticatedFerramentasLinksRoute
   AuthenticatedPecasIdRoute: typeof AuthenticatedPecasIdRoute
   AuthenticatedPecasNovaRoute: typeof AuthenticatedPecasNovaRoute
@@ -553,6 +574,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
   AuthenticatedConfiguracoesIdentidadeRoute:
     AuthenticatedConfiguracoesIdentidadeRoute,
+  AuthenticatedConfiguracoesSegurancaRoute:
+    AuthenticatedConfiguracoesSegurancaRoute,
   AuthenticatedFerramentasLinksRoute: AuthenticatedFerramentasLinksRoute,
   AuthenticatedPecasIdRoute: AuthenticatedPecasIdRoute,
   AuthenticatedPecasNovaRoute: AuthenticatedPecasNovaRoute,

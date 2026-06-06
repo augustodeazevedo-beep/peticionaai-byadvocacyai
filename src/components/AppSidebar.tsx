@@ -35,6 +35,7 @@ import {
   FolderKanban,
   Palette,
   Library,
+  ShieldCheck,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,6 +48,7 @@ const MAIN = [
   { title: "Bibliotecários", url: "/bibliotecarios", icon: Users },
   { title: "Identidade do Escritório", url: "/configuracoes/identidade", icon: Palette },
   { title: "Configurações de IA", url: "/configuracoes/ia", icon: Cpu },
+  { title: "Segurança & Chave Mestra", url: "/configuracoes/seguranca", icon: ShieldCheck },
 ] as const;
 
 const SHORTCUTS = [
