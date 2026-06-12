@@ -2,6 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [k: string]: JsonValue }
+  | JsonValue[];
+
 export type Decision = {
   id: string;
   process_number: string;
@@ -13,7 +21,7 @@ export type Decision = {
   syllabus: string;
   url: string | null;
   decision_type: string | null;
-  raw: Record<string, unknown>;
+  raw: { [k: string]: JsonValue };
 };
 
 export type SearchResponse = {
@@ -30,6 +38,7 @@ const DateStr = z
 function normalizeDecision(raw: Record<string, unknown>, courtFallback: string): Decision {
   const r = raw as Record<string, unknown>;
   const get = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : "");
+  const safeRaw = JSON.parse(JSON.stringify(r)) as { [k: string]: JsonValue };
   return {
     id: String(r.id ?? r.decision_id ?? `${get("process_number")}-${get("publication_date")}`),
     process_number: get("process_number") || get("number") || "",
@@ -41,7 +50,7 @@ function normalizeDecision(raw: Record<string, unknown>, courtFallback: string):
     syllabus: get("syllabus") || get("ementa") || get("excerpt") || "",
     url: (r.url as string) || (r.link as string) || null,
     decision_type: (r.decision_type as string) || (r.type as string) || null,
-    raw: r,
+    raw: safeRaw,
   };
 }
 
@@ -185,7 +194,7 @@ export const saveSelecaoJurisprudencia = createServerFn({ method: "POST" })
         syllabus: dec.syllabus,
         url: dec.url,
         decision_type: dec.decision_type,
-        raw: dec.raw,
+        raw: dec.raw as unknown as never,
       })
       .select("id")
       .single();
