@@ -9,10 +9,13 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Cpu, KeyRound, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Cpu, KeyRound, ExternalLink, ShieldCheck, ShieldAlert, Gavel } from "lucide-react";
 import { AdvogaIntegrationCard } from "@/components/integrations/AdvogaIntegrationCard";
 import { InventariaIntegrationCard } from "@/components/integrations/InventariaIntegrationCard";
 import { useAIGovernance } from "@/lib/aiGovernance";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getJurisprudenciaKeyStatus } from "@/lib/jurisprudencia.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/ia")({
   head: () => ({ meta: [{ title: "Configurações de IA — Peticiona.AI" }] }),
@@ -30,6 +33,12 @@ type Integration = {
 function ConfiguracoesIA() {
   const { user, isAdmin } = useAuth();
   const { prefs, save: saveGov } = useAIGovernance();
+  const jurisKeyStatus = useServerFn(getJurisprudenciaKeyStatus);
+  const { data: jurisKey } = useQuery({
+    queryKey: ["jurisprudencia-key-status"],
+    queryFn: () => jurisKeyStatus(),
+    staleTime: 60_000,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasKey, setHasKey] = useState(false);
@@ -227,6 +236,51 @@ function ConfiguracoesIA() {
 
       {isAdmin && <AdvogaIntegrationCard />}
       {isAdmin && <InventariaIntegrationCard />}
+
+      <Card className="glass border-border/50 p-5">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-brand">
+            <Gavel className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-accent">Integração</p>
+            <h2 className="font-semibold">Jurisprudências.AI</h2>
+          </div>
+          <span
+            className={
+              "ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-medium " +
+              (jurisKey?.hasKey
+                ? "bg-emerald-500/15 text-emerald-300"
+                : "bg-amber-500/15 text-amber-300")
+            }
+          >
+            {jurisKey?.hasKey ? "Chave configurada" : "Chave ausente"}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Pesquisa estruturada de decisões dos tribunais brasileiros. A chave Bearer fica armazenada
+          em segredo no servidor — nunca é exposta ao navegador. Quando configurada, a busca em
+          tempo real e o gerador de peças passam a citar ementas literais (mecanismo antialucinação).
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild className="gap-2">
+            <a href="/jurisprudencia">
+              <Gavel className="h-3.5 w-3.5" /> Abrir módulo
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild className="gap-2">
+            <a href="https://jurisprudencias.ai" target="_blank" rel="noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" /> Obter token
+            </a>
+          </Button>
+        </div>
+        {!jurisKey?.hasKey && (
+          <p className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
+            Para ativar, peça ao administrador para definir o segredo{" "}
+            <code className="font-mono">JURISPRUDENCIAS_AI_API_KEY</code>.
+          </p>
+        )}
+      </Card>
 
       <Card className="glass border-border/50 p-5">
         <div className="mb-4 flex items-center gap-3">
