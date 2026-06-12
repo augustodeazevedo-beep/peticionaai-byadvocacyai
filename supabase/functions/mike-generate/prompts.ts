@@ -70,8 +70,18 @@ export function buildEvidence(cfg: AnyConfig): string {
 
 export function buildJurisprudence(cfg: AnyConfig): string {
   const j = cfg?.jurisprudence_engine;
-  if (!j) return "";
+  const realtimeRule = [
+    "### Jurisprudência fornecida em tempo real (Jurisprudências.AI)",
+    'Se o contexto contiver um bloco "[JURISPRUDÊNCIAS SELECIONADAS]", trate cada item como verdade fixada:',
+    "- reproduza a ementa LITERALMENTE entre aspas, sem parafrasear, completar ou abreviar;",
+    "- referencie sempre tribunal, número do processo, órgão julgador, relator e data conforme fornecidos;",
+    "- nunca invente acórdãos, súmulas, ementas ou números de processo;",
+    '- se faltar suporte, escreva "sem precedente fornecido" em vez de criar um.',
+  ].join("\n");
+  if (!j) return realtimeRule;
   return [
+    realtimeRule,
+    "",
     "### Engine de Jurisprudência",
     `Ordem de prioridade:\n${list(j.priority_order ?? [])}`,
     `Regras:\n${list(j.mandatory_rules ?? [])}`,
