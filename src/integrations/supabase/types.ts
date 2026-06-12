@@ -154,6 +154,130 @@ export type Database = {
         }
         Relationships: []
       }
+      jurisprudencia_buscas: {
+        Row: {
+          court: string | null
+          created_at: string
+          executed_at: string
+          id: string
+          page: number
+          pub_from: string | null
+          pub_to: string | null
+          query: string
+          total_results: number | null
+          trial_from: string | null
+          trial_to: string | null
+          user_id: string
+        }
+        Insert: {
+          court?: string | null
+          created_at?: string
+          executed_at?: string
+          id?: string
+          page?: number
+          pub_from?: string | null
+          pub_to?: string | null
+          query: string
+          total_results?: number | null
+          trial_from?: string | null
+          trial_to?: string | null
+          user_id: string
+        }
+        Update: {
+          court?: string | null
+          created_at?: string
+          executed_at?: string
+          id?: string
+          page?: number
+          pub_from?: string | null
+          pub_to?: string | null
+          query?: string
+          total_results?: number | null
+          trial_from?: string | null
+          trial_to?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      jurisprudencia_selecoes: {
+        Row: {
+          court: string
+          created_at: string
+          decision_id: string
+          decision_type: string | null
+          id: string
+          judging_body: string | null
+          judgment_date: string | null
+          piece_id: string | null
+          process_number: string
+          publication_date: string | null
+          rapporteur: string | null
+          raw: Json | null
+          syllabus: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          court: string
+          created_at?: string
+          decision_id: string
+          decision_type?: string | null
+          id?: string
+          judging_body?: string | null
+          judgment_date?: string | null
+          piece_id?: string | null
+          process_number: string
+          publication_date?: string | null
+          rapporteur?: string | null
+          raw?: Json | null
+          syllabus: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          court?: string
+          created_at?: string
+          decision_id?: string
+          decision_type?: string | null
+          id?: string
+          judging_body?: string | null
+          judgment_date?: string | null
+          piece_id?: string | null
+          process_number?: string
+          publication_date?: string | null
+          rapporteur?: string | null
+          raw?: Json | null
+          syllabus?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jurisprudencia_selecoes_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurisprudencia_selecoes_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurisprudencia_selecoes_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       librarian_items: {
         Row: {
           created_at: string
