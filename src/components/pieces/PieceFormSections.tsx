@@ -18,6 +18,9 @@ import type {
   EvidenceItem,
   PieceFormData,
 } from "@/lib/cognitiveOs";
+import { useJurisprudenciaContexto } from "@/stores/jurisprudenciaContexto";
+import { JurisprudenciaPickerDialog } from "@/components/jurisprudencia/JurisprudenciaPickerDialog";
+import { Gavel, X } from "lucide-react";
 
 const PIECE_TYPES = [
   { v: "peticao_inicial_civel", l: "Petição Inicial — Cível" },
@@ -62,6 +65,9 @@ type Props = {
 
 export function PieceFormSections({ form, onChange }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const jurisItens = useJurisprudenciaContexto((s) => s.itens);
+  const removeJuris = useJurisprudenciaContexto((s) => s.remove);
+  const clearJuris = useJurisprudenciaContexto((s) => s.clear);
 
   const setField =
     <K extends keyof PieceFormData>(k: K) =>
@@ -317,6 +323,62 @@ export function PieceFormSections({ form, onChange }: Props) {
           <Label>Contexto adicional / observações</Label>
           <Textarea value={form.contexto} onChange={setField("contexto")} rows={3} placeholder="Informações extras úteis para a redação." />
         </div>
+      </Card>
+
+      {/* JURISPRUDÊNCIA SELECIONADA */}
+      <Card className="glass border-border/50 p-6 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Gavel className="h-4 w-4 text-accent" />
+            <h2 className="font-semibold">Jurisprudência para esta peça</h2>
+            {jurisItens.length > 0 && (
+              <Badge variant="outline" className="border-accent/40 bg-accent/10 text-accent">
+                {jurisItens.length}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {jurisItens.length > 0 && (
+              <Button type="button" variant="ghost" size="sm" onClick={clearJuris} className="text-xs">
+                Limpar
+              </Button>
+            )}
+            <JurisprudenciaPickerDialog />
+          </div>
+        </div>
+        {jurisItens.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhuma decisão selecionada. As ementas escolhidas serão citadas <strong>literalmente</strong> pelo gerador (antialucinação).
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {jurisItens.map((d) => (
+              <li
+                key={d.id}
+                className="flex items-start gap-2 rounded-lg border border-border/50 bg-card/40 p-2"
+              >
+                <div className="min-w-0 flex-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5 font-medium">
+                    <span className="text-accent">{(d.court || "").toUpperCase()}</span>
+                    {d.process_number && <span className="font-mono text-muted-foreground">{d.process_number}</span>}
+                    {d.rapporteur && <span className="text-muted-foreground">— Rel. {d.rapporteur}</span>}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-muted-foreground">{d.syllabus}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => removeJuris(d.id)}
+                  aria-label="Remover"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );

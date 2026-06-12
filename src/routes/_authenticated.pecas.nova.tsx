@@ -18,6 +18,12 @@ import { markdownToHtml } from "@/lib/markdown";
 import { QuickCommandsPanel } from "@/components/pieces/QuickCommandsPanel";
 import type { QuickCommand } from "@/lib/quickCommands";
 import { useAIGovernance, DEFENSIVE_SYSTEM_PROMPT } from "@/lib/aiGovernance";
+import {
+  useJurisprudenciaContexto,
+  buildJurisprudenciaContextBlock,
+} from "@/stores/jurisprudenciaContexto";
+import { useServerFn } from "@tanstack/react-start";
+import { saveSelecaoJurisprudencia } from "@/lib/jurisprudencia.functions";
 
 export const Route = createFileRoute("/_authenticated/pecas/nova")({
   head: () => ({ meta: [{ title: "Nova Peça — Peticiona.AI" }] }),
@@ -68,6 +74,9 @@ function NovaPeca() {
   const [draftPreview, setDraftPreview] = useState("");
   const [template, setTemplate] = useState<PieceTemplate | null>(null);
   const { prefs, appendDisclosure } = useAIGovernance();
+  const jurisItens = useJurisprudenciaContexto((s) => s.itens);
+  const clearJuris = useJurisprudenciaContexto((s) => s.clear);
+  const saveSelecao = useServerFn(saveSelecaoJurisprudencia);
 
   function applyQuickCommand(cmd: QuickCommand) {
     setForm((f) => ({ ...f, ...cmd.defaults, title: f.title || cmd.defaults.title || cmd.label }));
@@ -118,6 +127,7 @@ function NovaPeca() {
         fields: form,
         context: [
           prefs.defensive_mode ? `\n\n${DEFENSIVE_SYSTEM_PROMPT}\n\n` : "",
+          buildJurisprudenciaContextBlock(jurisItens),
           form.contexto || "",
           template?.prompt_hints ? `\n\n[INSTRUÇÕES DO MODELO "${template.name}"]\n${template.prompt_hints}` : "",
           template?.content_md
@@ -164,6 +174,18 @@ function NovaPeca() {
           observations: auditNotes.join("\n"),
         })
         .eq("id", piece.id);
+
+      // Persistir seleções de jurisprudência ligadas à peça (auditoria).
+      if (jurisItens.length > 0 && !skipPersist) {
+        await Promise.all(
+          jurisItens.map((d) =>
+            saveSelecao({ data: { piece_id: piece.id, decision: d } }).catch((err) => {
+              console.error("[jurisprudencia] falha ao salvar seleção", err);
+            }),
+          ),
+        );
+        clearJuris();
+      }
 
       if (skipPersist) {
         // Chats temporários: remover a peça após a geração
