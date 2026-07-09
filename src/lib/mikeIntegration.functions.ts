@@ -25,12 +25,12 @@ function hexToBytes(hex: string): Uint8Array {
 
 async function deriveKey(secret: string): Promise<CryptoKey> {
   // Accept either a 64-char hex string (32 bytes) or any string -> SHA-256 hash.
-  let raw: Uint8Array;
+  let raw: ArrayBuffer;
   if (/^[0-9a-fA-F]{64}$/.test(secret)) {
-    raw = hexToBytes(secret);
+    const bytes = hexToBytes(secret);
+    raw = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   } else {
-    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
-    raw = new Uint8Array(hash);
+    raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
   }
   return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
@@ -49,7 +49,7 @@ export const saveMikeIntegration = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const base: Record<string, unknown> = {
+    const base: Record<string, any> = {
       user_id: userId,
       provider: "mike",
       endpoint: data.endpoint,
@@ -62,7 +62,7 @@ export const saveMikeIntegration = createServerFn({ method: "POST" })
     }
     const { error } = await supabase
       .from("user_integrations")
-      .upsert(base, { onConflict: "user_id,provider" });
+      .upsert(base as any, { onConflict: "user_id,provider" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
