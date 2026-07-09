@@ -39,24 +39,32 @@ const PayloadSchema = z.object({
 function isAllowedAttachmentUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    // Permitir apenas HTTPS
     if (parsed.protocol !== "https:") return false;
-    // Bloquear IPs privados e link-local
-    const hostname = parsed.hostname;
-    if (
-      hostname === "localhost" ||
-      hostname.startsWith("127.") ||
-      hostname.startsWith("192.168.") ||
-      hostname.startsWith("10.") ||
-      hostname.startsWith("172.16.") ||
-      hostname === "169.254.169.254" || // AWS metadata
-      hostname.endsWith(".internal") ||
-      hostname.endsWith(".local")
-    ) return false;
-    return true;
+    return isSafeHostname(parsed.hostname);
   } catch {
     return false;
   }
+}
+
+function isSafeHostname(hostnameRaw: string): boolean {
+  const hostname = hostnameRaw.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!hostname) return false;
+  if (hostname === "localhost" || hostname.endsWith(".internal") || hostname.endsWith(".local")) return false;
+  const v4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a >= 224) return false;
+  }
+  if (hostname.includes(":")) {
+    if (hostname === "::1" || hostname === "::") return false;
+    if (hostname.startsWith("fe80:") || hostname.startsWith("fc") || hostname.startsWith("fd")) return false;
+    if (hostname.startsWith("::ffff:")) return false;
+  }
+  return true;
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -92,7 +100,7 @@ async function downloadAttachment(
       console.warn("Blocked SSRF attempt for URL:", att.url);
       return null;
     }
-    const res = await fetch(att.url, { redirect: "follow" });
+    const res = await fetch(att.url, { redirect: "error" });
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
     if (arrayBuf.byteLength > 25 * 1024 * 1024) return null;
