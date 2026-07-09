@@ -20,6 +20,40 @@ const corsHeaders = {
 
 const ALLOWED_AREAS = ["civel", "consumidor", "trabalhista", "tributario", "penal", "familia", "empresarial", "administrativo", "previdenciario"] as const;
 
+function fromBase64(s: string): Uint8Array {
+  const b = atob(s);
+  const u = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+  return u;
+}
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+async function deriveMikeKey(secret: string): Promise<CryptoKey> {
+  let raw: ArrayBuffer;
+  if (/^[0-9a-fA-F]{64}$/.test(secret)) {
+    const b = hexToBytes(secret);
+    raw = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+  } else {
+    raw = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
+  }
+  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["decrypt"]);
+}
+async function decryptMikeKey(stored: string): Promise<string> {
+  if (!stored.startsWith("enc:v1:")) return stored; // legacy plaintext (pre-encryption rows)
+  const secret = Deno.env.get("MIKE_KEY_ENC_SECRET");
+  if (!secret) throw new Error("MIKE_KEY_ENC_SECRET missing");
+  const parts = stored.split(":");
+  const iv = fromBase64(parts[2]);
+  const ct = fromBase64(parts[3]);
+  const key = await deriveMikeKey(secret);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+  return new TextDecoder().decode(pt);
+}
+
 const inputSchema = z.object({
   piece_type: z.string().trim().min(1).max(120).regex(/^[a-z0-9_\-]+$/i, "piece_type inválido"),
   area: z.string().trim().max(60).optional().nullable(),
@@ -268,7 +302,17 @@ Deno.serve(async (req) => {
 
     const byokActive = !!(userIntegration?.is_active && userIntegration.endpoint && userIntegration.api_key_encrypted);
     const mikeEndpoint = byokActive ? userIntegration!.endpoint! : adminMikeEndpoint;
-    const mikeKey = byokActive ? userIntegration!.api_key_encrypted! : (Deno.env.get("MIKE_API_KEY") ?? "");
+    let mikeKey = "";
+    if (byokActive) {
+      try {
+        mikeKey = await decryptMikeKey(userIntegration!.api_key_encrypted!);
+      } catch (e) {
+        console.error("Failed to decrypt Mike API key:", e);
+        return jsonError("Não foi possível descriptografar sua chave Mike. Salve-a novamente em Configurações → IA.", 500);
+      }
+    } else {
+      mikeKey = Deno.env.get("MIKE_API_KEY") ?? "";
+    }
     const mikeModel = byokActive && userIntegration?.model ? userIntegration.model : (map.get("mike_model") || "");
 
     // Atomic pre-check: uses FOR UPDATE lock to prevent concurrent bypass
