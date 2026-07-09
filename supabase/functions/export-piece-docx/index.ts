@@ -38,18 +38,8 @@ async function fetchLogoBuffer(url: string | null | undefined): Promise<{ buf: U
       return null;
     }
     if (parsed.protocol !== "https:") return null;
-    const hostname = parsed.hostname;
-    if (
-      hostname === "localhost" ||
-      hostname.startsWith("127.") ||
-      hostname.startsWith("192.168.") ||
-      hostname.startsWith("10.") ||
-      hostname.startsWith("172.16.") ||
-      hostname === "169.254.169.254" ||
-      hostname.endsWith(".internal") ||
-      hostname.endsWith(".local")
-    ) return null;
-    const r = await fetch(url);
+    if (!isSafeHostname(parsed.hostname)) return null;
+    const r = await fetch(url, { redirect: "error" });
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "";
     const buf = new Uint8Array(await r.arrayBuffer());
@@ -58,6 +48,27 @@ async function fetchLogoBuffer(url: string | null | undefined): Promise<{ buf: U
   } catch {
     return null;
   }
+}
+
+function isSafeHostname(hostnameRaw: string): boolean {
+  const hostname = hostnameRaw.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!hostname) return false;
+  if (hostname === "localhost" || hostname.endsWith(".internal") || hostname.endsWith(".local")) return false;
+  const v4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a >= 224) return false;
+  }
+  if (hostname.includes(":")) {
+    if (hostname === "::1" || hostname === "::") return false;
+    if (hostname.startsWith("fe80:") || hostname.startsWith("fc") || hostname.startsWith("fd")) return false;
+    if (hostname.startsWith("::ffff:")) return false;
+  }
+  return true;
 }
 
 Deno.serve(async (req) => {
