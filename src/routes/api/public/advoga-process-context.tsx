@@ -28,21 +28,35 @@ function isAllowedAttachmentUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") return false;
-    const hostname = parsed.hostname;
-    if (
-      hostname === "localhost" ||
-      hostname.startsWith("127.") ||
-      hostname.startsWith("192.168.") ||
-      hostname.startsWith("10.") ||
-      hostname.startsWith("172.16.") ||
-      hostname === "169.254.169.254" ||
-      hostname.endsWith(".internal") ||
-      hostname.endsWith(".local")
-    ) return false;
-    return true;
+    return isSafeHostname(parsed.hostname);
   } catch {
     return false;
   }
+}
+
+function isSafeHostname(hostnameRaw: string): boolean {
+  const hostname = hostnameRaw.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!hostname) return false;
+  if (hostname === "localhost" || hostname.endsWith(".internal") || hostname.endsWith(".local")) return false;
+  // IPv4 checks
+  const v4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 0) return false;
+    if (a === 169 && b === 254) return false; // link-local / metadata
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a >= 224) return false; // multicast/reserved
+  }
+  // IPv6 checks (loopback, link-local, ULA, unspecified)
+  if (hostname.includes(":")) {
+    if (hostname === "::1" || hostname === "::") return false;
+    if (hostname.startsWith("fe80:") || hostname.startsWith("fc") || hostname.startsWith("fd")) return false;
+    if (hostname.startsWith("::ffff:")) return false; // IPv4-mapped
+  }
+  return true;
 }
 
 const PayloadSchema = z.object({
@@ -97,7 +111,7 @@ async function downloadAttachment(
       console.warn("[advoga] Blocked SSRF attempt for attachment url", att.url);
       return null;
     }
-    const res = await fetch(att.url, { redirect: "follow" });
+    const res = await fetch(att.url, { redirect: "error" });
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
     if (arrayBuf.byteLength > 25 * 1024 * 1024) return null; // 25MB limit

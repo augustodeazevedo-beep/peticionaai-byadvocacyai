@@ -16,6 +16,7 @@ import { useAIGovernance } from "@/lib/aiGovernance";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getJurisprudenciaKeyStatus } from "@/lib/jurisprudencia.functions";
+import { saveMikeIntegration } from "@/lib/mikeIntegration.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/ia")({
   head: () => ({ meta: [{ title: "Configurações de IA — Peticiona.AI" }] }),
@@ -34,6 +35,7 @@ function ConfiguracoesIA() {
   const { user, isAdmin } = useAuth();
   const { prefs, save: saveGov } = useAIGovernance();
   const jurisKeyStatus = useServerFn(getJurisprudenciaKeyStatus);
+  const saveMike = useServerFn(saveMikeIntegration);
   const { data: jurisKey } = useQuery({
     queryKey: ["jurisprudencia-key-status"],
     queryFn: () => jurisKeyStatus(),
@@ -93,23 +95,24 @@ function ConfiguracoesIA() {
     if (!user) return;
     if (!form.endpoint.trim()) return toast.error("Informe o endpoint do Mike.");
     setSaving(true);
-    const base = {
-      user_id: user.id,
-      provider: "mike",
-      endpoint: form.endpoint.trim(),
-      model: form.model.trim() || null,
-      monthly_token_cap: form.monthly_token_cap,
-      is_active: form.is_active,
-    };
-    const payload = form.api_key_encrypted.trim()
-      ? { ...base, api_key_encrypted: form.api_key_encrypted.trim() }
-      : base;
-    const { error } = await supabase.from("user_integrations").upsert(payload, { onConflict: "user_id,provider" });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Integração Mike salva.");
-    setHasKey(true);
-    setForm((f) => ({ ...f, api_key_encrypted: "" }));
+    try {
+      await saveMike({
+        data: {
+          endpoint: form.endpoint.trim(),
+          model: form.model.trim() || null,
+          monthly_token_cap: form.monthly_token_cap,
+          is_active: form.is_active,
+          api_key: form.api_key_encrypted.trim() || null,
+        },
+      });
+      toast.success("Integração Mike salva.");
+      if (form.api_key_encrypted.trim()) setHasKey(true);
+      setForm((f) => ({ ...f, api_key_encrypted: "" }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar integração.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <div className="p-8 text-muted-foreground">Carregando…</div>;
@@ -161,7 +164,7 @@ function ConfiguracoesIA() {
               onChange={(e) => setForm({ ...form, api_key_encrypted: e.target.value })}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Armazenada com RLS estrita; apenas você vê. Nunca exposta ao navegador depois de salva.
+              Criptografada no servidor com AES-256-GCM antes de ser armazenada. Nunca é devolvida ao navegador — para substituir, digite a nova chave.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
