@@ -37,12 +37,14 @@ import {
   Library,
   ShieldCheck,
   Gavel,
+  GraduationCap,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const MAIN = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Tutorial", url: "/tutorial", icon: GraduationCap },
   { title: "Nova Peça", url: "/pecas/nova", icon: FilePlus },
   { title: "Jurisprudência", url: "/jurisprudencia", icon: Gavel },
   { title: "Modelos de Peça", url: "/biblioteca/modelos", icon: Library },

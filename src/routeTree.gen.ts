@@ -18,6 +18,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
+import { Route as AuthenticatedTutorialRouteImport } from './routes/_authenticated.tutorial'
 import { Route as AuthenticatedJurisprudenciaRouteImport } from './routes/_authenticated.jurisprudencia'
 import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
 import { Route as AuthenticatedDetectAiRouteImport } from './routes/_authenticated.detect-ai'
@@ -86,6 +87,11 @@ const PSlugRoute = PSlugRouteImport.update({
 const AuthenticatedWorkspaceRoute = AuthenticatedWorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTutorialRoute = AuthenticatedTutorialRouteImport.update({
+  id: '/tutorial',
+  path: '/tutorial',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedJurisprudenciaRoute =
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/detect-ai': typeof AuthenticatedDetectAiRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
+  '/tutorial': typeof AuthenticatedTutorialRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/detect-ai': typeof AuthenticatedDetectAiRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
+  '/tutorial': typeof AuthenticatedTutorialRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -322,6 +330,7 @@ export interface FileRoutesById {
   '/_authenticated/detect-ai': typeof AuthenticatedDetectAiRoute
   '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
+  '/_authenticated/tutorial': typeof AuthenticatedTutorialRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/detect-ai'
     | '/historico-lote'
     | '/jurisprudencia'
+    | '/tutorial'
     | '/workspace'
     | '/p/$slug'
     | '/.lovable/oauth/consent'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/detect-ai'
     | '/historico-lote'
     | '/jurisprudencia'
+    | '/tutorial'
     | '/workspace'
     | '/p/$slug'
     | '/.lovable/oauth/consent'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/_authenticated/detect-ai'
     | '/_authenticated/historico-lote'
     | '/_authenticated/jurisprudencia'
+    | '/_authenticated/tutorial'
     | '/_authenticated/workspace'
     | '/p/$slug'
     | '/.lovable/oauth/consent'
@@ -529,6 +541,13 @@ declare module '@tanstack/react-router' {
       path: '/workspace'
       fullPath: '/workspace'
       preLoaderRoute: typeof AuthenticatedWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tutorial': {
+      id: '/_authenticated/tutorial'
+      path: '/tutorial'
+      fullPath: '/tutorial'
+      preLoaderRoute: typeof AuthenticatedTutorialRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/jurisprudencia': {
@@ -733,6 +752,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDetectAiRoute: typeof AuthenticatedDetectAiRoute
   AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedJurisprudenciaRoute: typeof AuthenticatedJurisprudenciaRoute
+  AuthenticatedTutorialRoute: typeof AuthenticatedTutorialRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRouteWithChildren
@@ -755,6 +775,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDetectAiRoute: AuthenticatedDetectAiRoute,
   AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedJurisprudenciaRoute: AuthenticatedJurisprudenciaRoute,
+  AuthenticatedTutorialRoute: AuthenticatedTutorialRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedBibliotecaModelosRoute:
