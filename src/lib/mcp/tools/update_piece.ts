@@ -86,9 +86,9 @@ export default defineTool({
         storage_path: f.path,
         mime_type: f.mime ?? null,
         size_bytes: f.size ?? null,
-        file_name: f.name ?? f.path.split("/").pop() ?? f.path,
+        filename: f.name ?? f.path.split("/").pop() ?? f.path,
       }));
-      const { data, error } = await sb.from("case_files").insert(rows).select("id, storage_path, file_name");
+      const { data, error } = await sb.from("case_files").insert(rows).select("id, storage_path, filename");
       if (error) return { content: [{ type: "text", text: `Anexos: ${error.message}` }], isError: true };
       addedFiles = data ?? [];
     }
