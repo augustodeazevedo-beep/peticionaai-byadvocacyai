@@ -67,6 +67,23 @@ function isSafeHostname(hostnameRaw: string): boolean {
   return true;
 }
 
+// Manually follow redirects while re-validating each hop against the SSRF allowlist.
+async function safeFetchFollow(url: string, maxHops = 5): Promise<Response | null> {
+  let current = url;
+  for (let i = 0; i <= maxHops; i++) {
+    if (!isAllowedAttachmentUrl(current)) return null;
+    const res = await fetch(current, { redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return null;
+      current = new URL(loc, current).toString();
+      continue;
+    }
+    return res;
+  }
+  return null;
+}
+
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
@@ -100,7 +117,8 @@ async function downloadAttachment(
       console.warn("Blocked SSRF attempt for URL:", att.url);
       return null;
     }
-    const res = await fetch(att.url, { redirect: "error" });
+    const res = await safeFetchFollow(att.url);
+    if (!res) return null;
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
     if (arrayBuf.byteLength > 25 * 1024 * 1024) return null;

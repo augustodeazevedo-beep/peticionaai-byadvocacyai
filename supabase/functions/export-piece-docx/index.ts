@@ -39,7 +39,8 @@ async function fetchLogoBuffer(url: string | null | undefined): Promise<{ buf: U
     }
     if (parsed.protocol !== "https:") return null;
     if (!isSafeHostname(parsed.hostname)) return null;
-    const r = await fetch(url, { redirect: "error" });
+    const r = await safeFetchFollow(url);
+    if (!r) return null;
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "";
     const buf = new Uint8Array(await r.arrayBuffer());
@@ -69,6 +70,26 @@ function isSafeHostname(hostnameRaw: string): boolean {
     if (hostname.startsWith("::ffff:")) return false;
   }
   return true;
+}
+
+// Manually follow redirects, re-validating each hop's hostname to preserve SSRF protection.
+async function safeFetchFollow(url: string, maxHops = 5): Promise<Response | null> {
+  let current = url;
+  for (let i = 0; i <= maxHops; i++) {
+    let parsed: URL;
+    try { parsed = new URL(current); } catch { return null; }
+    if (parsed.protocol !== "https:") return null;
+    if (!isSafeHostname(parsed.hostname)) return null;
+    const res = await fetch(current, { redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return null;
+      current = new URL(loc, current).toString();
+      continue;
+    }
+    return res;
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {

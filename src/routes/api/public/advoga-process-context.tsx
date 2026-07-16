@@ -59,6 +59,25 @@ function isSafeHostname(hostnameRaw: string): boolean {
   return true;
 }
 
+// Manually follow redirects while re-validating each hop against the SSRF allowlist.
+// Using `redirect: "follow"` would bypass our hostname check on 3xx; using
+// `redirect: "error"` broke S3/GCS/CDN signed URLs that legitimately redirect.
+async function safeFetchFollow(url: string, maxHops = 5): Promise<Response | null> {
+  let current = url;
+  for (let i = 0; i <= maxHops; i++) {
+    if (!isAllowedAttachmentUrl(current)) return null;
+    const res = await fetch(current, { redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return null;
+      current = new URL(loc, current).toString();
+      continue;
+    }
+    return res;
+  }
+  return null;
+}
+
 const PayloadSchema = z.object({
   external_id: z.string().min(1).max(255),
   numero_cnj: z.string().max(64).optional().nullable(),
@@ -111,7 +130,8 @@ async function downloadAttachment(
       console.warn("[advoga] Blocked SSRF attempt for attachment url", att.url);
       return null;
     }
-    const res = await fetch(att.url, { redirect: "error" });
+    const res = await safeFetchFollow(att.url);
+    if (!res) return null;
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
     if (arrayBuf.byteLength > 25 * 1024 * 1024) return null; // 25MB limit
