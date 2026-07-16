@@ -1,123 +1,45 @@
+# MCP: escrita de peças e modelos
 
-# LexGuard — Detector de riscos na resposta da IA
+Adicionar quatro ferramentas MCP para permitir que agentes externos (ChatGPT, Claude, Cursor, etc.) criem e atualizem peças e modelos do usuário autenticado, respeitando RLS.
 
-Inspirado no OpenDetector (open.forlex.ai) e adaptado à arquitetura do Peticiona.AI: um detector multi-camada que audita o **texto gerado da peça** (e, opcionalmente, o prompt que a originou) e devolve **findings** com `severidade`, `categoria`, `trecho`, `offset`, `explicação` e `correção sugerida`, com destaque visual no editor e possibilidade de aplicar a correção.
+Todas seguem o mesmo padrão dos tools existentes (`get_piece`, `list_templates`): cliente Supabase com `Authorization: Bearer <token do usuário>`, `ctx.getUserId()` para `user_id`, sem chave admin, sem entrada de `user_id` pelo agente.
 
-## Escopo (v1)
+## Ferramentas
 
-Alvo principal: peças salvas em `pieces`. Botão dispara auditoria e devolve findings persistidos, versionados por hash de conteúdo. Auditoria também disponível ad-hoc no Workspace (texto colado, sem persistir).
+**`create_piece`** — cria uma peça em `public.pieces`.
+- Entrada: `title` (obrigatório), `piece_type` (default `peticao_inicial_civel`), `area?`, `content_text?`, `content_html?`, `project_id?` (uuid), `template_id?` (uuid), `input_data?` (metadados do caso — cliente, parte contrária, fatos, pedidos, etc., como objeto JSON), `observations?`, `status?` (`draft`/`review`/`final`, default `draft`).
+- Grava `user_id = ctx.getUserId()`; retorna `{ id, title, status, created_at }`.
 
-## Categorias de detecção
+**`update_piece`** — atualiza peça existente.
+- Entrada: `id` (obrigatório) + campos parciais opcionais: `title`, `piece_type`, `area`, `content_text`, `content_html`, `input_data` (merge raso na aplicação — busca o objeto atual, mescla e grava), `observations`, `status`, `checklist`, `brand_overrides`, `assembly_options`.
+- Anexos: `add_case_files?: [{ path, mime?, size? }]` insere linhas em `public.case_files` vinculadas à peça; `remove_case_file_ids?: uuid[]` remove por id. RLS já garante isolamento.
+- Só atualiza colunas fornecidas; retorna a peça atualizada. Falha se `id` não pertence ao usuário (RLS devolve 0 linhas → erro amigável).
 
-1. **prompt_injection** — tentativas de sequestro de instrução no *input* do usuário (system_notes, context_items) e no output (ex.: `ignore previous instructions`, `system:`, `<|im_start|>`, HTML/markdown oculto, base64 suspeito, links exfiltrantes).
-2. **jailbreak** — pedidos/insinuações de contornar guardrails (DAN, roleplay para burlar ética, "responda sem restrições").
-3. **fake_citation** — leis/artigos, súmulas, RE/REsp/HC, decisões atribuídas a tribunal com dados inconsistentes ou inexistentes.
-4. **fake_jurisprudence** — precedente citado que **não é encontrado** no DataJud/Jurisprudencias.AI ou com relator/data divergente.
-5. **hallucination** — afirmação factual sem base no contexto/documentos anexos, contradição interna, número/data/valor sem fonte.
-6. **pii_leak** (bônus, baixo custo) — CPF/RG/endereço de terceiros indevidamente expostos.
+**`create_template`** — cria modelo em `public.piece_templates`.
+- Entrada: `name`, `area`, `piece_type` (obrigatórios); `description?`, `content_md?` (corpo do modelo com placeholders `{{campo}}`), `structure?` (JSON — seções/ordem), `prompt_hints?` (persona e regras que o pipeline injeta), `tags?` (string[]), `scope?` (`pessoal`/`escritorio`, default `pessoal`), `style_overrides?` (JSON), `is_default?`.
+- `user_id = ctx.getUserId()`; retorna `{ id, name, area, piece_type }`.
 
-Cada finding:
-```
-{ id, category, severity: "low|medium|high|critical",
-  snippet, start, end,          // offsets no content_text
-  explanation, suggested_fix,   // texto de substituição sugerido
-  evidence?: { source, url, matched_id },
-  confidence: 0..1 }
-```
+**`update_template`** — atualiza modelo existente.
+- Entrada: `id` + campos parciais dos mesmos atributos de `create_template`.
+- Merge raso em `structure`/`style_overrides` quando enviados; substituição direta em `content_md`, `prompt_hints`, `tags`, `scope`, `is_default`, `description`.
+- Retorna o modelo atualizado; RLS garante ownership.
 
-## Pipeline (server function `auditPieceContent`)
+Anotações MCP: `readOnlyHint: false` nas quatro; `destructiveHint: true` apenas em `update_piece` e `update_template` quando o input remove anexos ou muda `status: "final"`? — mantido simples: sem `destructiveHint`, com `openWorldHint: false`.
 
-```text
-        ┌──── Stage A: heurísticas (regex + listas)
-input → │     prompt_injection, jailbreak, pii_leak    ─┐
-        └──── Stage B: extrator de citações            ─┤
-              (Lei X, art. Y; Súmula N; RE/REsp/HC…)   ─┼─► merge + dedup ─► rank
-        ┌──── Stage C: validador de jurisprudência    ─┤
-        │     usa jurisprudenciaService + DataJud     ─┤
-        └──── Stage D: revisor LLM (Lovable AI)       ─┘
-              gemini-3.5-flash + Output.object schema
-              → hallucinations, weak_citations, contradições
-```
+## Detalhes técnicos
 
-- **Stage A** roda em ~50ms, cobre casos óbvios sem consumir token.
-- **Stage B** extrai citações com regex específicos de PT-BR jurídico (`Lei nº ...`, `art. ... da CF`, `Súmula ... STJ`, `REsp ... /SP`, `HC ...`, ADI/ADPF, etc.).
-- **Stage C** consulta cada citação no `jurisprudenciaService` e no DataJud; miss → `fake_jurisprudence (high)`, divergência de metadados → `medium`, sem cobertura → `low (unverified)`.
-- **Stage D** recebe o `content_text` + citações extraídas + contexto (input_data + anexos textuais) e retorna JSON com findings de alucinação/contradição via `Output.object` (structuredOutputs desligado; Gemini). Prompt inclui regras do `cognitive_os_config.shadow_cabinet`.
-- Merge deduplica por (categoria, start±5).
+- Arquivos novos: `src/lib/mcp/tools/create_piece.ts`, `update_piece.ts`, `create_template.ts`, `update_template.ts`.
+- Registrar em `src/lib/mcp/index.ts` no array `tools`, mantendo os cinco atuais. Atualizar `instructions` mencionando as novas capacidades de escrita.
+- Reuso do helper `supabaseForUser(ctx)` já presente nos tools atuais (copiado localmente em cada arquivo, como o padrão do repositório).
+- Validação com Zod: uuids validados; strings com limites (título ≤ 255, `content_text` ≤ 200k, `content_html` ≤ 400k, `content_md` ≤ 200k, `observations` ≤ 20k) para evitar payloads absurdos.
+- `input_data` merge: `SELECT input_data` → `{...atual, ...novo}` → `UPDATE`. Feito em uma única operação sequencial dentro do handler.
+- Anexos em `update_piece`: cada linha em `case_files` grava `user_id = ctx.getUserId()` e `piece_id = id`. Apenas o path lógico dentro do bucket `case-files` é aceito (regex `^[A-Za-z0-9._/-]{1,500}$`); upload real segue via app (o MCP não faz upload de binário).
+- Todos os handlers retornam `{ content: [{ type: "text", text: ... }], structuredContent: {...}, isError? }` conforme padrão.
+- Não é preciso migration: as tabelas já existem com RLS por `auth.uid()`. Não são criadas policies novas.
+- Após salvar os arquivos, rodar `app_mcp_server--extract_mcp_manifest` para revalidar o manifesto.
 
-## Backend
+## Fora do escopo
 
-Novos arquivos:
-- `src/lib/audit/detectors.ts` — regex/listas para Stage A + extrator de citações (puro, testável).
-- `src/lib/audit/citations.ts` — normalização e validação via `jurisprudenciaService`.
-- `src/lib/audit.functions.ts` — `auditPieceContent({ pieceId })`, `auditRawText({ text, context? })` (para workspace), `applyAuditFix({ pieceId, findingId })`.
-- `src/lib/audit.server.ts` — chamada Lovable AI Gateway com `Output.object` (schema Zod dos findings).
-
-Migração SQL:
-```sql
-create table public.piece_audits (
-  id uuid primary key default gen_random_uuid(),
-  piece_id uuid not null references public.pieces(id) on delete cascade,
-  user_id uuid not null,
-  content_hash text not null,            -- sha256 do content_text auditado
-  findings jsonb not null default '[]',
-  score int not null,                    -- 0-100 (100 = limpo)
-  model text,
-  created_at timestamptz default now()
-);
-create index on public.piece_audits (piece_id, created_at desc);
-
-grant select, insert, delete on public.piece_audits to authenticated;
-grant all on public.piece_audits to service_role;
-alter table public.piece_audits enable row level security;
-
-create policy "own audits"
-  on public.piece_audits for all
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-```
-
-## Frontend
-
-Novo componente `src/components/pieces/AuditPanel.tsx`, montado em `/pecas/$id` ao lado do `IntelligencePanel`:
-
-- Cabeçalho: **Score** (0–100), contagem por severidade, botão **Auditar novamente** (desabilitado se `content_hash` inalterado — mostra cache).
-- Lista de findings agrupada por categoria, com badge de severidade colorida (crítico=vermelho, alto=laranja, médio=âmbar, baixo=cyan).
-- Ao clicar num finding: rola até o trecho e **destaca** em `PageMockup`/editor (via `<mark data-audit-id>`); painel lateral abre com explicação + `suggested_fix` + botões **Aplicar correção**, **Ignorar**, **Marcar falso-positivo**.
-- Evidence link (quando houver): abre modal de detalhe (para citações, mostra o registro do DataJud/Jurisprudencias.AI).
-
-Novo componente `src/components/workspace/AuditQuick.tsx` — auditoria de texto colado no Workspace, sem persistência, mesmo pipeline.
-
-Integração leve: `IntelligencePanel` ganha uma linha "Auditoria: score X • Y críticos" com atalho para abrir o `AuditPanel`.
-
-## Regras de aplicação
-
-- **Aplicar correção**: substitui `[start, end)` em `content_text`/`content_html` (regenera HTML pelo `pieceAssembler`), grava nova versão em `piece_versions`, invalida audit e reexecuta Stage A+B+C locais (Stage D roda só sob demanda).
-- **Ignorar / falso-positivo**: atualiza `findings[i].dismissed = { reason, at }` no jsonb (sem excluir para trilha de auditoria).
-- **Alto/crítico não corrigido**: badge no cartão da peça na listagem + bloqueio opcional de export (config em `ai_governance_prefs.block_export_on_critical`, default `false`).
-
-## Segurança
-
-- Ambas as server fns usam `requireSupabaseAuth`; RLS garante escopo do usuário.
-- Stage D nunca recebe secrets; prompt do auditor é isolado do prompt gerador (dupla instrução defensiva contra self-injection).
-- Custo controlado: caching por `content_hash`, limite mensal reaproveita `monthly_token_cap` de `user_integrations`.
-- Regex de PII rodam server-side; findings de PII trazem apenas os últimos 3 dígitos.
-
-## Como diferencia do OpenDetector
-
-- Camada C **específica jurídica BR** conectada ao **DataJud** e ao serviço interno de jurisprudências (o OpenDetector é genérico).
-- Escrita, versionamento e correção **inline no editor de peças**, com trilha de auditoria por versão.
-- Reaproveita o `cognitive_os_config.shadow_cabinet` já existente para o Stage D → consistência com o pipeline de geração.
-
-## Entregáveis
-
-1. Migração `piece_audits` + RLS.
-2. `src/lib/audit/detectors.ts` (Stage A + B) com testes rápidos.
-3. `src/lib/audit/citations.ts` (Stage C) reutilizando `jurisprudenciaService`.
-4. `src/lib/audit.server.ts` + `audit.functions.ts` (Stage D + orquestração).
-5. `AuditPanel.tsx` + integração em `/pecas/$id` (highlight, apply-fix).
-6. `AuditQuick.tsx` no Workspace.
-7. Toggle de export-block em `ai_governance_prefs` e badge de status na lista de peças.
-
-Sem cobrança de nova secret — usa `LOVABLE_API_KEY` e `DATAJUD_API_KEY` já configurados.
+- Upload binário de anexos via MCP (o agente registra apenas o `path` já enviado ao bucket pelo app).
+- Publicação/compartilhamento público (`is_shared`, `public_slug`) — mantido no app para exigir consentimento explícito.
+- Exclusão de peças/modelos (`delete_*`) — pode entrar em iteração futura se pedido.
