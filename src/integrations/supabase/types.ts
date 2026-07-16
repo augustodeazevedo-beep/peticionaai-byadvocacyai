@@ -115,6 +115,42 @@ export type Database = {
           },
         ]
       }
+      detectai_checks: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          findings: Json
+          id: string
+          model: string | null
+          score: number
+          stages: Json | null
+          text_preview: string
+          user_id: string
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          score: number
+          stages?: Json | null
+          text_preview: string
+          user_id: string
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          score?: number
+          stages?: Json | null
+          text_preview?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       detectai_prefs: {
         Row: {
           allowlist_patterns: string[]
