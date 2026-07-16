@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import { Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -139,6 +141,11 @@ export function AuditPanel({ pieceId, contentText, onContentChange }: Props) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/configuracoes/detect-ai">
+              <Settings2 className="mr-2 h-3 w-3" /> Ajustar regras
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
