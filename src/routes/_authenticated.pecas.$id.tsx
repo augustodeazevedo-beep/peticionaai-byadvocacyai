@@ -24,7 +24,7 @@ import { markdownToHtml } from "@/lib/markdown";
 import { runDetectAiGate, type GateResult, type GateTrigger } from "@/lib/detectai.functions";
 import { DetectAiGateDialog } from "@/components/detectai/DetectAiGateDialog";
 import { useServerFn } from "@tanstack/react-start";
-import { ShieldAlert, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
