@@ -21,6 +21,10 @@ import { loadOfficeBrand, type OfficeBrand } from "@/lib/officeBrand";
 import { assemblePiece, pieceContextFromInput } from "@/lib/pieceAssembler";
 import { exportPiecePdfProtocolo, downloadBlob } from "@/services/pieces/exportPdfProtocolo";
 import { markdownToHtml } from "@/lib/markdown";
+import { runDetectAiGate, type GateResult, type GateTrigger } from "@/lib/detectai.functions";
+import { DetectAiGateDialog } from "@/components/detectai/DetectAiGateDialog";
+import { useServerFn } from "@tanstack/react-start";
+import { ShieldAlert, CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +65,39 @@ function PieceEditor() {
   const [brand, setBrand] = useState<OfficeBrand | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [applyLetterhead, setApplyLetterhead] = useState(true);
+  const runGate = useServerFn(runDetectAiGate);
+  const [gateResult, setGateResult] = useState<GateResult | null>(null);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateAction, setGateAction] = useState<null | (() => Promise<void> | void)>(null);
+  const [gateLabel, setGateLabel] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+
+  async function withDetectAiGate(
+    trigger: GateTrigger,
+    actionLabel: string,
+    proceed: () => Promise<void> | void,
+    force = false,
+  ): Promise<boolean> {
+    if (!piece) return false;
+    try {
+      const r = await runGate({ data: { pieceId: piece.id, trigger, force } });
+      setGateResult(r);
+      if (r.blocked) {
+        setGateLabel(actionLabel);
+        setGateAction(() => proceed);
+        setGateOpen(true);
+        return false;
+      }
+      if (r.enforced) toast.success(`Detect.AI aprovou (score ${r.score})`);
+      await proceed();
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro no Detect.AI");
+      // não bloqueia ação se o gate falhar
+      await proceed();
+      return true;
+    }
+  }
 
   useEffect(() => {
     supabase.from("pieces").select("*").eq("id", id).single().then(({ data, error }) => {
@@ -118,6 +155,7 @@ function PieceEditor() {
 
   async function doExport() {
     if (!piece) return;
+    await withDetectAiGate("export_docx", "exportar DOCX", async () => {
     setExporting(true);
     try {
       // Salva conteúdo final (já com timbrado/assinatura)
@@ -132,10 +170,12 @@ function PieceEditor() {
     } finally {
       setExporting(false);
     }
+    });
   }
 
   async function doExportHtml() {
     if (!piece) return;
+    await withDetectAiGate("export_html", "exportar HTML", async () => {
     setExportingHtml(true);
     try {
       // Salva antes para garantir que o HTML reflete o conteúdo atual
@@ -147,10 +187,12 @@ function PieceEditor() {
     } finally {
       setExportingHtml(false);
     }
+    });
   }
 
   async function doExportPdf() {
     if (!piece) return;
+    await withDetectAiGate("export_pdf", "exportar PDF", async () => {
     setExportingPdf(true);
     try {
       const blob = await exportPiecePdfProtocolo(
@@ -166,6 +208,27 @@ function PieceEditor() {
     } finally {
       setExportingPdf(false);
     }
+    });
+  }
+
+  async function doFinalize() {
+    if (!piece) return;
+    await withDetectAiGate("finalize", "marcar como final", async () => {
+      setFinalizing(true);
+      try {
+        const { error } = await supabase
+          .from("pieces")
+          .update({ status: "final" })
+          .eq("id", piece.id);
+        if (error) throw new Error(error.message);
+        setPiece({ ...piece, status: "final" });
+        toast.success("Peça marcada como final");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao finalizar");
+      } finally {
+        setFinalizing(false);
+      }
+    });
   }
 
   if (!piece) return <p className="text-muted-foreground">Carregando…</p>;
@@ -196,6 +259,11 @@ function PieceEditor() {
           <Button variant="outline" onClick={save} disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> Salvar
           </Button>
+          {piece.status !== "final" && (
+            <Button variant="outline" onClick={doFinalize} disabled={finalizing}>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="bg-gradient-brand text-primary-foreground" disabled={exporting || exportingPdf || exportingHtml}>
@@ -219,6 +287,28 @@ function PieceEditor() {
           </DropdownMenu>
         </div>
       </div>
+
+      <DetectAiGateDialog
+        result={gateResult}
+        open={gateOpen}
+        onOpenChange={setGateOpen}
+        pieceId={piece.id}
+        actionLabel={gateLabel}
+        onOverride={async () => { if (gateAction) await gateAction(); }}
+        onRerun={async () => {
+          try {
+            const r = await runGate({ data: { pieceId: piece.id, trigger: "manual", force: true } });
+            setGateResult(r);
+            if (!r.blocked) {
+              setGateOpen(false);
+              toast.success(`Detect.AI aprovou (score ${r.score})`);
+              if (gateAction) await gateAction();
+            }
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Erro");
+          }
+        }}
+      />
 
       {!brand?.firm_name && (
         <Card className="glass border-border/50 p-3 flex items-center justify-between gap-3 text-sm">
