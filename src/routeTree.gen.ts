@@ -35,6 +35,7 @@ import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_aut
 import { Route as AuthenticatedConfiguracoesSegurancaRouteImport } from './routes/_authenticated.configuracoes.seguranca'
 import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
+import { Route as AuthenticatedConfiguracoesDetectAiRouteImport } from './routes/_authenticated.configuracoes.detect-ai'
 import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -183,6 +184,12 @@ const AuthenticatedConfiguracoesIaRoute =
     path: '/configuracoes/ia',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedConfiguracoesDetectAiRoute =
+  AuthenticatedConfiguracoesDetectAiRouteImport.update({
+    id: '/configuracoes/detect-ai',
+    path: '/configuracoes/detect-ai',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedBibliotecaModelosRoute =
   AuthenticatedBibliotecaModelosRouteImport.update({
     id: '/biblioteca/modelos',
@@ -235,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
+  '/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
+  '/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
+  '/_authenticated/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/_authenticated/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/integracoes'
     | '/biblioteca/modelos'
+    | '/configuracoes/detect-ai'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/configuracoes/seguranca'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/admin/integracoes'
     | '/biblioteca/modelos'
+    | '/configuracoes/detect-ai'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/configuracoes/seguranca'
@@ -400,6 +412,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/biblioteca/modelos'
+    | '/_authenticated/configuracoes/detect-ai'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/identidade'
     | '/_authenticated/configuracoes/seguranca'
@@ -612,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracoes/detect-ai': {
+      id: '/_authenticated/configuracoes/detect-ai'
+      path: '/configuracoes/detect-ai'
+      fullPath: '/configuracoes/detect-ai'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesDetectAiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/biblioteca/modelos': {
       id: '/_authenticated/biblioteca/modelos'
       path: '/biblioteca/modelos'
@@ -676,6 +696,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRouteWithChildren
+  AuthenticatedConfiguracoesDetectAiRoute: typeof AuthenticatedConfiguracoesDetectAiRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
   AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
   AuthenticatedConfiguracoesSegurancaRoute: typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -696,6 +717,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedBibliotecaModelosRoute:
     AuthenticatedBibliotecaModelosRouteWithChildren,
+  AuthenticatedConfiguracoesDetectAiRoute:
+    AuthenticatedConfiguracoesDetectAiRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
   AuthenticatedConfiguracoesIdentidadeRoute:
     AuthenticatedConfiguracoesIdentidadeRoute,
