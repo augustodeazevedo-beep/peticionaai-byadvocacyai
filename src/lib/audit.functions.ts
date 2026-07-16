@@ -6,6 +6,10 @@ import { computeScore } from "@/lib/audit/types";
 import { hashContent, runPipeline } from "@/lib/audit/pipeline.server";
 import { applyPrefsToFindings, DEFAULT_PREFS } from "@/lib/detectai.functions";
 import type { DetectAiPrefs } from "@/lib/detectai.functions";
+import {
+  applyWhitelistToFindings,
+  loadWhitelist,
+} from "@/lib/detectaiWhitelist.functions";
 
 export type DetectAiCheckRow = {
   id: string;
@@ -68,7 +72,9 @@ export const auditPasteText = createServerFn({ method: "POST" })
     const skipLlm = data.skipLlm ?? !(prefs?.llm_auditor_enabled ?? true);
 
     const result = await runPipeline(data.text, data.context ?? null, skipLlm);
-    const filtered = applyPrefsToFindings(result.findings, prefs);
+    const whitelist = await loadWhitelist(supabase as any, userId);
+    const afterPrefs = applyPrefsToFindings(result.findings, prefs);
+    const filtered = applyWhitelistToFindings(afterPrefs, whitelist, null);
     const score = filtered.length === 0 ? 100 : result.score;
 
     const preview = data.text.slice(0, 240);
@@ -146,14 +152,31 @@ export const auditPieceContent = createServerFn({ method: "POST" })
 
     const result = await runPipeline(text, ctx, data.skipLlm ?? false);
 
+    // Aplica whitelist do usuário (por cliente extraído do input_data).
+    const inputAny = (piece.input_data ?? {}) as Record<string, unknown>;
+    const clientName =
+      (typeof inputAny.autor === "string" && inputAny.autor) ||
+      (typeof inputAny.cliente === "string" && inputAny.cliente) ||
+      null;
+    const whitelist = await loadWhitelist(context.supabase as any, userId);
+    const filteredFindings = applyWhitelistToFindings(
+      result.findings,
+      whitelist,
+      clientName,
+    );
+    const finalScore =
+      filteredFindings.length === result.findings.length
+        ? result.score
+        : computeScore(filteredFindings);
+
     const { data: saved, error: insErr } = await supabase
       .from("piece_audits")
       .insert({
         piece_id: data.pieceId,
         user_id: userId,
         content_hash: result.content_hash,
-        findings: result.findings as unknown as any,
-        score: result.score,
+        findings: filteredFindings as unknown as any,
+        score: finalScore,
         model: result.model,
         stages: result.stages as unknown as any,
       })
