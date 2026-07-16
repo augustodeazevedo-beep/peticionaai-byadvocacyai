@@ -129,7 +129,7 @@ export function AuditPanel({ pieceId, contentText, onContentChange }: Props) {
           <div>
             <div className="flex items-center gap-2 font-semibold">
               <ShieldCheck className="h-4 w-4 text-accent" />
-              LexGuard
+              Detect.AI
             </div>
             <div className="text-xs text-muted-foreground">
               {audit
