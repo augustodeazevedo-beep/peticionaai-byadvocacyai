@@ -8,6 +8,8 @@ import createPiece from "./tools/create_piece";
 import updatePiece from "./tools/update_piece";
 import createTemplate from "./tools/create_template";
 import updateTemplate from "./tools/update_template";
+import auditText from "./tools/audit_text";
+import auditPiece from "./tools/audit_piece";
 
 // Direct Supabase issuer — mcp-js validates the token against the discovery
 // document, and the .lovable.cloud proxy publishes the direct supabase.co
@@ -19,7 +21,7 @@ export default defineMcp({
   title: "Peticiona.AI",
   version: "0.1.0",
   instructions:
-    "Ferramentas para gerenciar peças jurídicas e modelos do usuário autenticado no Peticiona.AI. Consulta: `whoami`, `list_pieces`, `search_pieces`, `get_piece`, `list_templates`. Escrita: `create_piece` e `update_piece` (peças, anexos e metadados do caso); `create_template` e `update_template` (modelos com persona, regras e placeholders). Todas as chamadas respeitam RLS — o usuário só acessa/modifica dados próprios.",
+    "Ferramentas para gerenciar peças jurídicas e modelos do usuário autenticado no Peticiona.AI. Consulta: `whoami`, `list_pieces`, `search_pieces`, `get_piece`, `list_templates`. Escrita: `create_piece` e `update_piece` (peças, anexos e metadados do caso); `create_template` e `update_template` (modelos com persona, regras e placeholders). Auditoria Detect.AI: `audit_text` (auditar texto arbitrário sem persistir) e `audit_piece` (auditar uma peça e salvar o resultado). Cada achado inclui severidade, trecho e correção sugerida. Todas as chamadas respeitam RLS.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
@@ -34,5 +36,7 @@ export default defineMcp({
     updatePiece,
     createTemplate,
     updateTemplate,
+    auditText,
+    auditPiece,
   ],
 });

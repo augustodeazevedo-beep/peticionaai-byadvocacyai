@@ -551,6 +551,76 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "audit_text",
+        "title": "Detect.AI — auditar texto",
+        "description": "Audita um texto jurídico com o pipeline Detect.AI e retorna achados (prompt injection, jailbreak, PII exposta, citações/leis/súmulas suspeitas, jurisprudência suspeita, alucinações). Cada achado inclui severidade, trecho (start/end + snippet), explicação e correção sugerida. Não persiste nada.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80000,
+              "description": "Texto a ser auditado."
+            },
+            "context": {
+              "type": "string",
+              "maxLength": 20000,
+              "description": "Contexto opcional do caso (JSON ou texto) para melhorar a detecção de alucinações."
+            },
+            "skip_llm": {
+              "type": "boolean",
+              "description": "Se true, pula o estágio D (auditor LLM). Mais rápido e não consome créditos de IA."
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "audit_piece",
+        "title": "Detect.AI — auditar peça",
+        "description": "Roda o pipeline Detect.AI sobre o conteúdo de uma peça do usuário autenticado e persiste o resultado em piece_audits (cacheado por hash de conteúdo). Retorna score, findings com severidade/trecho/correção sugerida e metadados do estágio.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "piece_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID da peça a auditar."
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Se true, ignora o cache por content_hash e roda o pipeline novamente."
+            },
+            "skip_llm": {
+              "type": "boolean",
+              "description": "Se true, pula o estágio D (auditor LLM)."
+            }
+          },
+          "required": [
+            "piece_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }
