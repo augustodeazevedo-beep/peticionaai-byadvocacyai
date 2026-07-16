@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://xelcsqiixrrbwsegqpmb.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "peticiona-ai-mcp",
+      "version": "0.1.0",
+      "title": "Peticiona.AI"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Quem sou eu",
+        "description": "Retorna o e-mail e o id do usuário autenticado no Peticiona.AI. Útil para verificar a conexão MCP.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pieces",
+        "title": "Listar peças",
+        "description": "Lista as peças jurídicas do usuário autenticado no Peticiona.AI, mais recentes primeiro. Retorna id, título, área, tipo de peça, status e datas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Máximo de peças a retornar (1-50)."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "rascunho",
+                "revisao",
+                "final",
+                "arquivado"
+              ],
+              "description": "Filtrar por status."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_pieces",
+        "title": "Buscar peças",
+        "description": "Busca peças do usuário por trecho no título ou no conteúdo textual (case-insensitive). Retorna correspondências recentes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 200,
+              "description": "Termo de busca (mín. 2 caracteres)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 10
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_piece",
+        "title": "Obter peça",
+        "description": "Retorna o conteúdo completo de uma peça (texto/HTML), metadados, checklist de auditoria e observações. Requer o id da peça.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID da peça."
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_templates",
+        "title": "Listar modelos de peça",
+        "description": "Lista os modelos de peça disponíveis para o usuário autenticado (próprios e compartilhados), com nome, área e tipo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "area": {
+              "type": "string",
+              "description": "Filtrar por área (ex.: 'trabalhista', 'civel')."
+            },
+            "piece_type": {
+              "type": "string",
+              "description": "Filtrar por tipo de peça."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
