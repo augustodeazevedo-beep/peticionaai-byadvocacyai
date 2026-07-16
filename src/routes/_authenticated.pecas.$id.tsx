@@ -218,10 +218,10 @@ function PieceEditor() {
       try {
         const { error } = await supabase
           .from("pieces")
-          .update({ status: "final" })
+          .update({ status: "ready" })
           .eq("id", piece.id);
         if (error) throw new Error(error.message);
-        setPiece({ ...piece, status: "final" });
+        setPiece({ ...piece, status: "ready" });
         toast.success("Peça marcada como final");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao finalizar");
@@ -259,7 +259,7 @@ function PieceEditor() {
           <Button variant="outline" onClick={save} disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> Salvar
           </Button>
-          {piece.status !== "final" && (
+          {piece.status !== "ready" && piece.status !== "archived" && (
             <Button variant="outline" onClick={doFinalize} disabled={finalizing}>
               <CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar
             </Button>
