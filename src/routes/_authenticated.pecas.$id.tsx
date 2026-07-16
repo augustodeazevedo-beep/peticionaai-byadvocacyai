@@ -238,7 +238,7 @@ function PieceEditor() {
           <TabsTrigger value="preview">Pré-visualização (A4)</TabsTrigger>
           <TabsTrigger value="markdown">Markdown</TabsTrigger>
           <TabsTrigger value="intel">Inteligência</TabsTrigger>
-          <TabsTrigger value="audit">LexGuard</TabsTrigger>
+          <TabsTrigger value="audit">Detect.AI</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="visual">Visual Law</TabsTrigger>
           <TabsTrigger value="visual-ai">Visual Law AI (beta)</TabsTrigger>
