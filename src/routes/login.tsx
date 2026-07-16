@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Entrar — Peticiona.AI" },
@@ -27,13 +30,18 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/dashboard" });
-  }, [user, navigate]);
+    if (user) {
+      if (safeNext) window.location.href = safeNext;
+      else navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate, safeNext]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,11 +50,13 @@ function LoginPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo(a) de volta!");
-    navigate({ to: "/dashboard" });
+    if (safeNext) window.location.href = safeNext;
+    else navigate({ to: "/dashboard" });
   }
 
   async function googleSignIn() {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
+    const redirect = safeNext ? window.location.origin + safeNext : window.location.origin + "/dashboard";
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirect });
     if (result.error) toast.error(String(result.error));
   }
 

@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/signup")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Criar conta — Peticiona.AI" },
@@ -27,34 +30,42 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/dashboard" });
-  }, [user, navigate]);
+    if (user) {
+      if (safeNext) window.location.href = safeNext;
+      else navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate, safeNext]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const redirect = safeNext ? window.location.origin + safeNext : window.location.origin + "/dashboard";
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin + "/dashboard",
+        emailRedirectTo: redirect,
         data: { full_name: fullName },
       },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Conta criada! Você já pode acessar.");
-    navigate({ to: "/dashboard" });
+    if (safeNext) window.location.href = safeNext;
+    else navigate({ to: "/dashboard" });
   }
 
   async function googleSignIn() {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
+    const redirect = safeNext ? window.location.origin + safeNext : window.location.origin + "/dashboard";
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirect });
     if (result.error) toast.error(String(result.error));
   }
 
