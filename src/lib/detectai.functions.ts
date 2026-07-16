@@ -87,14 +87,22 @@ export const getDetectAiPrefs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<DetectAiPrefs> => {
     const { supabase, userId } = context;
-    const { data } = await supabase
+    const sb = supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => { eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } };
+        insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+        upsert: (v: Record<string, unknown>, opts?: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
+        delete: () => { eq: (col: string, v: string) => Promise<{ error: { message: string } | null }> };
+      };
+    };
+    const { data } = await sb
       .from("detectai_prefs")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
     if (data) return normalizePrefs(data);
     // autocria
-    await supabase.from("detectai_prefs").insert({
+    await sb.from("detectai_prefs").insert({
       user_id: userId,
       block_threshold: DEFAULT_PREFS.block_threshold,
       enforce_on_finalize: DEFAULT_PREFS.enforce_on_finalize,
@@ -124,9 +132,12 @@ export const saveDetectAiPrefs = createServerFn({ method: "POST" })
       rules: data.rules as unknown as Record<string, unknown>,
       allowlist_patterns: data.allowlist_patterns,
     };
-    const { error } = await supabase
-      .from("detectai_prefs")
-      .upsert(payload, { onConflict: "user_id" });
+    const sb = supabase as unknown as {
+      from: (t: string) => {
+        upsert: (v: Record<string, unknown>, opts?: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
+      };
+    };
+    const { error } = await sb.from("detectai_prefs").upsert(payload, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -135,7 +146,10 @@ export const resetDetectAiPrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    await supabase.from("detectai_prefs").delete().eq("user_id", userId);
+    const sb = supabase as unknown as {
+      from: (t: string) => { delete: () => { eq: (c: string, v: string) => Promise<unknown> } };
+    };
+    await sb.from("detectai_prefs").delete().eq("user_id", userId);
     return { ok: true };
   });
 
@@ -200,7 +214,12 @@ export const runDetectAiGate = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => gateInput.parse(d))
   .handler(async ({ data, context }): Promise<GateResult> => {
     const { supabase, userId } = context;
-    const { data: prefsRow } = await supabase
+    const sb = supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } };
+      };
+    };
+    const { data: prefsRow } = await sb
       .from("detectai_prefs")
       .select("*")
       .eq("user_id", userId)
