@@ -157,6 +157,400 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "create_piece",
+        "title": "Criar peça",
+        "description": "Cria uma nova peça jurídica na conta do usuário autenticado. Aceita título, tipo, área, conteúdo (texto e/ou HTML), metadados do caso (input_data), template_id opcional e status inicial. RLS garante que a peça pertence ao próprio usuário.",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "description": "Título da peça."
+            },
+            "piece_type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "default": "peticao_inicial_civel",
+              "description": "Tipo da peça (ex.: peticao_inicial_civel, contestacao, recurso_apelacao)."
+            },
+            "area": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Área jurídica (ex.: civel, trabalhista, tributario)."
+            },
+            "content_text": {
+              "type": "string",
+              "maxLength": 200000,
+              "description": "Conteúdo em texto puro."
+            },
+            "content_html": {
+              "type": "string",
+              "maxLength": 400000,
+              "description": "Conteúdo em HTML."
+            },
+            "project_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Projeto/caso ao qual a peça pertence."
+            },
+            "template_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Modelo utilizado como base."
+            },
+            "input_data": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Metadados do caso (cliente, parte contrária, fatos, pedidos etc.) como objeto JSON."
+            },
+            "observations": {
+              "type": "string",
+              "maxLength": 20000,
+              "description": "Observações internas."
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "review",
+                "final"
+              ],
+              "default": "draft",
+              "description": "Status inicial."
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_piece",
+        "title": "Atualizar peça",
+        "description": "Atualiza uma peça existente (título, tipo, área, conteúdo, metadados, status, checklist, observações, brand_overrides, assembly_options) e opcionalmente registra/remove anexos em case_files. RLS impede alterações em peças de outros usuários.",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID da peça."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "piece_type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "area": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content_text": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content_html": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 400000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_data": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Objeto mesclado com o input_data atual (merge raso)."
+            },
+            "observations": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "review",
+                "final"
+              ]
+            },
+            "checklist": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "brand_overrides": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "assembly_options": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "add_case_files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._/-]{1,500}$"
+                  },
+                  "mime": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "size": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 20,
+              "description": "Anexos já enviados ao bucket case-files a associar."
+            },
+            "remove_case_file_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 50
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_template",
+        "title": "Criar modelo de peça",
+        "description": "Cria um modelo (template) de peça para reutilização, com corpo em markdown, placeholders {{campo}}, estrutura de seções, persona e regras (prompt_hints), tags e escopo (pessoal ou escritorio).",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "area": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "piece_type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 2000
+            },
+            "content_md": {
+              "type": "string",
+              "maxLength": 200000,
+              "default": "",
+              "description": "Corpo do modelo em markdown. Use {{campo}} para placeholders."
+            },
+            "structure": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Estrutura/seções do modelo."
+            },
+            "style_overrides": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "prompt_hints": {
+              "type": "string",
+              "maxLength": 20000,
+              "description": "Persona e regras injetadas no pipeline de geração."
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 60
+              },
+              "maxItems": 30
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "pessoal",
+                "escritorio"
+              ],
+              "default": "pessoal"
+            },
+            "is_default": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "name",
+            "area",
+            "piece_type"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_template",
+        "title": "Atualizar modelo de peça",
+        "description": "Atualiza um modelo de peça existente (nome, descrição, área, tipo, corpo markdown, estrutura, style_overrides, prompt_hints, tags, escopo, is_default). RLS impede alterações em modelos de outros usuários.",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "area": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "piece_type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content_md": {
+              "type": "string",
+              "maxLength": 200000
+            },
+            "structure": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Merge raso com o structure atual."
+            },
+            "style_overrides": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Merge raso com o style_overrides atual."
+            },
+            "prompt_hints": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 60
+              },
+              "maxItems": 30
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "pessoal",
+                "escritorio"
+              ]
+            },
+            "is_default": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }
