@@ -128,10 +128,10 @@ export const auditPieceContent = createServerFn({ method: "POST" })
         piece_id: data.pieceId,
         user_id: userId,
         content_hash: result.content_hash,
-        findings: result.findings as unknown as Record<string, unknown>[],
+        findings: result.findings as unknown as any,
         score: result.score,
         model: result.model,
-        stages: result.stages as unknown as Record<string, unknown>,
+        stages: result.stages as unknown as any,
       })
       .select("*")
       .single();
@@ -183,7 +183,7 @@ export const dismissAuditFinding = createServerFn({ method: "POST" })
     const score = computeScore(next);
     const { data: updated, error: updErr } = await context.supabase
       .from("piece_audits")
-      .update({ findings: next as unknown as Record<string, unknown>[], score })
+      .update({ findings: next as unknown as any, score })
       .eq("id", data.auditId)
       .select("*")
       .single();
@@ -252,7 +252,7 @@ export const applyAuditFix = createServerFn({ method: "POST" })
     const score = computeScore(nextFindings);
     await supabase
       .from("piece_audits")
-      .update({ findings: nextFindings as unknown as Record<string, unknown>[], score })
+      .update({ findings: nextFindings as unknown as any, score })
       .eq("id", data.auditId);
 
     return { ok: true, content_text: nextText, delta: replacement.length - (end - start) };
