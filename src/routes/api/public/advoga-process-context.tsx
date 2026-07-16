@@ -111,7 +111,8 @@ async function downloadAttachment(
       console.warn("[advoga] Blocked SSRF attempt for attachment url", att.url);
       return null;
     }
-    const res = await fetch(att.url, { redirect: "error" });
+    const res = await safeFetchFollow(att.url);
+    if (!res) return null;
     if (!res.ok) return null;
     const arrayBuf = await res.arrayBuffer();
     if (arrayBuf.byteLength > 25 * 1024 * 1024) return null; // 25MB limit
