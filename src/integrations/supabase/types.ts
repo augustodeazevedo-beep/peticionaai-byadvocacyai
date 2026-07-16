@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           ai_disclosure_enabled: boolean
           ai_disclosure_text: string
+          block_export_on_critical: boolean
           created_at: string
           defensive_mode: boolean
           human_in_loop: boolean
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           ai_disclosure_enabled?: boolean
           ai_disclosure_text?: string
+          block_export_on_critical?: boolean
           created_at?: string
           defensive_mode?: boolean
           human_in_loop?: boolean
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           ai_disclosure_enabled?: boolean
           ai_disclosure_text?: string
+          block_export_on_critical?: boolean
           created_at?: string
           defensive_mode?: boolean
           human_in_loop?: boolean
@@ -554,6 +557,67 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      piece_audits: {
+        Row: {
+          content_hash: string
+          created_at: string
+          findings: Json
+          id: string
+          model: string | null
+          piece_id: string
+          score: number
+          stages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          piece_id: string
+          score?: number
+          stages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          model?: string | null
+          piece_id?: string
+          score?: number
+          stages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piece_audits_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piece_audits_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "pieces_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piece_audits_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "public_shared_pieces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       piece_templates: {
         Row: {
