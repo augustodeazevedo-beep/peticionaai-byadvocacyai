@@ -7,6 +7,26 @@ import { hashContent, runPipeline } from "@/lib/audit/pipeline.server";
 import { applyPrefsToFindings, DEFAULT_PREFS } from "@/lib/detectai.functions";
 import type { DetectAiPrefs } from "@/lib/detectai.functions";
 
+export type DetectAiCheckRow = {
+  id: string;
+  user_id: string;
+  text_preview: string;
+  score: number;
+  findings: AuditFinding[];
+  model: string | null;
+  stages: Record<string, number | string | boolean | null> | null;
+  content_hash: string | null;
+  created_at: string;
+};
+export type DetectAiCheckListItem = {
+  id: string;
+  text_preview: string;
+  score: number;
+  findings: AuditFinding[];
+  model: string | null;
+  created_at: string;
+};
+
 const auditTextInput = z.object({
   text: z.string().trim().min(1).max(80_000),
   context: z.string().max(20_000).optional().nullable(),
@@ -66,7 +86,7 @@ export const auditPasteText = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
-    return saved as unknown as Record<string, unknown>;
+    return saved as unknown as DetectAiCheckRow;
   });
 
 /** Últimas 20 verificações Detect.AI do usuário (histórico da página standalone). */
@@ -80,7 +100,7 @@ export const listDetectAiChecks = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
-    return (data ?? []) as unknown as Array<Record<string, unknown>>;
+    return (data ?? []) as unknown as DetectAiCheckListItem[];
   });
 
 const auditPieceInput = z.object({
