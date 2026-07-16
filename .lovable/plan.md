@@ -1,65 +1,98 @@
-# Detect.AI como ferramenta MCP
 
-Adicionar uma nova ferramenta MCP `audit_text` (e, opcionalmente, `audit_piece`) para que assistentes externos conectados via MCP possam rodar o pipeline Detect.AI em textos arbitrários, recebendo achados com severidade, trecho e correção sugerida.
+## Objetivo
 
-## Arquivos
+Transformar o Detect.AI numa ferramenta acessível como página própria (não só aba dentro da peça), com o layout do print anexado: header, card principal para colar/anexar texto, contador de caracteres e coluna lateral com "Histórico recente".
 
-**Novo — `src/lib/mcp/tools/audit_text.ts`**
-- `defineTool` com:
-  - `name: "audit_text"`, `title: "Detect.AI — auditar texto"`
-  - `description`: audita texto jurídico e detecta prompt injection, jailbreak, PII exposta, citações/leis/súmulas suspeitas, jurisprudência suspeita e alucinações.
-  - `annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true }` (chama LLM externo).
-  - `inputSchema` (Zod):
-    - `text: string` (1–80.000 chars) — obrigatório
-    - `context?: string` (até 20.000) — contexto do caso opcional
-    - `skip_llm?: boolean` — pula estágio D (mais rápido, sem gasto de LLM)
-  - `handler`:
-    - Reutiliza o pipeline existente através do server-fn `auditRawText` (encaminhando o token do caller via `createClient` + `Bearer ctx.getToken()` — mesmo padrão dos outros tools) **ou** chama diretamente a função interna `runPipeline` importando de um novo módulo server-only (ver abaixo).
-    - Retorna:
-      - `content: [{ type: "text", text: <resumo Markdown com contagem por severidade> }]`
-      - `structuredContent: { score, model, stages, findings: [{ id, category, severity, snippet, start, end, explanation, suggested_fix, confidence, evidence }] }`
-    - Erros em `isError: true`.
+## Rota e navegação
 
-**Novo — `src/lib/mcp/tools/audit_piece.ts`** (bonus, mesmo padrão dos outros tools de escrita/leitura de peça)
-- `inputSchema: { piece_id: string uuid, force?: boolean, skip_llm?: boolean }`
-- Consulta `pieces` via cliente com token do usuário (RLS), roda pipeline, persiste em `piece_audits` (mesma lógica de `auditPieceContent`) e retorna o registro salvo + findings estruturados.
+- Nova rota: `src/routes/_authenticated.detect-ai.tsx` (`/detect-ai`).
+- Item no sidebar (`src/components/AppSidebar.tsx`) chamado **Detect.AI** com ícone `ShieldCheck`, acima ou junto de "Configurações".
+- Link "Ajustar regras" no topo do card apontando para `/configuracoes/detect-ai` (já existe).
 
-**Refactor mínimo — `src/lib/audit.functions.ts`**
-- Extrair a função `runPipeline` e o helper `hashContent` para `src/lib/audit/pipeline.server.ts` (arquivo `.server.ts`, server-only) para poder ser reutilizada tanto pelos server-fns existentes quanto pelos handlers MCP sem passar pela camada RPC do TanStack. `audit.functions.ts` passa a importar dali.
+## Layout (fiel ao print)
 
-**Atualizar — `src/lib/mcp/index.ts`**
-- Importar `auditText` e `auditPiece`, incluir no array `tools`.
-- Atualizar `instructions` mencionando as novas ferramentas Detect.AI.
-
-**Validar manifesto**
-- Rodar `app_mcp_server--extract_mcp_manifest` após as edições para regenerar `.lovable/mcp/manifest.json` (11 tools).
-
-## Formato do retorno estruturado
-
-```json
-{
-  "score": 78,
-  "model": "google/gemini-3.5-flash",
-  "stages": { "A_heuristics_ms": 4, "B_citations_count": 3, ... },
-  "findings": [
-    {
-      "id": "h_1",
-      "category": "fake_jurisprudence",
-      "severity": "high",
-      "snippet": "Súmula 9999 do STJ",
-      "start": 412,
-      "end": 431,
-      "explanation": "Súmula fora do intervalo válido do STJ.",
-      "suggested_fix": "Verificar a numeração da súmula",
-      "confidence": 0.9,
-      "evidence": { "source": "stj_sumulas", "detail": "..." }
-    }
-  ]
-}
+```text
+┌───────────────── header ─────────────────┐
+│ 🛡 Detect.AI                              │
+│    Auditoria cética de textos gerados... │
+└──────────────────────────────────────────┘
+┌──────────── card principal ────────┐  ┌── Histórico recente ──┐
+│ Detect.AI                          │  │ 🕒 Histórico recente  │
+│ Cole a resposta gerada por IA…     │  │ (lista das 20 últimas │
+│ ┌────────────────────────────────┐ │  │  verificações ou      │
+│ │ Cole aqui o texto a auditar…   │ │  │  estado vazio)        │
+│ │                                │ │  └───────────────────────┘
+│ └────────────────────────────────┘ │
+│ [📎 Anexar .txt / .md]   0 / 30.000│
+│                       [▶ Iniciar]  │
+│ Rodapé: aviso de persistência      │
+└────────────────────────────────────┘
 ```
 
-## Segurança
-- Ambas as tools ficam sob o mesmo OAuth Supabase já configurado — `ctx.isAuthenticated()` obrigatório.
-- `audit_piece` usa cliente com bearer do usuário (RLS garante que só ausculta peças próprias).
-- `audit_text` não persiste nada; texto/contexto ficam apenas em memória durante a execução.
-- Handler mantém-se import-safe (segredos como `LOVABLE_API_KEY` só são lidos dentro do pipeline, no runtime).
+- Grid `lg:grid-cols-[1fr_320px]`, tokens semânticos (`glass`, `bg-gradient-brand`, `text-gradient-brand`) — sem cores hardcoded.
+- Textarea grande (min-h 380px), fonte mono suave no placeholder.
+- Contador de caracteres reativo, limite 30 000; botão desabilitado se vazio/estourado.
+- Botão "Anexar .txt / .md": `<input type="file" accept=".txt,.md,text/plain,text/markdown">`, lê via `file.text()` e injeta no textarea (rejeita > 30k com toast).
+- Botão "Iniciar verificação" com ícone `Play`, variante primária gradiente.
+
+## Backend
+
+Reaproveita o pipeline existente sem novas migrations:
+
+- Nova server fn `auditPasteText` em `src/lib/audit.functions.ts`:
+  - `.middleware([requireSupabaseAuth])`
+  - input: `{ text: string(1..30000), context?: string, skipLlm?: boolean }`
+  - chama `runPipeline` de `src/lib/audit/pipeline.server.ts`
+  - aplica `applyPrefsToFindings` (lendo `detectai_prefs` do usuário) para respeitar allowlist/severidade
+  - persiste em `piece_audits` com `piece_id = null` (auditoria avulsa) — **requer** migration leve tornando `piece_id` nullable + policy `user_id = auth.uid()` para linhas sem peça. Alternativa sem migration: tabela nova `detectai_checks` (id, user_id, text_preview, score, findings jsonb, created_at) com RLS por usuário e GRANTs padrão.
+  - **Decisão**: criar tabela nova `detectai_checks` (mais limpa, não mistura com auditorias de peças) — evita mexer no schema de `piece_audits`.
+
+- Nova server fn `listDetectAiChecks` retorna as últimas 20 do usuário para a coluna "Histórico recente".
+
+## Histórico recente
+
+- Card lateral com título "Histórico recente" e relógio (`Clock`).
+- Vazio: mostra "Nada verificado ainda. Suas 20 últimas verificações aparecem aqui." (igual ao print).
+- Populado: lista `score` + `data relativa` + primeiros ~60 chars do texto; clique abre modal com findings completos (reusa `AuditPanel` em modo readonly recebendo `findings`+`score` via props — pequena refatoração para aceitar dados externos além de `pieceId`).
+
+## AuditPanel: pequeno ajuste
+
+Hoje o painel busca por `pieceId`. Adicionar prop opcional `initialData?: { findings, score, id }` e, quando presente, pular fetch e permitir só leitura (sem "Aplicar correção", já que não há peça).
+
+## Migration
+
+```sql
+create table public.detectai_checks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text_preview text not null,
+  score int not null,
+  findings jsonb not null default '[]'::jsonb,
+  model text,
+  stages jsonb,
+  content_hash text,
+  created_at timestamptz not null default now()
+);
+grant select, insert, delete on public.detectai_checks to authenticated;
+grant all on public.detectai_checks to service_role;
+alter table public.detectai_checks enable row level security;
+create policy "own rows select" on public.detectai_checks for select to authenticated using (auth.uid() = user_id);
+create policy "own rows insert" on public.detectai_checks for insert to authenticated with check (auth.uid() = user_id);
+create policy "own rows delete" on public.detectai_checks for delete to authenticated using (auth.uid() = user_id);
+create index on public.detectai_checks (user_id, created_at desc);
+```
+
+## Arquivos tocados
+
+- **novo** `src/routes/_authenticated.detect-ai.tsx` — página completa.
+- **edit** `src/lib/audit.functions.ts` — adicionar `auditPasteText` + `listDetectAiChecks`.
+- **edit** `src/components/pieces/AuditPanel.tsx` — aceitar `initialData` opcional.
+- **edit** `src/components/AppSidebar.tsx` — item de menu Detect.AI.
+- **migration** — tabela `detectai_checks`.
+
+## Fora de escopo
+
+- Não altero o pipeline (`runPipeline`, detectores, LLM auditor).
+- Não altero a aba Detect.AI já existente dentro do editor de peças (continua funcionando).
+- Não altero a tela de configurações do Detect.AI.
+

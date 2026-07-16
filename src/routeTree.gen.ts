@@ -20,6 +20,7 @@ import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedWorkspaceRouteImport } from './routes/_authenticated.workspace'
 import { Route as AuthenticatedJurisprudenciaRouteImport } from './routes/_authenticated.jurisprudencia'
 import { Route as AuthenticatedHistoricoLoteRouteImport } from './routes/_authenticated.historico-lote'
+import { Route as AuthenticatedDetectAiRouteImport } from './routes/_authenticated.detect-ai'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCompartilhamentosRouteImport } from './routes/_authenticated.compartilhamentos'
 import { Route as AuthenticatedCnjRouteImport } from './routes/_authenticated.cnj'
@@ -98,6 +99,11 @@ const AuthenticatedHistoricoLoteRoute =
     path: '/historico-lote',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedDetectAiRoute = AuthenticatedDetectAiRouteImport.update({
+  id: '/detect-ai',
+  path: '/detect-ai',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/cnj': typeof AuthenticatedCnjRoute
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/detect-ai': typeof AuthenticatedDetectAiRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/cnj': typeof AuthenticatedCnjRoute
   '/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/detect-ai': typeof AuthenticatedDetectAiRoute
   '/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/_authenticated/cnj': typeof AuthenticatedCnjRoute
   '/_authenticated/compartilhamentos': typeof AuthenticatedCompartilhamentosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/detect-ai': typeof AuthenticatedDetectAiRoute
   '/_authenticated/historico-lote': typeof AuthenticatedHistoricoLoteRoute
   '/_authenticated/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
@@ -337,6 +346,7 @@ export interface FileRouteTypes {
     | '/cnj'
     | '/compartilhamentos'
     | '/dashboard'
+    | '/detect-ai'
     | '/historico-lote'
     | '/jurisprudencia'
     | '/workspace'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/cnj'
     | '/compartilhamentos'
     | '/dashboard'
+    | '/detect-ai'
     | '/historico-lote'
     | '/jurisprudencia'
     | '/workspace'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cnj'
     | '/_authenticated/compartilhamentos'
     | '/_authenticated/dashboard'
+    | '/_authenticated/detect-ai'
     | '/_authenticated/historico-lote'
     | '/_authenticated/jurisprudencia'
     | '/_authenticated/workspace'
@@ -518,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/historico-lote'
       fullPath: '/historico-lote'
       preLoaderRoute: typeof AuthenticatedHistoricoLoteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/detect-ai': {
+      id: '/_authenticated/detect-ai'
+      path: '/detect-ai'
+      fullPath: '/detect-ai'
+      preLoaderRoute: typeof AuthenticatedDetectAiRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard': {
@@ -691,6 +710,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCnjRoute: typeof AuthenticatedCnjRoute
   AuthenticatedCompartilhamentosRoute: typeof AuthenticatedCompartilhamentosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDetectAiRoute: typeof AuthenticatedDetectAiRoute
   AuthenticatedHistoricoLoteRoute: typeof AuthenticatedHistoricoLoteRoute
   AuthenticatedJurisprudenciaRoute: typeof AuthenticatedJurisprudenciaRoute
   AuthenticatedWorkspaceRoute: typeof AuthenticatedWorkspaceRoute
@@ -711,6 +731,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCnjRoute: AuthenticatedCnjRoute,
   AuthenticatedCompartilhamentosRoute: AuthenticatedCompartilhamentosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDetectAiRoute: AuthenticatedDetectAiRoute,
   AuthenticatedHistoricoLoteRoute: AuthenticatedHistoricoLoteRoute,
   AuthenticatedJurisprudenciaRoute: AuthenticatedJurisprudenciaRoute,
   AuthenticatedWorkspaceRoute: AuthenticatedWorkspaceRoute,

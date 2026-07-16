@@ -48,6 +48,7 @@ const MAIN = [
   { title: "Modelos de Peça", url: "/biblioteca/modelos", icon: Library },
   { title: "Assistentes", url: "/assistentes", icon: SparklesIcon },
   { title: "Bibliotecários", url: "/bibliotecarios", icon: Users },
+  { title: "Detect.AI", url: "/detect-ai", icon: ShieldCheck },
   { title: "Identidade do Escritório", url: "/configuracoes/identidade", icon: Palette },
   { title: "Configurações de IA", url: "/configuracoes/ia", icon: Cpu },
   { title: "Segurança & Chave Mestra", url: "/configuracoes/seguranca", icon: ShieldCheck },
