@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, Save, RotateCcw } from "lucide-react";
+import { Loader2, ShieldCheck, Save, RotateCcw, Users } from "lucide-react";
 import {
   getDetectAiPrefs,
   saveDetectAiPrefs,
@@ -230,6 +230,21 @@ function DetectAiConfigPage() {
           placeholder={"exemplo:\nCPF meramente ilustrativo\n^Súmula\\s+13\\s+STF$"}
           className="font-mono text-xs"
         />
+      </Card>
+
+      <Card className="glass p-5 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4" /> Whitelist por cliente
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Aprove citações e trechos específicos por cliente do escritório e
+            reduza falsos positivos nas auditorias das peças desse caso.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link to="/configuracoes/detect-ai-whitelist">Gerenciar</Link>
+        </Button>
       </Card>
 
       <div className="flex justify-between">
