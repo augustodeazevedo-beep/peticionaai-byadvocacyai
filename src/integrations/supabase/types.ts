@@ -115,6 +115,45 @@ export type Database = {
           },
         ]
       }
+      detectai_prefs: {
+        Row: {
+          allowlist_patterns: string[]
+          block_threshold: string
+          created_at: string
+          enforce_on_export: boolean
+          enforce_on_finalize: boolean
+          id: string
+          llm_auditor_enabled: boolean
+          rules: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowlist_patterns?: string[]
+          block_threshold?: string
+          created_at?: string
+          enforce_on_export?: boolean
+          enforce_on_finalize?: boolean
+          id?: string
+          llm_auditor_enabled?: boolean
+          rules?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowlist_patterns?: string[]
+          block_threshold?: string
+          created_at?: string
+          enforce_on_export?: boolean
+          enforce_on_finalize?: boolean
+          id?: string
+          llm_auditor_enabled?: boolean
+          rules?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_logs: {
         Row: {
           created_at: string
