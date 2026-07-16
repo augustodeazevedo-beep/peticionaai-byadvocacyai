@@ -14,6 +14,7 @@ import ReactMarkdown from "react-markdown";
 import { Download, FileDown, Save, RefreshCw, ArrowLeft, FileType, ChevronDown, Palette } from "lucide-react";
 import { IntelligencePanel } from "@/components/pieces/IntelligencePanel";
 import { OperatorNotesPanel } from "@/components/pieces/OperatorNotesPanel";
+import { AuditPanel } from "@/components/pieces/AuditPanel";
 import { PageMockup } from "@/components/pieces/PageMockup";
 import { useAuth } from "@/lib/auth";
 import { loadOfficeBrand, type OfficeBrand } from "@/lib/officeBrand";
@@ -237,6 +238,7 @@ function PieceEditor() {
           <TabsTrigger value="preview">Pré-visualização (A4)</TabsTrigger>
           <TabsTrigger value="markdown">Markdown</TabsTrigger>
           <TabsTrigger value="intel">Inteligência</TabsTrigger>
+          <TabsTrigger value="audit">LexGuard</TabsTrigger>
           <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="visual">Visual Law</TabsTrigger>
           <TabsTrigger value="visual-ai">Visual Law AI (beta)</TabsTrigger>
@@ -265,6 +267,13 @@ function PieceEditor() {
         </TabsContent>
         <TabsContent value="intel">
           <IntelligencePanel intelligence={piece.checklist} />
+        </TabsContent>
+        <TabsContent value="audit">
+          <AuditPanel
+            pieceId={piece.id}
+            contentText={content}
+            onContentChange={setContent}
+          />
         </TabsContent>
         <TabsContent value="notes">
           <OperatorNotesPanel notes={piece.observations} />
