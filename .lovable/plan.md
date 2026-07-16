@@ -1,96 +1,65 @@
-## Objetivo
+# Detect.AI como ferramenta MCP
 
-1. Tela dedicada de configurações do Detect.AI (por usuário) para ajustar o nível de severidade que bloqueia e as regras de validação por tipo de risco.
-2. Etapa automática de verificação Detect.AI ao **finalizar** (mudar status para `final`) e ao **exportar** (DOCX/PDF) uma peça, com bloqueio conforme as configurações.
+Adicionar uma nova ferramenta MCP `audit_text` (e, opcionalmente, `audit_piece`) para que assistentes externos conectados via MCP possam rodar o pipeline Detect.AI em textos arbitrários, recebendo achados com severidade, trecho e correção sugerida.
 
-## Parte 1 — Configurações do Detect.AI
+## Arquivos
 
-### Banco (nova tabela `detectai_prefs`)
-Colunas principais (uma linha por `user_id`, UNIQUE):
-- `block_threshold` enum: `off | high | medium | low` (severidade mínima que bloqueia; default `high`)
-- `enforce_on_finalize` bool (default `true`)
-- `enforce_on_export` bool (default `true`)
-- `rules` jsonb — habilita/desabilita cada detector e ajusta severidade individual:
-  - `prompt_injection` {enabled, severity}
-  - `jailbreak` {enabled, severity}
-  - `pii_leak` {enabled, severity}
-  - `citation_law` {enabled, severity}      — leis/artigos
-  - `citation_sumula` {enabled, severity}   — súmulas
-  - `citation_precedent` {enabled, severity} — HC/REsp/AI etc.
-  - `hallucination_llm` {enabled, severity} — auditor LLM
-  - `contradiction_llm` {enabled, severity}
-- `llm_auditor_enabled` bool (default `true`) — liga/desliga Stage D
-- `allowlist_patterns` text[] — regex que suprime falso-positivo
+**Novo — `src/lib/mcp/tools/audit_text.ts`**
+- `defineTool` com:
+  - `name: "audit_text"`, `title: "Detect.AI — auditar texto"`
+  - `description`: audita texto jurídico e detecta prompt injection, jailbreak, PII exposta, citações/leis/súmulas suspeitas, jurisprudência suspeita e alucinações.
+  - `annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true }` (chama LLM externo).
+  - `inputSchema` (Zod):
+    - `text: string` (1–80.000 chars) — obrigatório
+    - `context?: string` (até 20.000) — contexto do caso opcional
+    - `skip_llm?: boolean` — pula estágio D (mais rápido, sem gasto de LLM)
+  - `handler`:
+    - Reutiliza o pipeline existente através do server-fn `auditRawText` (encaminhando o token do caller via `createClient` + `Bearer ctx.getToken()` — mesmo padrão dos outros tools) **ou** chama diretamente a função interna `runPipeline` importando de um novo módulo server-only (ver abaixo).
+    - Retorna:
+      - `content: [{ type: "text", text: <resumo Markdown com contagem por severidade> }]`
+      - `structuredContent: { score, model, stages, findings: [{ id, category, severity, snippet, start, end, explanation, suggested_fix, confidence, evidence }] }`
+    - Erros em `isError: true`.
 
-RLS: `auth.uid() = user_id`. GRANT authenticated + service_role. Trigger `updated_at`.
+**Novo — `src/lib/mcp/tools/audit_piece.ts`** (bonus, mesmo padrão dos outros tools de escrita/leitura de peça)
+- `inputSchema: { piece_id: string uuid, force?: boolean, skip_llm?: boolean }`
+- Consulta `pieces` via cliente com token do usuário (RLS), roda pipeline, persiste em `piece_audits` (mesma lógica de `auditPieceContent`) e retorna o registro salvo + findings estruturados.
 
-### UI: `/configuracoes/detect-ai`
-- Card "Bloqueio": radio de severidade mínima que bloqueia + toggles `enforce_on_finalize` / `enforce_on_export`.
-- Card "Detectores": lista de 8 detectores com switch on/off + select de severidade (low/medium/high/critical) por regra.
-- Card "Auditor LLM (Stage D)": switch + explicação de custo (tokens).
-- Card "Allowlist": textarea com uma regex por linha (validação segura).
-- Botões: Salvar / Restaurar padrões.
-- Link a partir da aba Detect.AI do editor ("Ajustar regras").
+**Refactor mínimo — `src/lib/audit.functions.ts`**
+- Extrair a função `runPipeline` e o helper `hashContent` para `src/lib/audit/pipeline.server.ts` (arquivo `.server.ts`, server-only) para poder ser reutilizada tanto pelos server-fns existentes quanto pelos handlers MCP sem passar pela camada RPC do TanStack. `audit.functions.ts` passa a importar dali.
 
-### Server functions (`src/lib/detectai.functions.ts`)
-- `getDetectAiPrefs()` — retorna prefs do user (autocria com defaults se ausente).
-- `saveDetectAiPrefs(input)` — Zod validator, upsert.
-- `resetDetectAiPrefs()`.
+**Atualizar — `src/lib/mcp/index.ts`**
+- Importar `auditText` e `auditPiece`, incluir no array `tools`.
+- Atualizar `instructions` mencionando as novas ferramentas Detect.AI.
 
-### Integração com o pipeline existente
-- `src/lib/audit.functions.ts` (`auditPieceContent`) já roda os 4 estágios. Vai passar a **carregar as prefs do usuário** e:
-  - pular detectores desabilitados;
-  - ajustar `severity` de cada finding pela configuração;
-  - aplicar allowlist (suprime finding cujo `snippet` casa com regex);
-  - pular Stage D quando `llm_auditor_enabled=false`.
-- O `score` continua sendo calculado, mas o **veredito de bloqueio** passa a ser: existe finding com severity ≥ `block_threshold` entre regras habilitadas.
+**Validar manifesto**
+- Rodar `app_mcp_server--extract_mcp_manifest` após as edições para regenerar `.lovable/mcp/manifest.json` (11 tools).
 
-## Parte 2 — Verificação obrigatória ao finalizar/exportar
+## Formato do retorno estruturado
 
-### Novo helper `runDetectAiGate(pieceId, trigger)` (server fn)
-- Chama `auditPieceContent(pieceId)` (reaproveita cache por SHA-256 do conteúdo).
-- Aplica prefs → devolve `{ blocked: boolean, findings, score, threshold, trigger }`.
-- Grava em `piece_audits` (já existe) marcando `trigger` (`finalize` | `export_docx` | `export_pdf` | `manual`).
+```json
+{
+  "score": 78,
+  "model": "google/gemini-3.5-flash",
+  "stages": { "A_heuristics_ms": 4, "B_citations_count": 3, ... },
+  "findings": [
+    {
+      "id": "h_1",
+      "category": "fake_jurisprudence",
+      "severity": "high",
+      "snippet": "Súmula 9999 do STJ",
+      "start": 412,
+      "end": 431,
+      "explanation": "Súmula fora do intervalo válido do STJ.",
+      "suggested_fix": "Verificar a numeração da súmula",
+      "confidence": 0.9,
+      "evidence": { "source": "stj_sumulas", "detail": "..." }
+    }
+  ]
+}
+```
 
-### Hooks no editor `/pecas/$id`
-- **Finalizar**: botão "Marcar como final" agora chama `runDetectAiGate(id, "finalize")` **antes** do update de status:
-  - `blocked=true` e `enforce_on_finalize=true` → abre modal `DetectAiGateDialog` listando findings; ações: "Corrigir na aba Detect.AI", "Ignorar e finalizar mesmo assim" (registra `dismissed_by_user` no audit e só disponível se o usuário tiver override manual — checkbox "estou ciente").
-  - `blocked=false` → segue o update normal.
-- **Exportar (DOCX/PDF)**: mesmo gate antes de disparar `exportPieceDocx`/`exportPiecePdf`, com `enforce_on_export`.
-
-### Componente `DetectAiGateDialog.tsx`
-- Score ring + lista compacta de findings críticos (severity ≥ threshold), com CTA para abrir a aba Detect.AI.
-- Botão "Rodar verificação novamente" (força bypass de cache).
-- Se auditor LLM estiver desligado, mostra aviso de que só heurísticas rodaram.
-
-### UX de transparência
-- Badge na barra superior do editor: `Detect.AI: última verificação há Xmin — score 87` (verde/âmbar/vermelho conforme threshold).
-- Ao finalizar/exportar sem findings acima do threshold, toast "Verificação Detect.AI aprovada".
-
-## Detalhes técnicos
-
-- **Cache**: `piece_audits` já indexa por `content_hash`; se hash bater, reusa findings — mas o **gate re-aplica prefs atuais** (severidade/allowlist são runtime-side, não são gravadas no cache).
-- **Segurança**: `runDetectAiGate` sempre via `requireSupabaseAuth`; nunca aceita `content_text` do cliente — busca do banco.
-- **Regex allowlist**: compilar com try/catch, marcar inválidas na UI, timeout por regra (evitar ReDoS).
-- **Migração**: `CREATE TABLE public.detectai_prefs` + GRANT + RLS + POLICY (usuário só lê/escreve o próprio), sem afetar `piece_audits`.
-
-## Arquivos a criar/editar
-
-Novos:
-- `src/lib/detectai.functions.ts` (getPrefs/savePrefs/resetPrefs/runDetectAiGate)
-- `src/routes/_authenticated.configuracoes.detect-ai.tsx`
-- `src/components/detectai/RuleRow.tsx`
-- `src/components/detectai/DetectAiGateDialog.tsx`
-- Migração SQL para `detectai_prefs`.
-
-Editar:
-- `src/lib/audit.functions.ts` — aplicar prefs (habilitar/desabilitar, severidade, allowlist, skip Stage D).
-- `src/routes/_authenticated.pecas.$id.tsx` — gate no finalizar e nos botões de exportação, badge de status.
-- `src/components/pieces/AuditPanel.tsx` — link "Ajustar regras" → `/configuracoes/detect-ai`.
-- `src/routes/_authenticated.configuracoes.tsx` (índice, se existir) — item de menu Detect.AI.
-
-## Fora do escopo
-
-- Compartilhar preferências entre membros de escritório (é por usuário nesta v1).
-- Regras customizadas do usuário (adicionar novos detectores). Fica para v2.
-- Auditoria automática em background (só roda nos gatilhos + botão manual).
+## Segurança
+- Ambas as tools ficam sob o mesmo OAuth Supabase já configurado — `ctx.isAuthenticated()` obrigatório.
+- `audit_piece` usa cliente com bearer do usuário (RLS garante que só ausculta peças próprias).
+- `audit_text` não persiste nada; texto/contexto ficam apenas em memória durante a execução.
+- Handler mantém-se import-safe (segredos como `LOVABLE_API_KEY` só são lidos dentro do pipeline, no runtime).
