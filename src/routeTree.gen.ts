@@ -36,6 +36,7 @@ import { Route as AuthenticatedFerramentasLinksRouteImport } from './routes/_aut
 import { Route as AuthenticatedConfiguracoesSegurancaRouteImport } from './routes/_authenticated.configuracoes.seguranca'
 import { Route as AuthenticatedConfiguracoesIdentidadeRouteImport } from './routes/_authenticated.configuracoes.identidade'
 import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_authenticated.configuracoes.ia'
+import { Route as AuthenticatedConfiguracoesDetectAiWhitelistRouteImport } from './routes/_authenticated.configuracoes.detect-ai-whitelist'
 import { Route as AuthenticatedConfiguracoesDetectAiRouteImport } from './routes/_authenticated.configuracoes.detect-ai'
 import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
@@ -190,6 +191,12 @@ const AuthenticatedConfiguracoesIaRoute =
     path: '/configuracoes/ia',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedConfiguracoesDetectAiWhitelistRoute =
+  AuthenticatedConfiguracoesDetectAiWhitelistRouteImport.update({
+    id: '/configuracoes/detect-ai-whitelist',
+    path: '/configuracoes/detect-ai-whitelist',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedConfiguracoesDetectAiRoute =
   AuthenticatedConfiguracoesDetectAiRouteImport.update({
     id: '/configuracoes/detect-ai',
@@ -250,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
+  '/configuracoes/detect-ai-whitelist': typeof AuthenticatedConfiguracoesDetectAiWhitelistRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -284,6 +292,7 @@ export interface FileRoutesByTo {
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
+  '/configuracoes/detect-ai-whitelist': typeof AuthenticatedConfiguracoesDetectAiWhitelistRoute
   '/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -320,6 +329,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
   '/_authenticated/configuracoes/detect-ai': typeof AuthenticatedConfiguracoesDetectAiRoute
+  '/_authenticated/configuracoes/detect-ai-whitelist': typeof AuthenticatedConfiguracoesDetectAiWhitelistRoute
   '/_authenticated/configuracoes/ia': typeof AuthenticatedConfiguracoesIaRoute
   '/_authenticated/configuracoes/identidade': typeof AuthenticatedConfiguracoesIdentidadeRoute
   '/_authenticated/configuracoes/seguranca': typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/admin/integracoes'
     | '/biblioteca/modelos'
     | '/configuracoes/detect-ai'
+    | '/configuracoes/detect-ai-whitelist'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/configuracoes/seguranca'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/admin/integracoes'
     | '/biblioteca/modelos'
     | '/configuracoes/detect-ai'
+    | '/configuracoes/detect-ai-whitelist'
     | '/configuracoes/ia'
     | '/configuracoes/identidade'
     | '/configuracoes/seguranca'
@@ -425,6 +437,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/biblioteca/modelos'
     | '/_authenticated/configuracoes/detect-ai'
+    | '/_authenticated/configuracoes/detect-ai-whitelist'
     | '/_authenticated/configuracoes/ia'
     | '/_authenticated/configuracoes/identidade'
     | '/_authenticated/configuracoes/seguranca'
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracoes/detect-ai-whitelist': {
+      id: '/_authenticated/configuracoes/detect-ai-whitelist'
+      path: '/configuracoes/detect-ai-whitelist'
+      fullPath: '/configuracoes/detect-ai-whitelist'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesDetectAiWhitelistRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/configuracoes/detect-ai': {
       id: '/_authenticated/configuracoes/detect-ai'
       path: '/configuracoes/detect-ai'
@@ -717,6 +737,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedBibliotecaModelosRoute: typeof AuthenticatedBibliotecaModelosRouteWithChildren
   AuthenticatedConfiguracoesDetectAiRoute: typeof AuthenticatedConfiguracoesDetectAiRoute
+  AuthenticatedConfiguracoesDetectAiWhitelistRoute: typeof AuthenticatedConfiguracoesDetectAiWhitelistRoute
   AuthenticatedConfiguracoesIaRoute: typeof AuthenticatedConfiguracoesIaRoute
   AuthenticatedConfiguracoesIdentidadeRoute: typeof AuthenticatedConfiguracoesIdentidadeRoute
   AuthenticatedConfiguracoesSegurancaRoute: typeof AuthenticatedConfiguracoesSegurancaRoute
@@ -740,6 +761,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedBibliotecaModelosRouteWithChildren,
   AuthenticatedConfiguracoesDetectAiRoute:
     AuthenticatedConfiguracoesDetectAiRoute,
+  AuthenticatedConfiguracoesDetectAiWhitelistRoute:
+    AuthenticatedConfiguracoesDetectAiWhitelistRoute,
   AuthenticatedConfiguracoesIaRoute: AuthenticatedConfiguracoesIaRoute,
   AuthenticatedConfiguracoesIdentidadeRoute:
     AuthenticatedConfiguracoesIdentidadeRoute,
