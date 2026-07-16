@@ -66,17 +66,7 @@ export const auditPasteText = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
-    return saved as unknown as {
-      id: string;
-      user_id: string;
-      text_preview: string;
-      score: number;
-      findings: AuditFinding[];
-      model: string | null;
-      stages: Record<string, unknown>;
-      content_hash: string;
-      created_at: string;
-    };
+    return saved as unknown as Record<string, unknown>;
   });
 
 /** Últimas 20 verificações Detect.AI do usuário (histórico da página standalone). */
@@ -90,14 +80,7 @@ export const listDetectAiChecks = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
-    return (data ?? []) as unknown as Array<{
-      id: string;
-      text_preview: string;
-      score: number;
-      findings: AuditFinding[];
-      model: string | null;
-      created_at: string;
-    }>;
+    return (data ?? []) as unknown as Array<Record<string, unknown>>;
   });
 
 const auditPieceInput = z.object({
