@@ -38,6 +38,7 @@ import { Route as AuthenticatedConfiguracoesIaRouteImport } from './routes/_auth
 import { Route as AuthenticatedBibliotecaModelosRouteImport } from './routes/_authenticated.biblioteca.modelos'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated.admin.integracoes'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedBibliotecaModelosIdRouteImport } from './routes/_authenticated.biblioteca.modelos.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -200,6 +201,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedBibliotecaModelosIdRoute =
   AuthenticatedBibliotecaModelosIdRouteImport.update({
     id: '/$id',
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/jurisprudencia': typeof AuthenticatedJurisprudenciaRoute
   '/_authenticated/workspace': typeof AuthenticatedWorkspaceRoute
   '/p/$slug': typeof PSlugRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/biblioteca/modelos': typeof AuthenticatedBibliotecaModelosRouteWithChildren
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/jurisprudencia'
     | '/workspace'
     | '/p/$slug'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/integracoes'
     | '/biblioteca/modelos'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/jurisprudencia'
     | '/workspace'
     | '/p/$slug'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/integracoes'
     | '/biblioteca/modelos'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/_authenticated/jurisprudencia'
     | '/_authenticated/workspace'
     | '/p/$slug'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/integracoes'
     | '/_authenticated/biblioteca/modelos'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PSlugRoute: typeof PSlugRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAdvogaProcessContextRoute: typeof ApiPublicAdvogaProcessContextRoute
   ApiPublicInventariaProcessContextRoute: typeof ApiPublicInventariaProcessContextRoute
@@ -620,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/biblioteca/modelos/$id': {
       id: '/_authenticated/biblioteca/modelos/$id'
       path: '/$id'
@@ -702,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PSlugRoute: PSlugRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAdvogaProcessContextRoute: ApiPublicAdvogaProcessContextRoute,
   ApiPublicInventariaProcessContextRoute:
