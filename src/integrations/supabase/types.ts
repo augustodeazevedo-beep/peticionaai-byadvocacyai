@@ -190,6 +190,42 @@ export type Database = {
         }
         Relationships: []
       }
+      detectai_whitelist: {
+        Row: {
+          category: string | null
+          client_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          pattern: string
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pattern: string
+          scope: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pattern?: string
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_logs: {
         Row: {
           created_at: string
