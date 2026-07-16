@@ -1,45 +1,96 @@
-# MCP: escrita de peças e modelos
+## Objetivo
 
-Adicionar quatro ferramentas MCP para permitir que agentes externos (ChatGPT, Claude, Cursor, etc.) criem e atualizem peças e modelos do usuário autenticado, respeitando RLS.
+1. Tela dedicada de configurações do Detect.AI (por usuário) para ajustar o nível de severidade que bloqueia e as regras de validação por tipo de risco.
+2. Etapa automática de verificação Detect.AI ao **finalizar** (mudar status para `final`) e ao **exportar** (DOCX/PDF) uma peça, com bloqueio conforme as configurações.
 
-Todas seguem o mesmo padrão dos tools existentes (`get_piece`, `list_templates`): cliente Supabase com `Authorization: Bearer <token do usuário>`, `ctx.getUserId()` para `user_id`, sem chave admin, sem entrada de `user_id` pelo agente.
+## Parte 1 — Configurações do Detect.AI
 
-## Ferramentas
+### Banco (nova tabela `detectai_prefs`)
+Colunas principais (uma linha por `user_id`, UNIQUE):
+- `block_threshold` enum: `off | high | medium | low` (severidade mínima que bloqueia; default `high`)
+- `enforce_on_finalize` bool (default `true`)
+- `enforce_on_export` bool (default `true`)
+- `rules` jsonb — habilita/desabilita cada detector e ajusta severidade individual:
+  - `prompt_injection` {enabled, severity}
+  - `jailbreak` {enabled, severity}
+  - `pii_leak` {enabled, severity}
+  - `citation_law` {enabled, severity}      — leis/artigos
+  - `citation_sumula` {enabled, severity}   — súmulas
+  - `citation_precedent` {enabled, severity} — HC/REsp/AI etc.
+  - `hallucination_llm` {enabled, severity} — auditor LLM
+  - `contradiction_llm` {enabled, severity}
+- `llm_auditor_enabled` bool (default `true`) — liga/desliga Stage D
+- `allowlist_patterns` text[] — regex que suprime falso-positivo
 
-**`create_piece`** — cria uma peça em `public.pieces`.
-- Entrada: `title` (obrigatório), `piece_type` (default `peticao_inicial_civel`), `area?`, `content_text?`, `content_html?`, `project_id?` (uuid), `template_id?` (uuid), `input_data?` (metadados do caso — cliente, parte contrária, fatos, pedidos, etc., como objeto JSON), `observations?`, `status?` (`draft`/`review`/`final`, default `draft`).
-- Grava `user_id = ctx.getUserId()`; retorna `{ id, title, status, created_at }`.
+RLS: `auth.uid() = user_id`. GRANT authenticated + service_role. Trigger `updated_at`.
 
-**`update_piece`** — atualiza peça existente.
-- Entrada: `id` (obrigatório) + campos parciais opcionais: `title`, `piece_type`, `area`, `content_text`, `content_html`, `input_data` (merge raso na aplicação — busca o objeto atual, mescla e grava), `observations`, `status`, `checklist`, `brand_overrides`, `assembly_options`.
-- Anexos: `add_case_files?: [{ path, mime?, size? }]` insere linhas em `public.case_files` vinculadas à peça; `remove_case_file_ids?: uuid[]` remove por id. RLS já garante isolamento.
-- Só atualiza colunas fornecidas; retorna a peça atualizada. Falha se `id` não pertence ao usuário (RLS devolve 0 linhas → erro amigável).
+### UI: `/configuracoes/detect-ai`
+- Card "Bloqueio": radio de severidade mínima que bloqueia + toggles `enforce_on_finalize` / `enforce_on_export`.
+- Card "Detectores": lista de 8 detectores com switch on/off + select de severidade (low/medium/high/critical) por regra.
+- Card "Auditor LLM (Stage D)": switch + explicação de custo (tokens).
+- Card "Allowlist": textarea com uma regex por linha (validação segura).
+- Botões: Salvar / Restaurar padrões.
+- Link a partir da aba Detect.AI do editor ("Ajustar regras").
 
-**`create_template`** — cria modelo em `public.piece_templates`.
-- Entrada: `name`, `area`, `piece_type` (obrigatórios); `description?`, `content_md?` (corpo do modelo com placeholders `{{campo}}`), `structure?` (JSON — seções/ordem), `prompt_hints?` (persona e regras que o pipeline injeta), `tags?` (string[]), `scope?` (`pessoal`/`escritorio`, default `pessoal`), `style_overrides?` (JSON), `is_default?`.
-- `user_id = ctx.getUserId()`; retorna `{ id, name, area, piece_type }`.
+### Server functions (`src/lib/detectai.functions.ts`)
+- `getDetectAiPrefs()` — retorna prefs do user (autocria com defaults se ausente).
+- `saveDetectAiPrefs(input)` — Zod validator, upsert.
+- `resetDetectAiPrefs()`.
 
-**`update_template`** — atualiza modelo existente.
-- Entrada: `id` + campos parciais dos mesmos atributos de `create_template`.
-- Merge raso em `structure`/`style_overrides` quando enviados; substituição direta em `content_md`, `prompt_hints`, `tags`, `scope`, `is_default`, `description`.
-- Retorna o modelo atualizado; RLS garante ownership.
+### Integração com o pipeline existente
+- `src/lib/audit.functions.ts` (`auditPieceContent`) já roda os 4 estágios. Vai passar a **carregar as prefs do usuário** e:
+  - pular detectores desabilitados;
+  - ajustar `severity` de cada finding pela configuração;
+  - aplicar allowlist (suprime finding cujo `snippet` casa com regex);
+  - pular Stage D quando `llm_auditor_enabled=false`.
+- O `score` continua sendo calculado, mas o **veredito de bloqueio** passa a ser: existe finding com severity ≥ `block_threshold` entre regras habilitadas.
 
-Anotações MCP: `readOnlyHint: false` nas quatro; `destructiveHint: true` apenas em `update_piece` e `update_template` quando o input remove anexos ou muda `status: "final"`? — mantido simples: sem `destructiveHint`, com `openWorldHint: false`.
+## Parte 2 — Verificação obrigatória ao finalizar/exportar
+
+### Novo helper `runDetectAiGate(pieceId, trigger)` (server fn)
+- Chama `auditPieceContent(pieceId)` (reaproveita cache por SHA-256 do conteúdo).
+- Aplica prefs → devolve `{ blocked: boolean, findings, score, threshold, trigger }`.
+- Grava em `piece_audits` (já existe) marcando `trigger` (`finalize` | `export_docx` | `export_pdf` | `manual`).
+
+### Hooks no editor `/pecas/$id`
+- **Finalizar**: botão "Marcar como final" agora chama `runDetectAiGate(id, "finalize")` **antes** do update de status:
+  - `blocked=true` e `enforce_on_finalize=true` → abre modal `DetectAiGateDialog` listando findings; ações: "Corrigir na aba Detect.AI", "Ignorar e finalizar mesmo assim" (registra `dismissed_by_user` no audit e só disponível se o usuário tiver override manual — checkbox "estou ciente").
+  - `blocked=false` → segue o update normal.
+- **Exportar (DOCX/PDF)**: mesmo gate antes de disparar `exportPieceDocx`/`exportPiecePdf`, com `enforce_on_export`.
+
+### Componente `DetectAiGateDialog.tsx`
+- Score ring + lista compacta de findings críticos (severity ≥ threshold), com CTA para abrir a aba Detect.AI.
+- Botão "Rodar verificação novamente" (força bypass de cache).
+- Se auditor LLM estiver desligado, mostra aviso de que só heurísticas rodaram.
+
+### UX de transparência
+- Badge na barra superior do editor: `Detect.AI: última verificação há Xmin — score 87` (verde/âmbar/vermelho conforme threshold).
+- Ao finalizar/exportar sem findings acima do threshold, toast "Verificação Detect.AI aprovada".
 
 ## Detalhes técnicos
 
-- Arquivos novos: `src/lib/mcp/tools/create_piece.ts`, `update_piece.ts`, `create_template.ts`, `update_template.ts`.
-- Registrar em `src/lib/mcp/index.ts` no array `tools`, mantendo os cinco atuais. Atualizar `instructions` mencionando as novas capacidades de escrita.
-- Reuso do helper `supabaseForUser(ctx)` já presente nos tools atuais (copiado localmente em cada arquivo, como o padrão do repositório).
-- Validação com Zod: uuids validados; strings com limites (título ≤ 255, `content_text` ≤ 200k, `content_html` ≤ 400k, `content_md` ≤ 200k, `observations` ≤ 20k) para evitar payloads absurdos.
-- `input_data` merge: `SELECT input_data` → `{...atual, ...novo}` → `UPDATE`. Feito em uma única operação sequencial dentro do handler.
-- Anexos em `update_piece`: cada linha em `case_files` grava `user_id = ctx.getUserId()` e `piece_id = id`. Apenas o path lógico dentro do bucket `case-files` é aceito (regex `^[A-Za-z0-9._/-]{1,500}$`); upload real segue via app (o MCP não faz upload de binário).
-- Todos os handlers retornam `{ content: [{ type: "text", text: ... }], structuredContent: {...}, isError? }` conforme padrão.
-- Não é preciso migration: as tabelas já existem com RLS por `auth.uid()`. Não são criadas policies novas.
-- Após salvar os arquivos, rodar `app_mcp_server--extract_mcp_manifest` para revalidar o manifesto.
+- **Cache**: `piece_audits` já indexa por `content_hash`; se hash bater, reusa findings — mas o **gate re-aplica prefs atuais** (severidade/allowlist são runtime-side, não são gravadas no cache).
+- **Segurança**: `runDetectAiGate` sempre via `requireSupabaseAuth`; nunca aceita `content_text` do cliente — busca do banco.
+- **Regex allowlist**: compilar com try/catch, marcar inválidas na UI, timeout por regra (evitar ReDoS).
+- **Migração**: `CREATE TABLE public.detectai_prefs` + GRANT + RLS + POLICY (usuário só lê/escreve o próprio), sem afetar `piece_audits`.
+
+## Arquivos a criar/editar
+
+Novos:
+- `src/lib/detectai.functions.ts` (getPrefs/savePrefs/resetPrefs/runDetectAiGate)
+- `src/routes/_authenticated.configuracoes.detect-ai.tsx`
+- `src/components/detectai/RuleRow.tsx`
+- `src/components/detectai/DetectAiGateDialog.tsx`
+- Migração SQL para `detectai_prefs`.
+
+Editar:
+- `src/lib/audit.functions.ts` — aplicar prefs (habilitar/desabilitar, severidade, allowlist, skip Stage D).
+- `src/routes/_authenticated.pecas.$id.tsx` — gate no finalizar e nos botões de exportação, badge de status.
+- `src/components/pieces/AuditPanel.tsx` — link "Ajustar regras" → `/configuracoes/detect-ai`.
+- `src/routes/_authenticated.configuracoes.tsx` (índice, se existir) — item de menu Detect.AI.
 
 ## Fora do escopo
 
-- Upload binário de anexos via MCP (o agente registra apenas o `path` já enviado ao bucket pelo app).
-- Publicação/compartilhamento público (`is_shared`, `public_slug`) — mantido no app para exigir consentimento explícito.
-- Exclusão de peças/modelos (`delete_*`) — pode entrar em iteração futura se pedido.
+- Compartilhar preferências entre membros de escritório (é por usuário nesta v1).
+- Regras customizadas do usuário (adicionar novos detectores). Fica para v2.
+- Auditoria automática em background (só roda nos gatilhos + botão manual).
