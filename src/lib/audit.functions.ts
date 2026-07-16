@@ -4,6 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AuditFinding } from "@/lib/audit/types";
 import { computeScore } from "@/lib/audit/types";
 import { hashContent, runPipeline } from "@/lib/audit/pipeline.server";
+import { applyPrefsToFindings, DEFAULT_PREFS } from "@/lib/detectai.functions";
+import type { DetectAiPrefs } from "@/lib/detectai.functions";
 
 const auditTextInput = z.object({
   text: z.string().trim().min(1).max(80_000),
@@ -17,6 +19,85 @@ export const auditRawText = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => auditTextInput.parse(d))
   .handler(async ({ data }) => {
     return runPipeline(data.text, data.context ?? null, data.skipLlm ?? false);
+  });
+
+/** Auditoria avulsa (cola-texto) — persiste em detectai_checks e aplica prefs do usuário. */
+const pasteInput = z.object({
+  text: z.string().trim().min(1).max(30_000),
+  context: z.string().max(20_000).optional().nullable(),
+  skipLlm: z.boolean().optional(),
+});
+
+export const auditPasteText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => pasteInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as {
+      from: (t: string) => {
+        select: (c: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } };
+        insert: (v: Record<string, unknown>) => { select: (c: string) => { single: () => Promise<{ data: unknown; error: { message: string } | null }> } };
+      };
+    };
+    const { data: prefsRow } = await sb
+      .from("detectai_prefs")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const prefs = (prefsRow ?? DEFAULT_PREFS) as DetectAiPrefs;
+    const skipLlm = data.skipLlm ?? !(prefs?.llm_auditor_enabled ?? true);
+
+    const result = await runPipeline(data.text, data.context ?? null, skipLlm);
+    const filtered = applyPrefsToFindings(result.findings, prefs);
+    const score = filtered.length === 0 ? 100 : result.score;
+
+    const preview = data.text.slice(0, 240);
+    const { data: saved, error } = await sb
+      .from("detectai_checks")
+      .insert({
+        user_id: userId,
+        text_preview: preview,
+        score,
+        findings: filtered as unknown as Record<string, unknown>,
+        model: result.model,
+        stages: result.stages as unknown as Record<string, unknown>,
+        content_hash: result.content_hash,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return saved as unknown as {
+      id: string;
+      user_id: string;
+      text_preview: string;
+      score: number;
+      findings: AuditFinding[];
+      model: string | null;
+      stages: Record<string, unknown>;
+      content_hash: string;
+      created_at: string;
+    };
+  });
+
+/** Últimas 20 verificações Detect.AI do usuário (histórico da página standalone). */
+export const listDetectAiChecks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("detectai_checks")
+      .select("id, text_preview, score, findings, model, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    return (data ?? []) as unknown as Array<{
+      id: string;
+      text_preview: string;
+      score: number;
+      findings: AuditFinding[];
+      model: string | null;
+      created_at: string;
+    }>;
   });
 
 const auditPieceInput = z.object({
